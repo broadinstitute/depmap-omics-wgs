@@ -1,0 +1,41 @@
+{
+  "deleted": false,
+  "inputs": {
+    "GDCWholeGenomeSomaticSingleSample.contamination_vcf": "\"gs://gatk-best-practices/somatic-hg38/small_exac_common_3.hg38.vcf.gz\"",
+    "GDCWholeGenomeSomaticSingleSample.contamination_vcf_index": "\"gs://gatk-best-practices/somatic-hg38/small_exac_common_3.hg38.vcf.gz.tbi\"",
+    "GDCWholeGenomeSomaticSingleSample.dbsnp_vcf": "workspace.referenceData_hg38_dbsnp_vcf",
+    "GDCWholeGenomeSomaticSingleSample.dbsnp_vcf_index": "workspace.referenceData_hg38_dbsnp_vcf_index",
+    "GDCWholeGenomeSomaticSingleSample.ref_amb": "workspace.referenceData_hg38_ref_amb",
+    "GDCWholeGenomeSomaticSingleSample.ref_ann": "workspace.referenceData_hg38_ref_ann",
+    "GDCWholeGenomeSomaticSingleSample.ref_bwt": "workspace.referenceData_hg38_ref_bwt",
+    "GDCWholeGenomeSomaticSingleSample.ref_dict": "workspace.referenceData_hg38_ref_dict",
+    "GDCWholeGenomeSomaticSingleSample.ref_fai": "workspace.referenceData_hg38_ref_fasta_index",
+    "GDCWholeGenomeSomaticSingleSample.ref_fasta": "workspace.referenceData_hg38_ref_fasta",
+    "GDCWholeGenomeSomaticSingleSample.ref_pac": "workspace.referenceData_hg38_ref_pac",
+    "GDCWholeGenomeSomaticSingleSample.ref_sa": "workspace.referenceData_hg38_ref_sa",
+    "GDCWholeGenomeSomaticSingleSample.base_file_name": "this.sample_id",
+    "GDCWholeGenomeSomaticSingleSample.input_cram": "this.delivery_cram_bam",
+    "GDCWholeGenomeSomaticSingleSample.input_crai": "this.delivery_crai_bai",
+    "GDCWholeGenomeSomaticSingleSample.input_bam": "this.delivery_cram_bam",
+    "GDCWholeGenomeSomaticSingleSample.input_bai": "this.delivery_crai_bai",
+    "GDCWholeGenomeSomaticSingleSample.cram_ref_fasta": "this.delivery_ref_fasta",
+    "GDCWholeGenomeSomaticSingleSample.cram_ref_fasta_index": "this.delivery_ref_fasta_index"
+  },
+  "methodConfigVersion": 1,
+  "methodRepoMethod": {
+    "methodNamespace": "cds-pipelines",
+    "methodName": "preprocess_wgs_sample",
+    "methodVersion": 1
+  },
+  "namespace": "cds-pipelines",
+  "name": "preprocess_wgs_sample",
+  "outputs": {
+    "GDCWholeGenomeSomaticSingleSample.bam": "this.bam",
+    "GDCWholeGenomeSomaticSingleSample.bai": "this.bai",
+    "GDCWholeGenomeSomaticSingleSample.md_metrics": "this.preprocess_md_metrics",
+    "GDCWholeGenomeSomaticSingleSample.insert_size_metrics": "this.preprocess_insert_size_metrics",
+    "GDCWholeGenomeSomaticSingleSample.insert_size_histogram_pdf": "this.preprocess_insert_size_histogram_pdf",
+    "GDCWholeGenomeSomaticSingleSample.contamination": "this.preprocess_contamination"
+  },
+  "rootEntityType": "sample"
+}

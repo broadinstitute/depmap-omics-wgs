@@ -1,0 +1,17 @@
+title = "omics-wgs-pipeline config"
+
+gcp_project_id = "depmap-omics"
+
+[terra]
+pipelines_bucket_name = "cds-pipelines"
+repo_namespace = "cds-pipelines"
+workspace_namespace = "broad-firecloud-ccle"
+workspace_name = "omics_wgs_pipeline"
+firecloud_owners = ["dmccabe@broadinstitute.org", "omics-pipeline-runner@depmap-omics.iam.gserviceaccount.com"]
+
+[terra.preprocess]
+repo_method_name = "preprocess_wgs_sample"
+method_config_name = "preprocess_wgs_sample"
+method_synopsis = "Run WARP GDC single-sample preprocessing workflow"
+workflow_wdl_path = "./workflows/preprocess_wgs_sample/preprocess_wgs_sample.wdl"
+method_config_json_path = "./workflows/preprocess_wgs_sample/preprocess_wgs_sample.json"
