@@ -1,6 +1,15 @@
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from .base_client import BaseClient
+from .input_types import (
+    task_entity_insert_input,
+    task_result_arr_rel_insert_input,
+    task_result_insert_input,
+)
+from .insert_task_entities import InsertTaskEntities
+from .insert_task_results import InsertTaskResults
+from .insert_terra_sync import InsertTerraSync
+from .sequencing_task_entities import SequencingTaskEntities
 from .wgs_sequencings import WgsSequencings
 
 
@@ -14,7 +23,7 @@ class GumboClient(BaseClient):
             """
             query WgsSequencings {
               records: omics_sequencing(
-                where: {_and: [{_or: [{blacklist: {_is_null: true}}, {blacklist: {_neq: true}}]}, {_or: [{bam_filepath: {_is_null: false}}, {hg19_bam_filepath: {_is_null: false}}, {hg38_cram_filepath: {_is_null: false}}]}, {expected_type: {_eq: "wgs"}}, {omics_profile: {_or: [{blacklist_omics: {_is_null: true}}, {blacklist_omics: {_neq: true}}]}}]}
+                where: {blacklist: {_neq: true}, _or: [{bam_filepath: {_is_null: false}}, {hg19_bam_filepath: {_is_null: false}}, {hg38_cram_filepath: {_is_null: false}}], expected_type: {_eq: "wgs"}, omics_profile: {blacklist_omics: {_neq: true}}}
               ) {
                 hg19_bai_filepath
                 hg19_bam_filepath
@@ -33,3 +42,115 @@ class GumboClient(BaseClient):
         )
         data = self.get_data(response)
         return WgsSequencings.model_validate(data)
+
+    def insert_task_entities(
+        self, username: str, objects: List[task_entity_insert_input], **kwargs: Any
+    ) -> InsertTaskEntities:
+        query = gql(
+            """
+            mutation InsertTaskEntities($username: String!, $objects: [task_entity_insert_input!]!) {
+              set_username(args: {_username: $username}) {
+                username
+              }
+              insert_task_entity(objects: $objects) {
+                returning {
+                  id
+                  sequencing_id
+                }
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {"username": username, "objects": objects}
+        response = self.execute(
+            query=query,
+            operation_name="InsertTaskEntities",
+            variables=variables,
+            **kwargs
+        )
+        data = self.get_data(response)
+        return InsertTaskEntities.model_validate(data)
+
+    def sequencing_task_entities(self, **kwargs: Any) -> SequencingTaskEntities:
+        query = gql(
+            """
+            query SequencingTaskEntities {
+              records: task_entity(where: {sequencing_id: {_is_null: false}}) {
+                id
+                sequencing_id
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {}
+        response = self.execute(
+            query=query,
+            operation_name="SequencingTaskEntities",
+            variables=variables,
+            **kwargs
+        )
+        data = self.get_data(response)
+        return SequencingTaskEntities.model_validate(data)
+
+    def insert_task_results(
+        self, username: str, objects: List[task_result_insert_input], **kwargs: Any
+    ) -> InsertTaskResults:
+        query = gql(
+            """
+            mutation InsertTaskResults($username: String!, $objects: [task_result_insert_input!]!) {
+              set_username(args: {_username: $username}) {
+                username
+              }
+              insert_task_result(objects: $objects) {
+                affected_rows
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {"username": username, "objects": objects}
+        response = self.execute(
+            query=query,
+            operation_name="InsertTaskResults",
+            variables=variables,
+            **kwargs
+        )
+        data = self.get_data(response)
+        return InsertTaskResults.model_validate(data)
+
+    def insert_terra_sync(
+        self,
+        username: str,
+        created_at: Any,
+        terra_workspace_namespace: str,
+        terra_workspace_name: str,
+        task_results: task_result_arr_rel_insert_input,
+        **kwargs: Any
+    ) -> InsertTerraSync:
+        query = gql(
+            """
+            mutation InsertTerraSync($username: String!, $created_at: timestamptz!, $terra_workspace_namespace: String!, $terra_workspace_name: String!, $task_results: task_result_arr_rel_insert_input!) {
+              set_username(args: {_username: $username}) {
+                username
+              }
+              insert_terra_sync(
+                objects: {created_at: $created_at, terra_workspace_name: $terra_workspace_name, terra_workspace_namespace: $terra_workspace_namespace, task_results: $task_results}
+              ) {
+                returning {
+                  id
+                }
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {
+            "username": username,
+            "created_at": created_at,
+            "terra_workspace_namespace": terra_workspace_namespace,
+            "terra_workspace_name": terra_workspace_name,
+            "task_results": task_results,
+        }
+        response = self.execute(
+            query=query, operation_name="InsertTerraSync", variables=variables, **kwargs
+        )
+        data = self.get_data(response)
+        return InsertTerraSync.model_validate(data)

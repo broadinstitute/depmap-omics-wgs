@@ -1,10 +1,12 @@
 from typing import Type, TypeVar
 
 import pandas as pd
+from pydantic import BaseModel
 
 from omics_wgs_pipeline.types import TypedDataFrame
 from omics_wgs_pipeline.validators import CoercedDataFrame
 
+B = TypeVar("B", bound=BaseModel)
 T = TypeVar("T", bound=CoercedDataFrame)
 
 
@@ -63,3 +65,15 @@ def expand_dict_columns(
             flattened_dict[c] = s
 
     return pd.DataFrame(flattened_dict)
+
+
+def df_to_model(df: pd.DataFrame, pydantic_schema: Type[B]) -> list[B]:
+    """
+    Convert a Pandas data frame to a Pydantic model.
+
+    :param df: a data frame
+    :param pydantic_schema: the Pydantic schema to cast the data frame to
+    :return: a Pydantic model
+    """
+
+    return [pydantic_schema(**x) for x in df.to_dict(orient="records")]

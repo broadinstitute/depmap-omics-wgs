@@ -28,6 +28,13 @@ from .enums import (
     snp_fingerprint_update_column,
     str_profile_constraint,
     str_profile_update_column,
+    task_entity_constraint,
+    task_entity_update_column,
+    task_result_constraint,
+    task_result_select_column,
+    task_result_update_column,
+    terra_sync_constraint,
+    terra_sync_update_column,
 )
 
 
@@ -163,11 +170,6 @@ class depmap_model_type_insert_input(BaseModel):
     oncotree_code: Optional[str] = None
     primary_disease: Optional[str] = None
     subtype: Optional[str] = None
-
-
-class depmap_model_type_obj_rel_insert_input(BaseModel):
-    data: "depmap_model_type_insert_input"
-    on_conflict: Optional["depmap_model_type_on_conflict"] = None
 
 
 class depmap_model_type_on_conflict(BaseModel):
@@ -329,11 +331,6 @@ class media_insert_input(BaseModel):
     media_id: Optional[str] = None
 
 
-class media_obj_rel_insert_input(BaseModel):
-    data: "media_insert_input"
-    on_conflict: Optional["media_on_conflict"] = None
-
-
 class media_on_conflict(BaseModel):
     constraint: media_constraint
     update_columns: List[media_update_column]
@@ -393,7 +390,7 @@ class model_bool_exp(BaseModel):
     date_model_derived: Optional["date_comparison_exp"] = None
     date_shared_in_dbgap: Optional["date_comparison_exp"] = None
     dbgap: Optional["String_comparison_exp"] = None
-    depmap_model_type_id: Optional["String_comparison_exp"] = None
+    depmap_model_type: Optional["String_comparison_exp"] = None
     derived_outside_us: Optional["Boolean_comparison_exp"] = None
     engineered_model: Optional["String_comparison_exp"] = None
     first_publication_link: Optional["String_comparison_exp"] = None
@@ -402,7 +399,6 @@ class model_bool_exp(BaseModel):
     hcmi_id: Optional["String_comparison_exp"] = None
     inferred_ethnicity: Optional["String_comparison_exp"] = None
     lineage: Optional["String_comparison_exp"] = None
-    medium: Optional["media_bool_exp"] = None
     model_data_sharing: Optional["String_comparison_exp"] = None
     model_data_sharing_comments: Optional["String_comparison_exp"] = None
     model_derivation_material: Optional["String_comparison_exp"] = None
@@ -452,7 +448,6 @@ class model_bool_exp(BaseModel):
     stripped_cell_line_name: Optional["String_comparison_exp"] = None
     sub_subtype: Optional["String_comparison_exp"] = None
     subtype: Optional["String_comparison_exp"] = None
-    the_depmap_model_type: Optional["depmap_model_type_bool_exp"] = None
     tissue_origin: Optional["String_comparison_exp"] = None
     treatment_details: Optional["String_comparison_exp"] = None
     treatment_status: Optional["String_comparison_exp"] = None
@@ -491,8 +486,6 @@ class model_condition_bool_exp(BaseModel):
     initials_status_pic: Optional["String_comparison_exp"] = None
     line_received_for_expansion: Optional["date_comparison_exp"] = None
     measured_survival: Optional["String_comparison_exp"] = None
-    medium: Optional["media_bool_exp"] = None
-    model: Optional["model_bool_exp"] = None
     model_condition_id: Optional["String_comparison_exp"] = None
     model_id: Optional["String_comparison_exp"] = None
     number_vials_available: Optional["Int_comparison_exp"] = None
@@ -547,8 +540,6 @@ class model_condition_insert_input(BaseModel):
     initials_status_pic: Optional[str] = None
     line_received_for_expansion: Optional[Any] = None
     measured_survival: Optional[str] = None
-    medium: Optional["media_obj_rel_insert_input"] = None
-    model: Optional["model_obj_rel_insert_input"] = None
     model_condition_id: Optional[str] = None
     model_id: Optional[str] = None
     number_vials_available: Optional[int] = None
@@ -568,11 +559,6 @@ class model_condition_insert_input(BaseModel):
     supplements: Optional[str] = None
     thaw_date: Optional[Any] = None
     to_gpp: Optional[bool] = None
-
-
-class model_condition_obj_rel_insert_input(BaseModel):
-    data: "model_condition_insert_input"
-    on_conflict: Optional["model_condition_on_conflict"] = None
 
 
 class model_condition_on_conflict(BaseModel):
@@ -608,8 +594,6 @@ class model_condition_order_by(BaseModel):
     initials_status_pic: Optional[order_by] = None
     line_received_for_expansion: Optional[order_by] = None
     measured_survival: Optional[order_by] = None
-    medium: Optional["media_order_by"] = None
-    model: Optional["model_order_by"] = None
     model_condition_id: Optional[order_by] = None
     model_id: Optional[order_by] = None
     number_vials_available: Optional[order_by] = None
@@ -769,7 +753,7 @@ class model_insert_input(BaseModel):
     date_model_derived: Optional[Any] = None
     date_shared_in_dbgap: Optional[Any] = None
     dbgap: Optional[str] = None
-    depmap_model_type_id: Optional[str] = None
+    depmap_model_type: Optional[str] = None
     derived_outside_us: Optional[bool] = None
     engineered_model: Optional[str] = None
     first_publication_link: Optional[str] = None
@@ -778,7 +762,6 @@ class model_insert_input(BaseModel):
     hcmi_id: Optional[str] = None
     inferred_ethnicity: Optional[str] = None
     lineage: Optional[str] = None
-    medium: Optional["media_obj_rel_insert_input"] = None
     model_data_sharing: Optional[str] = None
     model_data_sharing_comments: Optional[str] = None
     model_derivation_material: Optional[str] = None
@@ -828,18 +811,12 @@ class model_insert_input(BaseModel):
     stripped_cell_line_name: Optional[str] = None
     sub_subtype: Optional[str] = None
     subtype: Optional[str] = None
-    the_depmap_model_type: Optional["depmap_model_type_obj_rel_insert_input"] = None
     tissue_origin: Optional[str] = None
     treatment_details: Optional[str] = None
     treatment_status: Optional[str] = None
     tumor_regression_score: Optional[str] = None
     vendor_link: Optional[str] = None
     wtsi_master_cell_id: Optional[int] = None
-
-
-class model_obj_rel_insert_input(BaseModel):
-    data: "model_insert_input"
-    on_conflict: Optional["model_on_conflict"] = None
 
 
 class model_on_conflict(BaseModel):
@@ -869,7 +846,7 @@ class model_order_by(BaseModel):
     date_model_derived: Optional[order_by] = None
     date_shared_in_dbgap: Optional[order_by] = None
     dbgap: Optional[order_by] = None
-    depmap_model_type_id: Optional[order_by] = None
+    depmap_model_type: Optional[order_by] = None
     derived_outside_us: Optional[order_by] = None
     engineered_model: Optional[order_by] = None
     first_publication_link: Optional[order_by] = None
@@ -878,7 +855,6 @@ class model_order_by(BaseModel):
     hcmi_id: Optional[order_by] = None
     inferred_ethnicity: Optional[order_by] = None
     lineage: Optional[order_by] = None
-    medium: Optional["media_order_by"] = None
     model_data_sharing: Optional[order_by] = None
     model_data_sharing_comments: Optional[order_by] = None
     model_derivation_material: Optional[order_by] = None
@@ -928,7 +904,6 @@ class model_order_by(BaseModel):
     stripped_cell_line_name: Optional[order_by] = None
     sub_subtype: Optional[order_by] = None
     subtype: Optional[order_by] = None
-    the_depmap_model_type: Optional["depmap_model_type_order_by"] = None
     tissue_origin: Optional[order_by] = None
     treatment_details: Optional[order_by] = None
     treatment_status: Optional[order_by] = None
@@ -962,7 +937,7 @@ class model_set_input(BaseModel):
     date_model_derived: Optional[Any] = None
     date_shared_in_dbgap: Optional[Any] = None
     dbgap: Optional[str] = None
-    depmap_model_type_id: Optional[str] = None
+    depmap_model_type: Optional[str] = None
     derived_outside_us: Optional[bool] = None
     engineered_model: Optional[str] = None
     first_publication_link: Optional[str] = None
@@ -1054,7 +1029,7 @@ class model_stream_cursor_value_input(BaseModel):
     date_model_derived: Optional[Any] = None
     date_shared_in_dbgap: Optional[Any] = None
     dbgap: Optional[str] = None
-    depmap_model_type_id: Optional[str] = None
+    depmap_model_type: Optional[str] = None
     derived_outside_us: Optional[bool] = None
     engineered_model: Optional[str] = None
     first_publication_link: Optional[str] = None
@@ -1158,7 +1133,7 @@ class omics_profile_bool_exp(BaseModel):
     line_received_by_gp: Optional["date_comparison_exp"] = None
     line_sent_to_gp: Optional["date_comparison_exp"] = None
     main_sequencing_id: Optional["String_comparison_exp"] = None
-    model_condition_id: Optional["String_comparison_exp"] = None
+    model_condition: Optional["String_comparison_exp"] = None
     omics_order_date: Optional["date_comparison_exp"] = None
     omics_profile_flagship: Optional["String_comparison_exp"] = None
     omics_profile_funding_source: Optional["String_comparison_exp"] = None
@@ -1187,7 +1162,6 @@ class omics_profile_bool_exp(BaseModel):
     smid_ordered: Optional["String_comparison_exp"] = None
     smid_returned: Optional["String_comparison_exp"] = None
     status: Optional["String_comparison_exp"] = None
-    the_model_condition: Optional["model_condition_bool_exp"] = None
     version: Optional["String_comparison_exp"] = None
     wgs_delivery_date: Optional["date_comparison_exp"] = None
     workspace: Optional["String_comparison_exp"] = None
@@ -1222,7 +1196,7 @@ class omics_profile_insert_input(BaseModel):
     line_received_by_gp: Optional[Any] = None
     line_sent_to_gp: Optional[Any] = None
     main_sequencing_id: Optional[str] = None
-    model_condition_id: Optional[str] = None
+    model_condition: Optional[str] = None
     omics_order_date: Optional[Any] = None
     omics_profile_flagship: Optional[str] = None
     omics_profile_funding_source: Optional[str] = None
@@ -1251,7 +1225,6 @@ class omics_profile_insert_input(BaseModel):
     smid_ordered: Optional[str] = None
     smid_returned: Optional[str] = None
     status: Optional[str] = None
-    the_model_condition: Optional["model_condition_obj_rel_insert_input"] = None
     version: Optional[str] = None
     wgs_delivery_date: Optional[Any] = None
     workspace: Optional[str] = None
@@ -1297,7 +1270,7 @@ class omics_profile_order_by(BaseModel):
     line_received_by_gp: Optional[order_by] = None
     line_sent_to_gp: Optional[order_by] = None
     main_sequencing_id: Optional[order_by] = None
-    model_condition_id: Optional[order_by] = None
+    model_condition: Optional[order_by] = None
     omics_order_date: Optional[order_by] = None
     omics_profile_flagship: Optional[order_by] = None
     omics_profile_funding_source: Optional[order_by] = None
@@ -1326,7 +1299,6 @@ class omics_profile_order_by(BaseModel):
     smid_ordered: Optional[order_by] = None
     smid_returned: Optional[order_by] = None
     status: Optional[order_by] = None
-    the_model_condition: Optional["model_condition_order_by"] = None
     version: Optional[order_by] = None
     wgs_delivery_date: Optional[order_by] = None
     workspace: Optional[order_by] = None
@@ -1365,7 +1337,7 @@ class omics_profile_set_input(BaseModel):
     line_received_by_gp: Optional[Any] = None
     line_sent_to_gp: Optional[Any] = None
     main_sequencing_id: Optional[str] = None
-    model_condition_id: Optional[str] = None
+    model_condition: Optional[str] = None
     omics_order_date: Optional[Any] = None
     omics_profile_flagship: Optional[str] = None
     omics_profile_funding_source: Optional[str] = None
@@ -1433,7 +1405,7 @@ class omics_profile_stream_cursor_value_input(BaseModel):
     line_received_by_gp: Optional[Any] = None
     line_sent_to_gp: Optional[Any] = None
     main_sequencing_id: Optional[str] = None
-    model_condition_id: Optional[str] = None
+    model_condition: Optional[str] = None
     omics_order_date: Optional[Any] = None
     omics_profile_flagship: Optional[str] = None
     omics_profile_funding_source: Optional[str] = None
@@ -2385,6 +2357,433 @@ class str_profile_updates(BaseModel):
     inc: Optional["str_profile_inc_input"] = Field(alias="_inc", default=None)
     set: Optional["str_profile_set_input"] = Field(alias="_set", default=None)
     where: "str_profile_bool_exp"
+
+
+class task_entity_bool_exp(BaseModel):
+    and_: Optional[List["task_entity_bool_exp"]] = Field(alias="_and", default=None)
+    not_: Optional["task_entity_bool_exp"] = Field(alias="_not", default=None)
+    or_: Optional[List["task_entity_bool_exp"]] = Field(alias="_or", default=None)
+    id: Optional["bigint_comparison_exp"] = None
+    sequencing_id: Optional["String_comparison_exp"] = None
+    task_results: Optional["task_result_bool_exp"] = None
+    task_results_aggregate: Optional["task_result_aggregate_bool_exp"] = None
+
+
+class task_entity_inc_input(BaseModel):
+    id: Optional[int] = None
+
+
+class task_entity_insert_input(BaseModel):
+    id: Optional[int] = None
+    sequencing_id: Optional[str] = None
+    task_results: Optional["task_result_arr_rel_insert_input"] = None
+
+
+class task_entity_obj_rel_insert_input(BaseModel):
+    data: "task_entity_insert_input"
+    on_conflict: Optional["task_entity_on_conflict"] = None
+
+
+class task_entity_on_conflict(BaseModel):
+    constraint: task_entity_constraint
+    update_columns: List[task_entity_update_column]
+    where: Optional["task_entity_bool_exp"] = None
+
+
+class task_entity_order_by(BaseModel):
+    id: Optional[order_by] = None
+    sequencing_id: Optional[order_by] = None
+    task_results_aggregate: Optional["task_result_aggregate_order_by"] = None
+
+
+class task_entity_pk_columns_input(BaseModel):
+    id: int
+
+
+class task_entity_set_input(BaseModel):
+    id: Optional[int] = None
+    sequencing_id: Optional[str] = None
+
+
+class task_entity_stream_cursor_input(BaseModel):
+    initial_value: "task_entity_stream_cursor_value_input"
+    ordering: Optional[cursor_ordering] = None
+
+
+class task_entity_stream_cursor_value_input(BaseModel):
+    id: Optional[int] = None
+    sequencing_id: Optional[str] = None
+
+
+class task_entity_updates(BaseModel):
+    inc: Optional["task_entity_inc_input"] = Field(alias="_inc", default=None)
+    set: Optional["task_entity_set_input"] = Field(alias="_set", default=None)
+    where: "task_entity_bool_exp"
+
+
+class task_result_aggregate_bool_exp(BaseModel):
+    count: Optional["task_result_aggregate_bool_exp_count"] = None
+
+
+class task_result_aggregate_bool_exp_count(BaseModel):
+    arguments: Optional[List[task_result_select_column]] = None
+    distinct: Optional[bool] = None
+    filter: Optional["task_result_bool_exp"] = None
+    predicate: "Int_comparison_exp"
+
+
+class task_result_aggregate_order_by(BaseModel):
+    avg: Optional["task_result_avg_order_by"] = None
+    count: Optional[order_by] = None
+    max: Optional["task_result_max_order_by"] = None
+    min: Optional["task_result_min_order_by"] = None
+    stddev: Optional["task_result_stddev_order_by"] = None
+    stddev_pop: Optional["task_result_stddev_pop_order_by"] = None
+    stddev_samp: Optional["task_result_stddev_samp_order_by"] = None
+    sum: Optional["task_result_sum_order_by"] = None
+    var_pop: Optional["task_result_var_pop_order_by"] = None
+    var_samp: Optional["task_result_var_samp_order_by"] = None
+    variance: Optional["task_result_variance_order_by"] = None
+
+
+class task_result_arr_rel_insert_input(BaseModel):
+    data: List["task_result_insert_input"]
+    on_conflict: Optional["task_result_on_conflict"] = None
+
+
+class task_result_avg_order_by(BaseModel):
+    id: Optional[order_by] = None
+    size: Optional[order_by] = None
+    task_entity_id: Optional[order_by] = None
+    terra_sync_id: Optional[order_by] = None
+
+
+class task_result_bool_exp(BaseModel):
+    and_: Optional[List["task_result_bool_exp"]] = Field(alias="_and", default=None)
+    not_: Optional["task_result_bool_exp"] = Field(alias="_not", default=None)
+    or_: Optional[List["task_result_bool_exp"]] = Field(alias="_or", default=None)
+    crc_32_c_hash: Optional["String_comparison_exp"] = Field(
+        alias="crc32c_hash", default=None
+    )
+    created_at: Optional["timestamptz_comparison_exp"] = None
+    format: Optional["String_comparison_exp"] = None
+    id: Optional["bigint_comparison_exp"] = None
+    label: Optional["String_comparison_exp"] = None
+    size: Optional["bigint_comparison_exp"] = None
+    task_entity: Optional["task_entity_bool_exp"] = None
+    task_entity_id: Optional["bigint_comparison_exp"] = None
+    task_name: Optional["String_comparison_exp"] = None
+    terra_entity_name: Optional["String_comparison_exp"] = None
+    terra_entity_type: Optional["String_comparison_exp"] = None
+    terra_method_config_name: Optional["String_comparison_exp"] = None
+    terra_method_config_namespace: Optional["String_comparison_exp"] = None
+    terra_submission_id: Optional["String_comparison_exp"] = None
+    terra_sync: Optional["terra_sync_bool_exp"] = None
+    terra_sync_id: Optional["bigint_comparison_exp"] = None
+    terra_workflow_id: Optional["String_comparison_exp"] = None
+    terra_workspace_id: Optional["String_comparison_exp"] = None
+    terra_workspace_name: Optional["String_comparison_exp"] = None
+    terra_workspace_namespace: Optional["String_comparison_exp"] = None
+    url: Optional["String_comparison_exp"] = None
+    workflow_name: Optional["String_comparison_exp"] = None
+    workflow_source_url: Optional["String_comparison_exp"] = None
+
+
+class task_result_inc_input(BaseModel):
+    id: Optional[int] = None
+    size: Optional[int] = None
+    task_entity_id: Optional[int] = None
+    terra_sync_id: Optional[int] = None
+
+
+class task_result_insert_input(BaseModel):
+    crc_32_c_hash: Optional[str] = Field(alias="crc32c_hash", default=None)
+    created_at: Optional[Any] = None
+    format: Optional[str] = None
+    id: Optional[int] = None
+    label: Optional[str] = None
+    size: Optional[int] = None
+    task_entity: Optional["task_entity_obj_rel_insert_input"] = None
+    task_entity_id: Optional[int] = None
+    task_name: Optional[str] = None
+    terra_entity_name: Optional[str] = None
+    terra_entity_type: Optional[str] = None
+    terra_method_config_name: Optional[str] = None
+    terra_method_config_namespace: Optional[str] = None
+    terra_submission_id: Optional[str] = None
+    terra_sync: Optional["terra_sync_obj_rel_insert_input"] = None
+    terra_sync_id: Optional[int] = None
+    terra_workflow_id: Optional[str] = None
+    terra_workspace_id: Optional[str] = None
+    terra_workspace_name: Optional[str] = None
+    terra_workspace_namespace: Optional[str] = None
+    url: Optional[str] = None
+    workflow_name: Optional[str] = None
+    workflow_source_url: Optional[str] = None
+
+
+class task_result_max_order_by(BaseModel):
+    crc_32_c_hash: Optional[order_by] = Field(alias="crc32c_hash", default=None)
+    created_at: Optional[order_by] = None
+    format: Optional[order_by] = None
+    id: Optional[order_by] = None
+    label: Optional[order_by] = None
+    size: Optional[order_by] = None
+    task_entity_id: Optional[order_by] = None
+    task_name: Optional[order_by] = None
+    terra_entity_name: Optional[order_by] = None
+    terra_entity_type: Optional[order_by] = None
+    terra_method_config_name: Optional[order_by] = None
+    terra_method_config_namespace: Optional[order_by] = None
+    terra_submission_id: Optional[order_by] = None
+    terra_sync_id: Optional[order_by] = None
+    terra_workflow_id: Optional[order_by] = None
+    terra_workspace_id: Optional[order_by] = None
+    terra_workspace_name: Optional[order_by] = None
+    terra_workspace_namespace: Optional[order_by] = None
+    url: Optional[order_by] = None
+    workflow_name: Optional[order_by] = None
+    workflow_source_url: Optional[order_by] = None
+
+
+class task_result_min_order_by(BaseModel):
+    crc_32_c_hash: Optional[order_by] = Field(alias="crc32c_hash", default=None)
+    created_at: Optional[order_by] = None
+    format: Optional[order_by] = None
+    id: Optional[order_by] = None
+    label: Optional[order_by] = None
+    size: Optional[order_by] = None
+    task_entity_id: Optional[order_by] = None
+    task_name: Optional[order_by] = None
+    terra_entity_name: Optional[order_by] = None
+    terra_entity_type: Optional[order_by] = None
+    terra_method_config_name: Optional[order_by] = None
+    terra_method_config_namespace: Optional[order_by] = None
+    terra_submission_id: Optional[order_by] = None
+    terra_sync_id: Optional[order_by] = None
+    terra_workflow_id: Optional[order_by] = None
+    terra_workspace_id: Optional[order_by] = None
+    terra_workspace_name: Optional[order_by] = None
+    terra_workspace_namespace: Optional[order_by] = None
+    url: Optional[order_by] = None
+    workflow_name: Optional[order_by] = None
+    workflow_source_url: Optional[order_by] = None
+
+
+class task_result_on_conflict(BaseModel):
+    constraint: task_result_constraint
+    update_columns: List[task_result_update_column]
+    where: Optional["task_result_bool_exp"] = None
+
+
+class task_result_order_by(BaseModel):
+    crc_32_c_hash: Optional[order_by] = Field(alias="crc32c_hash", default=None)
+    created_at: Optional[order_by] = None
+    format: Optional[order_by] = None
+    id: Optional[order_by] = None
+    label: Optional[order_by] = None
+    size: Optional[order_by] = None
+    task_entity: Optional["task_entity_order_by"] = None
+    task_entity_id: Optional[order_by] = None
+    task_name: Optional[order_by] = None
+    terra_entity_name: Optional[order_by] = None
+    terra_entity_type: Optional[order_by] = None
+    terra_method_config_name: Optional[order_by] = None
+    terra_method_config_namespace: Optional[order_by] = None
+    terra_submission_id: Optional[order_by] = None
+    terra_sync: Optional["terra_sync_order_by"] = None
+    terra_sync_id: Optional[order_by] = None
+    terra_workflow_id: Optional[order_by] = None
+    terra_workspace_id: Optional[order_by] = None
+    terra_workspace_name: Optional[order_by] = None
+    terra_workspace_namespace: Optional[order_by] = None
+    url: Optional[order_by] = None
+    workflow_name: Optional[order_by] = None
+    workflow_source_url: Optional[order_by] = None
+
+
+class task_result_pk_columns_input(BaseModel):
+    id: int
+
+
+class task_result_set_input(BaseModel):
+    crc_32_c_hash: Optional[str] = Field(alias="crc32c_hash", default=None)
+    created_at: Optional[Any] = None
+    format: Optional[str] = None
+    id: Optional[int] = None
+    label: Optional[str] = None
+    size: Optional[int] = None
+    task_entity_id: Optional[int] = None
+    task_name: Optional[str] = None
+    terra_entity_name: Optional[str] = None
+    terra_entity_type: Optional[str] = None
+    terra_method_config_name: Optional[str] = None
+    terra_method_config_namespace: Optional[str] = None
+    terra_submission_id: Optional[str] = None
+    terra_sync_id: Optional[int] = None
+    terra_workflow_id: Optional[str] = None
+    terra_workspace_id: Optional[str] = None
+    terra_workspace_name: Optional[str] = None
+    terra_workspace_namespace: Optional[str] = None
+    url: Optional[str] = None
+    workflow_name: Optional[str] = None
+    workflow_source_url: Optional[str] = None
+
+
+class task_result_stddev_order_by(BaseModel):
+    id: Optional[order_by] = None
+    size: Optional[order_by] = None
+    task_entity_id: Optional[order_by] = None
+    terra_sync_id: Optional[order_by] = None
+
+
+class task_result_stddev_pop_order_by(BaseModel):
+    id: Optional[order_by] = None
+    size: Optional[order_by] = None
+    task_entity_id: Optional[order_by] = None
+    terra_sync_id: Optional[order_by] = None
+
+
+class task_result_stddev_samp_order_by(BaseModel):
+    id: Optional[order_by] = None
+    size: Optional[order_by] = None
+    task_entity_id: Optional[order_by] = None
+    terra_sync_id: Optional[order_by] = None
+
+
+class task_result_stream_cursor_input(BaseModel):
+    initial_value: "task_result_stream_cursor_value_input"
+    ordering: Optional[cursor_ordering] = None
+
+
+class task_result_stream_cursor_value_input(BaseModel):
+    crc_32_c_hash: Optional[str] = Field(alias="crc32c_hash", default=None)
+    created_at: Optional[Any] = None
+    format: Optional[str] = None
+    id: Optional[int] = None
+    label: Optional[str] = None
+    size: Optional[int] = None
+    task_entity_id: Optional[int] = None
+    task_name: Optional[str] = None
+    terra_entity_name: Optional[str] = None
+    terra_entity_type: Optional[str] = None
+    terra_method_config_name: Optional[str] = None
+    terra_method_config_namespace: Optional[str] = None
+    terra_submission_id: Optional[str] = None
+    terra_sync_id: Optional[int] = None
+    terra_workflow_id: Optional[str] = None
+    terra_workspace_id: Optional[str] = None
+    terra_workspace_name: Optional[str] = None
+    terra_workspace_namespace: Optional[str] = None
+    url: Optional[str] = None
+    workflow_name: Optional[str] = None
+    workflow_source_url: Optional[str] = None
+
+
+class task_result_sum_order_by(BaseModel):
+    id: Optional[order_by] = None
+    size: Optional[order_by] = None
+    task_entity_id: Optional[order_by] = None
+    terra_sync_id: Optional[order_by] = None
+
+
+class task_result_updates(BaseModel):
+    inc: Optional["task_result_inc_input"] = Field(alias="_inc", default=None)
+    set: Optional["task_result_set_input"] = Field(alias="_set", default=None)
+    where: "task_result_bool_exp"
+
+
+class task_result_var_pop_order_by(BaseModel):
+    id: Optional[order_by] = None
+    size: Optional[order_by] = None
+    task_entity_id: Optional[order_by] = None
+    terra_sync_id: Optional[order_by] = None
+
+
+class task_result_var_samp_order_by(BaseModel):
+    id: Optional[order_by] = None
+    size: Optional[order_by] = None
+    task_entity_id: Optional[order_by] = None
+    terra_sync_id: Optional[order_by] = None
+
+
+class task_result_variance_order_by(BaseModel):
+    id: Optional[order_by] = None
+    size: Optional[order_by] = None
+    task_entity_id: Optional[order_by] = None
+    terra_sync_id: Optional[order_by] = None
+
+
+class terra_sync_bool_exp(BaseModel):
+    and_: Optional[List["terra_sync_bool_exp"]] = Field(alias="_and", default=None)
+    not_: Optional["terra_sync_bool_exp"] = Field(alias="_not", default=None)
+    or_: Optional[List["terra_sync_bool_exp"]] = Field(alias="_or", default=None)
+    created_at: Optional["timestamptz_comparison_exp"] = None
+    id: Optional["bigint_comparison_exp"] = None
+    task_results: Optional["task_result_bool_exp"] = None
+    task_results_aggregate: Optional["task_result_aggregate_bool_exp"] = None
+    terra_workspace_name: Optional["String_comparison_exp"] = None
+    terra_workspace_namespace: Optional["String_comparison_exp"] = None
+
+
+class terra_sync_inc_input(BaseModel):
+    id: Optional[int] = None
+
+
+class terra_sync_insert_input(BaseModel):
+    created_at: Optional[Any] = None
+    id: Optional[int] = None
+    task_results: Optional["task_result_arr_rel_insert_input"] = None
+    terra_workspace_name: Optional[str] = None
+    terra_workspace_namespace: Optional[str] = None
+
+
+class terra_sync_obj_rel_insert_input(BaseModel):
+    data: "terra_sync_insert_input"
+    on_conflict: Optional["terra_sync_on_conflict"] = None
+
+
+class terra_sync_on_conflict(BaseModel):
+    constraint: terra_sync_constraint
+    update_columns: List[terra_sync_update_column]
+    where: Optional["terra_sync_bool_exp"] = None
+
+
+class terra_sync_order_by(BaseModel):
+    created_at: Optional[order_by] = None
+    id: Optional[order_by] = None
+    task_results_aggregate: Optional["task_result_aggregate_order_by"] = None
+    terra_workspace_name: Optional[order_by] = None
+    terra_workspace_namespace: Optional[order_by] = None
+
+
+class terra_sync_pk_columns_input(BaseModel):
+    id: int
+
+
+class terra_sync_set_input(BaseModel):
+    created_at: Optional[Any] = None
+    id: Optional[int] = None
+    terra_workspace_name: Optional[str] = None
+    terra_workspace_namespace: Optional[str] = None
+
+
+class terra_sync_stream_cursor_input(BaseModel):
+    initial_value: "terra_sync_stream_cursor_value_input"
+    ordering: Optional[cursor_ordering] = None
+
+
+class terra_sync_stream_cursor_value_input(BaseModel):
+    created_at: Optional[Any] = None
+    id: Optional[int] = None
+    terra_workspace_name: Optional[str] = None
+    terra_workspace_namespace: Optional[str] = None
+
+
+class terra_sync_updates(BaseModel):
+    inc: Optional["terra_sync_inc_input"] = Field(alias="_inc", default=None)
+    set: Optional["terra_sync_set_input"] = Field(alias="_set", default=None)
+    where: "terra_sync_bool_exp"
 
 
 class timestamptz_comparison_exp(BaseModel):

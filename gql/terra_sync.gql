@@ -1,0 +1,23 @@
+mutation InsertTerraSync(
+  $username: String!
+  $created_at: timestamptz!
+  $terra_workspace_namespace: String!
+  $terra_workspace_name: String!
+  $task_results: task_result_arr_rel_insert_input!
+) {
+  set_username(args: { _username: $username }) {
+    username
+  }
+  insert_terra_sync(
+    objects: {
+      created_at: $created_at
+      terra_workspace_name: $terra_workspace_name
+      terra_workspace_namespace: $terra_workspace_namespace
+      task_results: $task_results
+    }
+  ) {
+    returning {
+      id
+    }
+  }
+}

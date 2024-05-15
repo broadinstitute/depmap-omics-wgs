@@ -1,0 +1,11 @@
+mutation InsertTaskResults(
+  $username: String!
+  $objects: [task_result_insert_input!]!
+) {
+  set_username(args: { _username: $username }) {
+    username
+  }
+  insert_task_result(objects: $objects) {
+    affected_rows
+  }
+}
