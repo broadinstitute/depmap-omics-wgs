@@ -1,4 +1,4 @@
-from typing import Iterable, Type, TypeVar
+from typing import Callable, Iterable, Type, TypeVar
 
 import pandas as pd
 from pydantic import BaseModel
@@ -31,16 +31,21 @@ def type_data_frame(
 
 
 def expand_dict_columns(
-    df: pd.DataFrame, parent_key: str = "", sep: str = "_"
+    df: pd.DataFrame,
+    sep: str = "__",
+    name_columns_with_parent: bool = True,
+    parent_key: str = "",
 ) -> pd.DataFrame:
     """
     Recursively expand columns in a data frame containing dictionaries into separate
     columns.
 
     :param df: a data frame
-    :param parent_key: a prefix to use for nested column names
     :param sep: a separator character to use between `parent_key` and its column names
-
+    :param name_columns_with_parent: whether to "namespace" nested column names using
+    their parents' column names
+    :param parent_key: the name of the parent column, applicable only if
+    `name_columns_with_parent` is `True`
     :return: a widened data frame
     """
 
@@ -52,19 +57,38 @@ def expand_dict_columns(
             nested_df = pd.json_normalize(s.tolist())
 
             nested_df.columns = [
-                f"{parent_key}{sep}{col}" if parent_key else col
+                sep.join([parent_key, c, str(col)])
+                if name_columns_with_parent and parent_key != ""
+                else str(col)
                 for col in nested_df.columns
             ]
 
             flattened_dict.update(
-                expand_dict_columns(nested_df, parent_key=str(c), sep=sep)
+                expand_dict_columns(
+                    nested_df,
+                    sep=sep,
+                    name_columns_with_parent=name_columns_with_parent,
+                    parent_key=str(c),
+                )
             )
 
         else:
             # if not a dictionary, add the column as it is
             flattened_dict[c] = s
 
-    return pd.DataFrame(flattened_dict)
+    df = pd.DataFrame(flattened_dict)
+
+    # make sure there are no duplicate column names after expansion
+    col_name_counts = df.columns.value_counts()
+
+    if col_name_counts.gt(1).any():
+        dup_names = set(col_name_counts[col_name_counts.gt(1)].index)
+        raise NameError(
+            f"Column names {dup_names} are duplicated. "
+            "Try calling `expand_dict_columns` with `name_columns_with_parent=True`."
+        )
+
+    return df
 
 
 def df_to_model(df: pd.DataFrame, pydantic_schema: Type[B]) -> list[B]:
@@ -80,7 +104,11 @@ def df_to_model(df: pd.DataFrame, pydantic_schema: Type[B]) -> list[B]:
 
 
 def model_to_df(
-    model: B, pandera_schema: Type[T], records_key: str = "records"
+    model: B,
+    pandera_schema: Type[T],
+    records_key: str = "records",
+    remove_unknown_cols: bool = True,
+    mutator: Callable[[pd.DataFrame], pd.DataFrame] = lambda _: _,
 ) -> TypedDataFrame[T]:
     """
     Dump a Pydantic model and convert it to a data frame typed by a Pandera schema.
@@ -88,10 +116,15 @@ def model_to_df(
     :param model: a Pydandict model containing a list of objects keyed by `records_key`
     :param pandera_schema: the Pandera schema to cast the model to
     :param records_key: the key/method name in `model` containing the records
+    :param remove_unknown_cols: remove columns not specified in the schema
+    :param mutator: an optional function to call on the data frame before typing (e.g.
+    to rename columns)
     """
 
     records = model.model_dump()[records_key]
-    return TypedDataFrame[pandera_schema](records)
+    df = pd.DataFrame(records)
+    df = mutator(df)
+    return type_data_frame(df, pandera_schema, remove_unknown_cols)
 
 
 def anti_join(

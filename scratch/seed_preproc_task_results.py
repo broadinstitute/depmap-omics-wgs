@@ -40,17 +40,21 @@ gumbo_client = GumboClient(
 
 
 def get_gumbo_samples():
-    gumbo_samples = model_to_df(gumbo_client.wgs_sequencings(), CoercedDataFrame)
-    gumbo_samples = gumbo_samples.convert_dtypes()
-
-    gumbo_samples = gumbo_samples.rename(
-        columns={
-            "hg_19_bai_filepath": "hg19_bai_filepath",
-            "hg_19_bam_filepath": "hg19_bam_filepath",
-            "hg_38_crai_filepath": "hg38_crai_filepath",
-            "hg_38_cram_filepath": "hg38_cram_filepath",
-        }
+    gumbo_samples = model_to_df(
+        gumbo_client.wgs_sequencings(),
+        CoercedDataFrame,
+        remove_unknown_cols=False,
+        mutator=lambda df: df.rename(
+            columns={
+                "hg_19_bai_filepath": "hg19_bai_filepath",
+                "hg_19_bam_filepath": "hg19_bam_filepath",
+                "hg_38_crai_filepath": "hg38_crai_filepath",
+                "hg_38_cram_filepath": "hg38_cram_filepath",
+            }
+        ),
     )
+
+    gumbo_samples = gumbo_samples.convert_dtypes()
 
     gumbo_samples["cram_bam"] = (
         gumbo_samples["hg38_cram_filepath"]
@@ -111,7 +115,9 @@ def populate_task_entities(task_entities, task_results):
         )
 
         task_entities = model_to_df(
-            gumbo_client.sequencing_task_entities(), CoercedDataFrame
+            gumbo_client.sequencing_task_entities(),
+            CoercedDataFrame,
+            remove_unknown_cols=False,
         )
 
     return task_entities
@@ -150,7 +156,9 @@ task_results = wgs_cn_samples.loc[
     wgs_cn_samples["sequencing_id"].isin(gumbo_samples["sequencing_id"])
 ]
 
-task_entities = model_to_df(gumbo_client.sequencing_task_entities(), CoercedDataFrame)
+task_entities = model_to_df(
+    gumbo_client.sequencing_task_entities(), CoercedDataFrame, remove_unknown_cols=False
+)
 task_entities = populate_task_entities(task_entities, task_results)
 
 task_results = make_task_results(task_results)
@@ -163,9 +171,12 @@ existing_task_results = model_to_df(
         )
     ),
     CoercedDataFrame,
+    remove_unknown_cols=False,
 )
 
-existing_task_results = expand_dict_columns(existing_task_results)
+existing_task_results = expand_dict_columns(
+    existing_task_results, name_columns_with_parent=False
+)
 
 new_task_results = anti_join(
     task_results,
