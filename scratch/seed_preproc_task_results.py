@@ -1,3 +1,8 @@
+"""
+Get already-preprocessed BAM files from DepMap_WGS_CN and populate the Gumbo
+`task_result` table.
+"""
+
 import os
 import pathlib
 
@@ -7,9 +12,16 @@ from firecloud import api as firecloud_api
 from gumbo_gql_client import (
     GumboClient,
     task_entity_insert_input,
+    task_result_bool_exp,
     task_result_insert_input,
 )
-from omics_wgs_pipeline.utils import df_to_model, expand_dict_columns
+from omics_wgs_pipeline.utils import (
+    anti_join,
+    df_to_model,
+    expand_dict_columns,
+    model_to_df,
+)
+from omics_wgs_pipeline.validators import CoercedDataFrame
 
 pd.set_option("display.max_columns", 30)
 pd.set_option("display.max_colwidth", 50)
@@ -28,7 +40,7 @@ gumbo_client = GumboClient(
 
 
 def get_gumbo_samples():
-    gumbo_samples = pd.DataFrame(gumbo_client.wgs_sequencings().model_dump()["records"])
+    gumbo_samples = model_to_df(gumbo_client.wgs_sequencings(), CoercedDataFrame)
     gumbo_samples = gumbo_samples.convert_dtypes()
 
     gumbo_samples = gumbo_samples.rename(
@@ -86,56 +98,83 @@ def get_wgs_cn_samples():
     return wgs_cn_samples
 
 
+def populate_task_entities(task_entities, task_results):
+    new_task_entities = task_results.loc[
+        ~task_results["sequencing_id"].isin(task_entities["sequencing_id"]),
+        ["sequencing_id"],
+    ]
+
+    if len(new_task_entities) > 0:
+        gumbo_client.insert_task_entities(
+            username="dmccabe",
+            objects=df_to_model(new_task_entities, task_entity_insert_input),
+        )
+
+        task_entities = model_to_df(
+            gumbo_client.sequencing_task_entities(), CoercedDataFrame
+        )
+
+    return task_entities
+
+
+def make_task_results(task_results):
+    task_results = task_results.merge(
+        task_entities.rename(columns={"id": "task_entity_id"}),
+        how="left",
+        on="sequencing_id",
+    )
+    task_results = task_results.loc[:, ["task_entity_id", "bam", "bai"]]
+
+    task_results["workflow_name"] = "preprocess_wgs_sample"
+    task_results["task_name"] = "gatk_applybqsr"
+    task_results["created_at"] = pd.Timestamp.now(tz="UTC").isoformat()
+
+    task_results = task_results.melt(
+        id_vars=["task_entity_id", "workflow_name", "task_name", "created_at"],
+        value_vars=["bam", "bai"],
+        var_name="label",
+        value_name="url",
+    )
+
+    task_results["format"] = task_results["url"].apply(
+        lambda x: pathlib.Path(x).suffix[1:].upper()
+    )
+
+    return task_results
+
+
 gumbo_samples = get_gumbo_samples()
 wgs_cn_samples = get_wgs_cn_samples()
-
-task_entities = pd.DataFrame(
-    gumbo_client.sequencing_task_entities().model_dump()["records"]
-)
 
 task_results = wgs_cn_samples.loc[
     wgs_cn_samples["sequencing_id"].isin(gumbo_samples["sequencing_id"])
 ]
 
-new_task_entities = task_results.loc[
-    ~task_results["sequencing_id"].isin(task_entities["sequencing_id"]),
-    ["sequencing_id"],
-]
+task_entities = model_to_df(gumbo_client.sequencing_task_entities(), CoercedDataFrame)
+task_entities = populate_task_entities(task_entities, task_results)
 
-if len(new_task_entities) > 0:
-    res = gumbo_client.insert_task_entities(
+task_results = make_task_results(task_results)
+
+existing_task_results = model_to_df(
+    gumbo_client.get_task_results(
+        task_result_bool_exp(
+            workflow_name={"eq": "preprocess_wgs_sample"},
+            task_name={"eq": "gatk_applybqsr"},
+        )
+    ),
+    CoercedDataFrame,
+)
+
+existing_task_results = expand_dict_columns(existing_task_results)
+
+new_task_results = anti_join(
+    task_results,
+    existing_task_results,
+    on=["workflow_name", "task_name", "label", "url", "format"],
+)
+
+if len(new_task_results) > 0:
+    gumbo_client.insert_task_results(
         username="dmccabe",
-        objects=df_to_model(new_task_entities, task_entity_insert_input),
+        objects=df_to_model(new_task_results, task_result_insert_input),
     )
-
-    task_entities = pd.DataFrame(
-        gumbo_client.sequencing_task_entities().model_dump()["records"]
-    )
-
-task_results = task_results.merge(
-    task_entities.rename(columns={"id": "task_entity_id"}),
-    how="left",
-    on="sequencing_id",
-)
-
-task_results = task_results.loc[:, ["task_entity_id", "bam", "bai"]]
-
-task_results["workflow_name"] = "preprocess_wgs_sample"
-task_results["task_name"] = "gatk_applybqsr"
-task_results["created_at"] = pd.Timestamp.now(tz="UTC").isoformat()
-
-task_results = task_results.melt(
-    id_vars=["task_entity_id", "workflow_name", "task_name", "created_at"],
-    value_vars=["bam", "bai"],
-    var_name="label",
-    value_name="url",
-)
-
-task_results["file_format"] = task_results["url"].apply(
-    lambda x: pathlib.Path(x).suffix[1:].upper()
-)
-
-gumbo_client.insert_task_results(
-    username="dmccabe",
-    objects=df_to_model(task_results, task_result_insert_input),
-)

@@ -55,6 +55,11 @@ from .exceptions import (
     GraphQLClientHttpError,
     GraphQLClientInvalidResponseError,
 )
+from .get_task_results import (
+    GetTaskResults,
+    GetTaskResultsRecords,
+    GetTaskResultsRecordsTaskEntity,
+)
 from .gumbo_client import GumboClient
 from .input_types import (
     Boolean_comparison_exp,
@@ -254,6 +259,9 @@ __all__ = [
     "BaseClient",
     "BaseModel",
     "Boolean_comparison_exp",
+    "GetTaskResults",
+    "GetTaskResultsRecords",
+    "GetTaskResultsRecordsTaskEntity",
     "GraphQLClientError",
     "GraphQLClientGraphQLError",
     "GraphQLClientGraphQLMultiError",

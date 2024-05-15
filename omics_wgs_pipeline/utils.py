@@ -1,4 +1,4 @@
-from typing import Type, TypeVar
+from typing import Iterable, Type, TypeVar
 
 import pandas as pd
 from pydantic import BaseModel
@@ -77,3 +77,49 @@ def df_to_model(df: pd.DataFrame, pydantic_schema: Type[B]) -> list[B]:
     """
 
     return [pydantic_schema(**x) for x in df.to_dict(orient="records")]
+
+
+def model_to_df(
+    model: B, pandera_schema: Type[T], records_key: str = "records"
+) -> TypedDataFrame[T]:
+    """
+    Dump a Pydantic model and convert it to a data frame typed by a Pandera schema.
+
+    :param model: a Pydandict model containing a list of objects keyed by `records_key`
+    :param pandera_schema: the Pandera schema to cast the model to
+    :param records_key: the key/method name in `model` containing the records
+    """
+
+    records = model.model_dump()[records_key]
+    return TypedDataFrame[pandera_schema](records)
+
+
+def anti_join(
+    x: pd.DataFrame, y: pd.DataFrame, on: str | Iterable[str]
+) -> pd.DataFrame:
+    """
+    Anti join two data frames.
+
+    :param x: a base data frame
+    :param y: a data frame to use for filtering
+    :param on: the columns to anti-join on
+    :return: a data frame
+    """
+
+    if len(y) == 0:
+        return x
+
+    # make a data frame of just the join columns
+    dummy = y.loc[:, on]
+
+    # convert to data frame if `on` was a single column
+    if isinstance(dummy, pd.Series):
+        dummy = dummy.to_frame()
+
+    dummy.loc[:, "dummy_col"] = 1  # indicator variable
+
+    # attempt to join left data frame (`x`) to the dummy data frame
+    merged = x.merge(dummy, on=on, how="left")
+
+    # keep only the non-matches
+    return merged.loc[merged["dummy_col"].isna(), x.columns.tolist()]

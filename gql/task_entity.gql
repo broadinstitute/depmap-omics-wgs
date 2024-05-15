@@ -1,3 +1,10 @@
+query SequencingTaskEntities {
+  records: task_entity(where: { sequencing_id: { _is_null: false } }) {
+    id
+    sequencing_id
+  }
+}
+
 mutation InsertTaskEntities(
   $username: String!
   $objects: [task_entity_insert_input!]!
@@ -10,12 +17,5 @@ mutation InsertTaskEntities(
       id
       sequencing_id
     }
-  }
-}
-
-query SequencingTaskEntities {
-  records: task_entity(where: { sequencing_id: { _is_null: false } }) {
-    id
-    sequencing_id
   }
 }

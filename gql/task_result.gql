@@ -1,3 +1,31 @@
+query GetTaskResults($where: task_result_bool_exp!) {
+  records: task_result(where: $where) {
+    id
+    crc32c_hash
+    created_at
+    format
+    label
+    size
+    task_entity {
+      id
+      sequencing_id
+    }
+    task_name
+    terra_entity_name
+    terra_entity_type
+    terra_method_config_name
+    terra_method_config_namespace
+    terra_submission_id
+    terra_workflow_id
+    terra_workspace_id
+    terra_workspace_name
+    terra_workspace_namespace
+    url
+    workflow_name
+    workflow_source_url
+  }
+}
+
 mutation InsertTaskResults(
   $username: String!
   $objects: [task_result_insert_input!]!
