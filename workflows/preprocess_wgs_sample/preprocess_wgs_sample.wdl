@@ -2,7 +2,7 @@
 
 version 1.0
 
-import "https://gist.githubusercontent.com/dpmccabe/579f0c3f0ba714a161f99bcbc2bd494e/raw/62c3c52a0c408354a6cebe1fd31bb7f60d7b01a5/CramToUnmappedBams.wdl" as ToUbams
+import "https://gist.githubusercontent.com/dpmccabe/579f0c3f0ba714a161f99bcbc2bd494e/raw/36fa13ed322d7dc4f87c0c163c30924c59e81826/CramToUnmappedBams.wdl" as ToUbams
 import "https://gist.githubusercontent.com/dpmccabe/579f0c3f0ba714a161f99bcbc2bd494e/raw/62c3c52a0c408354a6cebe1fd31bb7f60d7b01a5/CheckContaminationSomatic.wdl" as CheckContamination
 
 #import "./include/CramToUnmappedBams.wdl" as ToUbams

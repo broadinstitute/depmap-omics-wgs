@@ -120,6 +120,7 @@ task RevertSam {
         --ATTRIBUTE_TO_CLEAR PA \
         --ATTRIBUTE_TO_CLEAR OA \
         --ATTRIBUTE_TO_CLEAR XA \
+        --RESTORE_HARDCLIPS false \
         --SORT_ORDER coordinate
 
     >>>
