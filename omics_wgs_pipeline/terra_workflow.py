@@ -38,19 +38,6 @@ class TerraWorkflow:
         self.firecloud_owners = firecloud_owners
         self.method_config = json.load(open(self.method_config_json_path, "r"))
 
-    def persist_workflow(self) -> str:
-        storage_client = storage.Client(project=self.gcp_project_id)
-        bucket = storage_client.bucket(
-            self.pipelines_bucket_name, user_project=self.gcp_project_id
-        )
-        wdl = persist_wdl_script(
-            bucket=bucket,
-            wdl_path=self.workflow_wdl_path,
-            subpath="wdl",
-        )["wdl"]
-
-        return wdl
-
     def create_method(self) -> dict:
         """
         Create the initial method using the WDL file in this repo.
@@ -84,7 +71,8 @@ class TerraWorkflow:
         :return: the latest method's snapshot
         """
 
-        wdl = self.persist_workflow()
+        # get contents of WDL uploaded to GCS
+        wdl = self.persist_method_on_gcs()
 
         with tempfile.NamedTemporaryFile("w") as f:
             f.write(wdl)
@@ -107,6 +95,27 @@ class TerraWorkflow:
         )
 
         return snapshot
+
+    def persist_method_on_gcs(self) -> str:
+        """
+        Upload the method's WDL script to GCS, rewriting import statements for dependent
+        WDL scripts as needed.
+
+        :return: a string containing the contents of the persisted WDL script
+        """
+
+        storage_client = storage.Client(project=self.gcp_project_id)
+        bucket = storage_client.bucket(
+            self.pipelines_bucket_name, user_project=self.gcp_project_id
+        )
+
+        wdl = persist_wdl_script(
+            bucket=bucket,
+            wdl_path=self.workflow_wdl_path,
+            subpath="wdl",
+        )["wdl"]
+
+        return wdl
 
     def get_method_snapshots(self) -> list[dict]:
         """
