@@ -9,7 +9,7 @@ class CoercedDataFrame(pa.DataFrameModel):
         coerce = True  # convert to indicated dtype upon TypedDataFrame init
 
 
-class SampleToPreprocess(CoercedDataFrame):
+class TerraSample(CoercedDataFrame):
     sample_id: Series[pd.StringDtype]
     delivery_file_format: Series[pd.StringDtype] = pa.Field(isin={"CRAM", "BAM"})
     delivery_cram_bam: Series[pd.StringDtype]

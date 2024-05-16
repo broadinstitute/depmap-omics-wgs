@@ -1,6 +1,7 @@
 import json
 import tempfile
 from pathlib import Path
+from typing import Any
 
 from click import echo
 from firecloud import api as firecloud_api
@@ -239,3 +240,17 @@ class TerraWorkflow:
 
         # don't let old method configs accumulate
         self.delete_old_method_snapshots(2)
+
+    def submit_workflow_run(self, **kwargs: dict[str, Any]) -> None:
+        """
+        Submit a run of the workflow.
+        """
+
+        call_firecloud_api(
+            firecloud_api.create_submission,
+            wnamespace=self.workspace_namespace,
+            workspace=self.workspace_name,
+            cnamespace=self.repo_namespace,
+            config=self.repo_method_name,
+            **kwargs,
+        )

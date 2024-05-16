@@ -15,7 +15,7 @@ from omics_wgs_pipeline.utils import expand_dict_columns, model_to_df, type_data
 from omics_wgs_pipeline.validators import (
     GumboTaskResult,
     GumboWgsSequencing,
-    SampleToPreprocess,
+    TerraSample,
 )
 
 
@@ -100,6 +100,7 @@ def refresh_terra_samples(workspace_namespace: str, workspace_name: str) -> None
 
     task_results = model_to_df(
         gumbo_client.get_task_results(
+            # TODO: other output files
             task_result_bool_exp(workflow_name={"eq": "preprocess_wgs_sample"})
         ),
         GumboTaskResult,
@@ -108,16 +109,16 @@ def refresh_terra_samples(workspace_namespace: str, workspace_name: str) -> None
         ),
     )
 
-    samples = make_samples_to_preprocess(wgs_sequencings, task_results)
+    samples = make_terra_samples(wgs_sequencings, task_results)
 
     echo(f"Upserting {len(samples)} samples to Terra")
     upload_entities_to_terra(workspace_namespace, workspace_name, df=samples)
 
 
-def make_samples_to_preprocess(
+def make_terra_samples(
     wgs_sequencings: TypedDataFrame[GumboWgsSequencing],
     task_results: TypedDataFrame[GumboTaskResult],
-) -> TypedDataFrame[SampleToPreprocess]:
+) -> TypedDataFrame[TerraSample]:
     """
     Make a data frame to upload to Terra as the `sample` data table.
 
@@ -153,14 +154,14 @@ def make_samples_to_preprocess(
     )
     samples = samples.loc[~samples["is_hg19"]]
 
-    # join already preprocessed BAM/BAI files to canonical set of WGS samples
-    bam_bais = task_results.pivot(
+    # join already processed output files to canonical set of WGS samples
+    task_result_urls = task_results.pivot(
         index="sample_id", columns="label", values="url"
     ).reset_index()
 
-    samples = samples.merge(bam_bais, how="left", on="sample_id")
+    samples = samples.merge(task_result_urls, how="left", on="sample_id")
 
-    return type_data_frame(samples, SampleToPreprocess)
+    return type_data_frame(samples, TerraSample)
 
 
 def create_new_sample_set(
@@ -212,42 +213,6 @@ def create_new_sample_set(
     sample_sets = sample_sets.loc[:, ["membership:sample_set_id", "sample"]]
 
     echo(f"Adding {len(sample_sets)} samples to sample set {sample_set_id}")
-    upload_entities_to_terra(
-        workspace_namespace,
-        workspace_name,
-        df=sample_sets,
-    )
+    upload_entities_to_terra(workspace_namespace, workspace_name, df=sample_sets)
 
     return sample_set_id
-
-
-def submit_workflow_run(
-    workspace_namespace: str,
-    workspace_name: str,
-    repo_namespace: str,
-    repo_method_name: str,
-    sample_set_id: str,
-) -> None:
-    """
-    Submit a run of a workflow for the new sample set.
-
-    :param workspace_namespace: the namespace of the Firecloud workspace
-    :param workspace_name: the name of the Firecloud workspace
-    :param repo_namespace: the namespace of the Firecloud method
-    :param repo_method_name: the name of the Firecloud method
-    :param sample_set_id: the ID of the new sample set
-    """
-
-    call_firecloud_api(
-        firecloud_api.create_submission,
-        wnamespace=workspace_namespace,
-        workspace=workspace_name,
-        cnamespace=repo_namespace,
-        config=repo_method_name,
-        entity=sample_set_id,
-        etype="sample_set",
-        expression="this.samples",
-        use_callcache=True,
-        use_reference_disks=True,
-        memory_retry_multiplier=1.2,  # pyright: ignore
-    )

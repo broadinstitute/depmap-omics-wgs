@@ -18,8 +18,8 @@
     "GDCWholeGenomeSomaticSingleSample.input_crai": "this.delivery_crai_bai",
     "GDCWholeGenomeSomaticSingleSample.input_bam": "this.delivery_cram_bam",
     "GDCWholeGenomeSomaticSingleSample.input_bai": "this.delivery_crai_bai",
-    "GDCWholeGenomeSomaticSingleSample.cram_ref_fasta": "this.delivery_ref_fasta",
-    "GDCWholeGenomeSomaticSingleSample.cram_ref_fasta_index": "this.delivery_ref_fasta_index"
+    "GDCWholeGenomeSomaticSingleSample.cram_ref_fasta": "workspace.referenceData_hg38_ref_fasta",
+    "GDCWholeGenomeSomaticSingleSample.cram_ref_fasta_index": "workspace.referenceData_hg38_ref_fasta_index"
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {

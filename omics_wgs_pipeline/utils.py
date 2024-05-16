@@ -57,6 +57,8 @@ def expand_dict_columns(
             nested_df = pd.json_normalize(s.tolist())
 
             if name_columns_with_parent:
+                # e.g. if current column `c` is "foo" and the nested data contains a
+                # field "bar", the resulting column name is "foo__bar"
                 nested_df.columns = [
                     sep.join([parent_key, c, str(col)])
                     if parent_key != ""
@@ -64,6 +66,7 @@ def expand_dict_columns(
                     for col in nested_df.columns
                 ]
 
+            # recurse on the nested data
             flattened_dict.update(
                 expand_dict_columns(
                     nested_df,
@@ -74,7 +77,7 @@ def expand_dict_columns(
             )
 
         else:
-            # if not a dictionary, add the column as it is
+            # if not a dictionary, add the column as is
             flattened_dict[c] = s
 
     df = pd.DataFrame(flattened_dict)
