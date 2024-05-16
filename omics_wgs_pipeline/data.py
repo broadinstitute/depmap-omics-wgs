@@ -2,6 +2,7 @@ import os
 import pathlib
 
 from gumbo_gql_client import GumboClient, task_result_bool_exp
+from omics_wgs_pipeline.terra import TerraWorkflow, TerraWorkspace
 from omics_wgs_pipeline.types import TypedDataFrame
 from omics_wgs_pipeline.utils import expand_dict_columns, model_to_df, type_data_frame
 from omics_wgs_pipeline.validators import (
@@ -101,55 +102,30 @@ def join_existing_results_to_samples(
     return type_data_frame(samples, TerraSample)
 
 
-# def create_new_sample_set(
-#     workspace_namespace: str,
-#     workspace_name: str,
-#     sample_ids: Iterable[str],
-#     suffix: str,
-# ) -> str:
-#     """
-#     Create a new sample set for samples and upload it to Terra.
-#
-#     :param workspace_namespace: the namespace of the Firecloud workspace
-#     :param workspace_name: the name of the Firecloud workspace
-#     :param sample_ids: a list of sample IDs
-#     :param suffix: a suffix to add to the sample set ID (e.g. "preprocess_wgs_sample")
-#     :return: the ID of the new sample set
-#     """
-#
-#     # make an ID for the sample set of new samples
-#     sample_set_id = "_".join(
-#         [
-#             "samples",
-#             datetime.datetime.now(datetime.UTC)
-#             .isoformat(timespec="seconds")
-#             .replace(":", "-"),
-#             suffix,
-#         ]
-#     )
-#
-#     # construct a data frame of sample IDs for this sample set
-#     sample_sets = pd.DataFrame({"entity:sample_id": sample_ids}, dtype="string")
-#     sample_sets["entity:sample_set_id"] = sample_set_id
-#
-#     echo("Creating new sample set in Terra")
-#     upload_entities_to_terra(
-#         workspace_namespace,
-#         workspace_name,
-#         df=sample_sets[["entity:sample_set_id"]].drop_duplicates(),
-#     )
-#
-#     # construct the join table between the sample set and its samples
-#     sample_sets = sample_sets.rename(
-#         columns={
-#             "entity:sample_set_id": "membership:sample_set_id",
-#             "entity:sample_id": "sample",
-#         }
-#     )
-#
-#     sample_sets = sample_sets.loc[:, ["membership:sample_set_id", "sample"]]
-#
-#     echo(f"Adding {len(sample_sets)} samples to sample set {sample_set_id}")
-#     upload_entities_to_terra(workspace_namespace, workspace_name, df=sample_sets)
-#
-#     return sample_set_id
+def delta_preprocess_wgs_samples(
+    terra_workspace: TerraWorkspace, terra_workflow: TerraWorkflow
+) -> None:
+    """
+    Check the Terra `sample` data table for samples without `preprocess_wgs_sample`
+    output files and submit a run of that workflow on a sample set comprised of those
+    new files.
+
+    :param terra_workspace: a `TerraWorkspace` instance
+    :param terra_workflow: a `TerraWorkflow` instance
+    """
+
+    samples = terra_workspace.get_entities("sample", TerraSample)
+    samples = samples.loc[samples["bam"].isna() | samples["bai"].isna()]
+    sample_set_id = terra_workspace.create_sample_set(
+        samples["sample_id"], suffix="preprocess_wgs_sample"
+    )
+
+    terra_workspace.submit_workflow_run(
+        terra_workflow,
+        entity=sample_set_id,
+        etype="sample_set",
+        expression="this.samples",
+        use_callcache=True,
+        use_reference_disks=False,
+        memory_retry_multiplier=1.2,  # pyright: ignore
+    )

@@ -1,15 +1,20 @@
+import datetime
 import json
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Iterable, Type, TypeVar, Unpack
 
 import pandas as pd
 from click import echo
 from firecloud import api as firecloud_api
 from google.cloud import storage
 
+from omics_wgs_pipeline.types import TerraJobSubmissionKwargs, TypedDataFrame
 from omics_wgs_pipeline.utils import call_firecloud_api
+from omics_wgs_pipeline.validators import CoercedDataFrame
 from omics_wgs_pipeline.wdl import persist_wdl_script
+
+T = TypeVar("T", bound=CoercedDataFrame)
 
 
 class TerraWorkflow:
@@ -33,6 +38,7 @@ class TerraWorkflow:
         self.workflow_wdl_path = workflow_wdl_path
         self.method_config_json_path = method_config_json_path
         self.method_config = json.load(open(self.method_config_json_path, "r"))
+        self.persisted_wdl_url: str | None = None
         self.persisted_wdl: str | None = None
 
     def persist_method_on_gcs(self) -> None:
@@ -46,11 +52,12 @@ class TerraWorkflow:
             self.pipelines_bucket_name, user_project=self.gcp_project_id
         )
 
-        self.persisted_wdl = persist_wdl_script(
-            bucket=bucket,
-            wdl_path=self.workflow_wdl_path,
-            subpath="wdl",
-        )["wdl"]
+        res = persist_wdl_script(
+            bucket=bucket, wdl_path=self.workflow_wdl_path, subpath="wdl"
+        )
+
+        self.persisted_wdl = res["wdl"]
+        self.persisted_wdl_url = res["public_url"]
 
     def get_method_snapshots(self) -> list[dict]:
         """
@@ -95,18 +102,30 @@ class TerraWorkflow:
 
 class TerraWorkspace:
     def __init__(
-        self,
-        gcp_project_id: str,
-        pipelines_bucket_name: str,
-        workspace_namespace: str,
-        workspace_name: str,
-        firecloud_owners: list[str],
+        self, workspace_namespace: str, workspace_name: str, firecloud_owners: list[str]
     ) -> None:
-        self.gcp_project_id = gcp_project_id
-        self.pipelines_bucket_name = pipelines_bucket_name
         self.workspace_namespace = workspace_namespace
         self.workspace_name = workspace_name
         self.firecloud_owners = firecloud_owners
+
+    def get_entities(
+        self, entity_type: str, pandera_schema: Type[T]
+    ) -> TypedDataFrame[T]:
+        """
+        Get a data frame of entities from a Terra data table.
+
+        :param entity_type: the kind of entity (e.g. "sample")
+        :param pandera_schema: a Pandera schema for the output data frame
+        """
+
+        j = call_firecloud_api(
+            firecloud_api.get_entities,
+            namespace=self.workspace_namespace,
+            workspace=self.workspace_name,
+            etype=entity_type,
+        )
+
+        return TypedDataFrame[pandera_schema](pd.DataFrame(j))
 
     def upload_entities(self, df: pd.DataFrame) -> None:
         """
@@ -279,10 +298,10 @@ class TerraWorkspace:
         terra_workflow.delete_old_method_snapshots(2)
 
     def submit_workflow_run(
-        self, terra_workflow: TerraWorkflow, **kwargs: dict[str, Any]
+        self, terra_workflow: TerraWorkflow, **kwargs: Unpack[TerraJobSubmissionKwargs]
     ) -> None:
         """
-        Submit a run of the workflow.
+        Submit a run of a workflow.
 
         :param terra_workflow: a `TerraWorkflow` instance
         """
@@ -295,3 +314,46 @@ class TerraWorkspace:
             config=terra_workflow.repo_method_name,
             **kwargs,
         )
+
+    def create_sample_set(self, sample_ids: Iterable[str], suffix: str) -> str:
+        """
+        Create a new sample set for a list of sample IDs and upload it to Terra.
+
+        :param sample_ids: a list of sample IDs
+        :param suffix: a suffix to add to the sample set ID (e.g.
+        "preprocess_wgs_sample")
+        :return: the ID of the new sample set
+        """
+
+        # make an ID for the sample set of new samples
+        sample_set_id = "_".join(
+            [
+                "samples",
+                datetime.datetime.now(datetime.UTC)
+                .isoformat(timespec="seconds")
+                .replace(":", "-"),
+                suffix,
+            ]
+        )
+
+        # construct a data frame of sample IDs for this sample set
+        sample_sets = pd.DataFrame({"entity:sample_id": sample_ids}, dtype="string")
+        sample_sets["entity:sample_set_id"] = sample_set_id
+
+        echo("Creating new sample set in Terra")
+        self.upload_entities(sample_sets[["entity:sample_set_id"]].drop_duplicates())
+
+        # construct the join table between the sample set and its samples
+        sample_sets = sample_sets.rename(
+            columns={
+                "entity:sample_set_id": "membership:sample_set_id",
+                "entity:sample_id": "sample",
+            }
+        )
+
+        sample_sets = sample_sets.loc[:, ["membership:sample_set_id", "sample"]]
+
+        echo(f"Adding {len(sample_sets)} samples to sample set {sample_set_id}")
+        self.upload_entities(sample_sets)
+
+        return sample_set_id
