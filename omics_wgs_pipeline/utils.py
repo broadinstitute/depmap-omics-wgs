@@ -1,20 +1,21 @@
-from typing import Any, Callable, Iterable, Type, TypeVar
+from typing import Any, Callable, Iterable, Type
 
 import pandas as pd
 import requests
 from click import echo
-from pydantic import BaseModel
 
-from omics_wgs_pipeline.types import TypedDataFrame
-from omics_wgs_pipeline.validators import CoercedDataFrame
-
-B = TypeVar("B", bound=BaseModel)
-T = TypeVar("T", bound=CoercedDataFrame)
+from omics_wgs_pipeline.types import (
+    PanderaBaseSchema,
+    PydanticBaseModel,
+    TypedDataFrame,
+)
 
 
 def type_data_frame(
-    df: pd.DataFrame, pandera_schema: Type[T], remove_unknown_cols: bool = True
-) -> TypedDataFrame[T]:
+    df: pd.DataFrame,
+    pandera_schema: Type[PanderaBaseSchema],
+    remove_unknown_cols: bool = True,
+) -> TypedDataFrame[PanderaBaseSchema]:
     """
     Coerce a data frame into one specified by a Pandera schema and optionally remove
     unknown columns.
@@ -100,7 +101,9 @@ def expand_dict_columns(
     return df
 
 
-def df_to_model(df: pd.DataFrame, pydantic_schema: Type[B]) -> list[B]:
+def df_to_model(
+    df: pd.DataFrame, pydantic_schema: Type[PydanticBaseModel]
+) -> list[PydanticBaseModel]:
     """
     Convert a Pandas data frame to a Pydantic model.
 
@@ -113,12 +116,12 @@ def df_to_model(df: pd.DataFrame, pydantic_schema: Type[B]) -> list[B]:
 
 
 def model_to_df(
-    model: B,
-    pandera_schema: Type[T],
+    model: PydanticBaseModel,
+    pandera_schema: Type[PanderaBaseSchema],
     records_key: str = "records",
     remove_unknown_cols: bool = True,
     mutator: Callable[[pd.DataFrame], pd.DataFrame] = lambda _: _,
-) -> TypedDataFrame[T]:
+) -> TypedDataFrame[PanderaBaseSchema]:
     """
     Dump a Pydantic model and convert it to a data frame typed by a Pandera schema.
 

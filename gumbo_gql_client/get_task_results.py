@@ -24,6 +24,8 @@ class GetTaskResultsRecords(BaseModel):
     terra_method_config_namespace: Optional[str]
     terra_submission_id: Optional[str]
     terra_workflow_id: Optional[str]
+    terra_workflow_inputs: Optional[Any]
+    terra_workflow_root_dir: Optional[str]
     terra_workspace_id: Optional[str]
     terra_workspace_name: Optional[str]
     terra_workspace_namespace: Optional[str]

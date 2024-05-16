@@ -118,6 +118,8 @@ class GumboClient(BaseClient):
                 terra_method_config_namespace
                 terra_submission_id
                 terra_workflow_id
+                terra_workflow_inputs
+                terra_workflow_root_dir
                 terra_workspace_id
                 terra_workspace_name
                 terra_workspace_namespace

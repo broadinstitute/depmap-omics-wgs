@@ -318,6 +318,28 @@ class float8_comparison_exp(BaseModel):
     nin: Optional[List[Any]] = Field(alias="_nin", default=None)
 
 
+class jsonb_cast_exp(BaseModel):
+    string: Optional["String_comparison_exp"] = Field(alias="String", default=None)
+
+
+class jsonb_comparison_exp(BaseModel):
+    cast: Optional["jsonb_cast_exp"] = Field(alias="_cast", default=None)
+    contained_in: Optional[Any] = Field(alias="_contained_in", default=None)
+    contains: Optional[Any] = Field(alias="_contains", default=None)
+    eq: Optional[Any] = Field(alias="_eq", default=None)
+    gt: Optional[Any] = Field(alias="_gt", default=None)
+    gte: Optional[Any] = Field(alias="_gte", default=None)
+    has_key: Optional[str] = Field(alias="_has_key", default=None)
+    has_keys_all: Optional[List[str]] = Field(alias="_has_keys_all", default=None)
+    has_keys_any: Optional[List[str]] = Field(alias="_has_keys_any", default=None)
+    in_: Optional[List[Any]] = Field(alias="_in", default=None)
+    is_null: Optional[bool] = Field(alias="_is_null", default=None)
+    lt: Optional[Any] = Field(alias="_lt", default=None)
+    lte: Optional[Any] = Field(alias="_lte", default=None)
+    neq: Optional[Any] = Field(alias="_neq", default=None)
+    nin: Optional[List[Any]] = Field(alias="_nin", default=None)
+
+
 class media_bool_exp(BaseModel):
     and_: Optional[List["media_bool_exp"]] = Field(alias="_and", default=None)
     not_: Optional["media_bool_exp"] = Field(alias="_not", default=None)
@@ -2446,6 +2468,10 @@ class task_result_aggregate_order_by(BaseModel):
     variance: Optional["task_result_variance_order_by"] = None
 
 
+class task_result_append_input(BaseModel):
+    terra_workflow_inputs: Optional[Any] = None
+
+
 class task_result_arr_rel_insert_input(BaseModel):
     data: List["task_result_insert_input"]
     on_conflict: Optional["task_result_on_conflict"] = None
@@ -2481,12 +2507,26 @@ class task_result_bool_exp(BaseModel):
     terra_sync: Optional["terra_sync_bool_exp"] = None
     terra_sync_id: Optional["bigint_comparison_exp"] = None
     terra_workflow_id: Optional["String_comparison_exp"] = None
+    terra_workflow_inputs: Optional["jsonb_comparison_exp"] = None
+    terra_workflow_root_dir: Optional["String_comparison_exp"] = None
     terra_workspace_id: Optional["String_comparison_exp"] = None
     terra_workspace_name: Optional["String_comparison_exp"] = None
     terra_workspace_namespace: Optional["String_comparison_exp"] = None
     url: Optional["String_comparison_exp"] = None
     workflow_name: Optional["String_comparison_exp"] = None
     workflow_source_url: Optional["String_comparison_exp"] = None
+
+
+class task_result_delete_at_path_input(BaseModel):
+    terra_workflow_inputs: Optional[List[str]] = None
+
+
+class task_result_delete_elem_input(BaseModel):
+    terra_workflow_inputs: Optional[int] = None
+
+
+class task_result_delete_key_input(BaseModel):
+    terra_workflow_inputs: Optional[str] = None
 
 
 class task_result_inc_input(BaseModel):
@@ -2514,6 +2554,8 @@ class task_result_insert_input(BaseModel):
     terra_sync: Optional["terra_sync_obj_rel_insert_input"] = None
     terra_sync_id: Optional[int] = None
     terra_workflow_id: Optional[str] = None
+    terra_workflow_inputs: Optional[Any] = None
+    terra_workflow_root_dir: Optional[str] = None
     terra_workspace_id: Optional[str] = None
     terra_workspace_name: Optional[str] = None
     terra_workspace_namespace: Optional[str] = None
@@ -2538,6 +2580,7 @@ class task_result_max_order_by(BaseModel):
     terra_submission_id: Optional[order_by] = None
     terra_sync_id: Optional[order_by] = None
     terra_workflow_id: Optional[order_by] = None
+    terra_workflow_root_dir: Optional[order_by] = None
     terra_workspace_id: Optional[order_by] = None
     terra_workspace_name: Optional[order_by] = None
     terra_workspace_namespace: Optional[order_by] = None
@@ -2562,6 +2605,7 @@ class task_result_min_order_by(BaseModel):
     terra_submission_id: Optional[order_by] = None
     terra_sync_id: Optional[order_by] = None
     terra_workflow_id: Optional[order_by] = None
+    terra_workflow_root_dir: Optional[order_by] = None
     terra_workspace_id: Optional[order_by] = None
     terra_workspace_name: Optional[order_by] = None
     terra_workspace_namespace: Optional[order_by] = None
@@ -2594,6 +2638,8 @@ class task_result_order_by(BaseModel):
     terra_sync: Optional["terra_sync_order_by"] = None
     terra_sync_id: Optional[order_by] = None
     terra_workflow_id: Optional[order_by] = None
+    terra_workflow_inputs: Optional[order_by] = None
+    terra_workflow_root_dir: Optional[order_by] = None
     terra_workspace_id: Optional[order_by] = None
     terra_workspace_name: Optional[order_by] = None
     terra_workspace_namespace: Optional[order_by] = None
@@ -2604,6 +2650,10 @@ class task_result_order_by(BaseModel):
 
 class task_result_pk_columns_input(BaseModel):
     id: int
+
+
+class task_result_prepend_input(BaseModel):
+    terra_workflow_inputs: Optional[Any] = None
 
 
 class task_result_set_input(BaseModel):
@@ -2622,6 +2672,8 @@ class task_result_set_input(BaseModel):
     terra_submission_id: Optional[str] = None
     terra_sync_id: Optional[int] = None
     terra_workflow_id: Optional[str] = None
+    terra_workflow_inputs: Optional[Any] = None
+    terra_workflow_root_dir: Optional[str] = None
     terra_workspace_id: Optional[str] = None
     terra_workspace_name: Optional[str] = None
     terra_workspace_namespace: Optional[str] = None
@@ -2672,6 +2724,8 @@ class task_result_stream_cursor_value_input(BaseModel):
     terra_submission_id: Optional[str] = None
     terra_sync_id: Optional[int] = None
     terra_workflow_id: Optional[str] = None
+    terra_workflow_inputs: Optional[Any] = None
+    terra_workflow_root_dir: Optional[str] = None
     terra_workspace_id: Optional[str] = None
     terra_workspace_name: Optional[str] = None
     terra_workspace_namespace: Optional[str] = None
@@ -2688,7 +2742,20 @@ class task_result_sum_order_by(BaseModel):
 
 
 class task_result_updates(BaseModel):
+    append: Optional["task_result_append_input"] = Field(alias="_append", default=None)
+    delete_at_path: Optional["task_result_delete_at_path_input"] = Field(
+        alias="_delete_at_path", default=None
+    )
+    delete_elem: Optional["task_result_delete_elem_input"] = Field(
+        alias="_delete_elem", default=None
+    )
+    delete_key: Optional["task_result_delete_key_input"] = Field(
+        alias="_delete_key", default=None
+    )
     inc: Optional["task_result_inc_input"] = Field(alias="_inc", default=None)
+    prepend: Optional["task_result_prepend_input"] = Field(
+        alias="_prepend", default=None
+    )
     set: Optional["task_result_set_input"] = Field(alias="_set", default=None)
     where: "task_result_bool_exp"
 

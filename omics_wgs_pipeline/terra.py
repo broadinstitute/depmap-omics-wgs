@@ -1,20 +1,23 @@
 import datetime
 import json
+import pathlib
 import tempfile
 from pathlib import Path
-from typing import Iterable, Type, TypeVar, Unpack
+from typing import Iterable, Type, Unpack
 
 import pandas as pd
 from click import echo
 from firecloud import api as firecloud_api
 from google.cloud import storage
 
-from omics_wgs_pipeline.types import TerraJobSubmissionKwargs, TypedDataFrame
+from gumbo_gql_client import task_result_insert_input
+from omics_wgs_pipeline.types import (
+    PanderaBaseSchema,
+    TerraJobSubmissionKwargs,
+    TypedDataFrame,
+)
 from omics_wgs_pipeline.utils import call_firecloud_api
-from omics_wgs_pipeline.validators import CoercedDataFrame
 from omics_wgs_pipeline.wdl import persist_wdl_script
-
-T = TypeVar("T", bound=CoercedDataFrame)
 
 
 class TerraWorkflow:
@@ -109,8 +112,8 @@ class TerraWorkspace:
         self.firecloud_owners = firecloud_owners
 
     def get_entities(
-        self, entity_type: str, pandera_schema: Type[T]
-    ) -> TypedDataFrame[T]:
+        self, entity_type: str, pandera_schema: Type[PanderaBaseSchema]
+    ) -> TypedDataFrame[PanderaBaseSchema]:
         """
         Get a data frame of entities from a Terra data table.
 
@@ -360,3 +363,70 @@ class TerraWorkspace:
         self.upload_entities(sample_sets)
 
         return sample_set_id
+
+    def collect_workflow_outputs(
+        self, since: datetime.datetime | None = None
+    ) -> list[task_result_insert_input]:
+        submissions = pd.DataFrame(
+            call_firecloud_api(
+                firecloud_api.list_submissions,
+                wnamespace=self.workspace_namespace,
+                workspace=self.workspace_name,
+            )
+        ).convert_dtypes()
+
+        if since is not None:
+            submissions = submissions.loc[submissions["submissionDate"].ge(since)]
+
+        results = []
+
+        for _, s in submissions.iterrows():
+            r = task_result_insert_input(
+                # crc_32_c_hash=None,
+                # created_at=None,
+                # size=None,
+                # task_entity_id=,
+                terra_method_config_name=s["methodConfigurationName"],
+                terra_method_config_namespace=s["methodConfigurationNamespace"],
+                terra_submission_id=s["submissionId"],
+                terra_workspace_name=self.workspace_name,
+                terra_workspace_namespace=self.workspace_namespace,
+                # workflow_name=None,
+                # workflow_source_url=None,
+            )
+
+            submission = call_firecloud_api(
+                firecloud_api.get_submission,
+                namespace=self.workspace_namespace,
+                workspace=self.workspace_name,
+                submission_id=s["submissionId"],
+            )
+
+            for w in submission["workflows"]:
+                r.terra_workflow_id = w["workflowId"]
+                r.terra_entity_name = w["workflowEntity"]["entityName"]
+                r.terra_entity_type = w["workflowEntity"]["entityType"]
+
+                wmd = call_firecloud_api(
+                    firecloud_api.get_workflow_metadata,
+                    namespace=self.workspace_namespace,
+                    workspace=self.workspace_name,
+                    submission_id=s["submissionId"],
+                    workflow_id=w["workflowId"],
+                )
+
+                if wmd["status"] != "Succeeded":
+                    continue
+
+                r.terra_workflow_inputs = wmd["inputs"]
+                r.terra_workspace_id = wmd["labels"]["workspace-id"]
+                r.terra_workflow_root_dir = wmd["workflowRoot"]
+
+                for label, url in wmd["outputs"]:
+                    r.task_name, r.label = label.rsplit(".", maxsplit=1)
+                    r.url = url
+                    r.format = pathlib.Path(r.url).suffix[1:].upper()
+
+                    results.append(r)
+
+        return results

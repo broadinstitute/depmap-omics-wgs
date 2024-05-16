@@ -1,7 +1,12 @@
-from typing import TypedDict
+from typing import TypedDict, TypeVar
 
 import pandera.typing
+from pydantic import BaseModel
 
+from omics_wgs_pipeline.validators import CoercedDataFrame
+
+PydanticBaseModel = TypeVar("PydanticBaseModel", bound=BaseModel)
+PanderaBaseSchema = TypeVar("PanderaBaseSchema", bound=CoercedDataFrame)
 TypedDataFrame = pandera.typing.DataFrame
 
 
