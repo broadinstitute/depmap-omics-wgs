@@ -1,12 +1,12 @@
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated, Any, Optional
 
 import pandas as pd
 import tomllib
 import typer
 
-from omics_wgs_pipeline import terra
-from omics_wgs_pipeline.terra_workflow import TerraWorkflow
+from omics_wgs_pipeline.metadata import make_terra_samples
+from omics_wgs_pipeline.terra import TerraWorkflow, TerraWorkspace
 
 pd.set_option("display.max_columns", 30)
 pd.set_option("display.max_colwidth", 50)
@@ -20,7 +20,7 @@ pd.set_option("mode.chained_assignment", "warn")
 
 app = typer.Typer()
 
-config = {}
+config: dict[str, Any] = {}
 
 
 # noinspection PyUnusedLocal
@@ -29,20 +29,33 @@ def done(*args, **kwargs):
 
 
 @app.callback(result_callback=done)
-def main(config_path: Annotated[Optional[Path], typer.Option(exists=True)]):
+def main(
+    ctx: typer.Context,
+    config_path: Annotated[Optional[Path], typer.Option(exists=True)],
+):
     with open(config_path, "rb") as f:
         config.update(tomllib.load(f))
 
+    ctx.obj = {
+        "terra_workspace": TerraWorkspace(
+            gcp_project_id=config["gcp_project_id"],
+            pipelines_bucket_name=config["terra"]["pipelines_bucket_name"],
+            workspace_namespace=config["terra"]["workspace_namespace"],
+            workspace_name=config["terra"]["workspace_name"],
+            firecloud_owners=config["terra"]["firecloud_owners"],
+        ),
+    }
+
 
 @app.command()
-def update_workflow(workflow_name: Annotated[str, typer.Option()]) -> None:
+def update_workflow(
+    ctx: typer.Context, workflow_name: Annotated[str, typer.Option()]
+) -> None:
     terra_workflow = TerraWorkflow(
         gcp_project_id=config["gcp_project_id"],
         pipelines_bucket_name=config["terra"]["pipelines_bucket_name"],
         repo_namespace=config["terra"]["repo_namespace"],
         repo_method_name=config["terra"][workflow_name]["repo_method_name"],
-        workspace_namespace=config["terra"]["workspace_namespace"],
-        workspace_name=config["terra"]["workspace_name"],
         method_config_name=config["terra"][workflow_name]["method_config_name"],
         method_synopsis=config["terra"][workflow_name]["method_synopsis"],
         workflow_wdl_path=Path(
@@ -51,17 +64,15 @@ def update_workflow(workflow_name: Annotated[str, typer.Option()]) -> None:
         method_config_json_path=Path(
             config["terra"][workflow_name]["method_config_json_path"]
         ).resolve(),
-        firecloud_owners=config["terra"]["firecloud_owners"],
     )
-    terra_workflow.update_workflow()
+
+    ctx.obj["terra_workspace"].update_workflow(terra_workflow)
 
 
 @app.command()
-def refresh_terra_samples() -> None:
-    terra.refresh_terra_samples(
-        workspace_namespace=config["terra"]["workspace_namespace"],
-        workspace_name=config["terra"]["workspace_name"],
-    )
+def refresh_terra_samples(ctx: typer.Context) -> None:
+    samples = make_terra_samples()
+    ctx.obj["terra_workspace"].upload_entities(samples)
 
 
 if __name__ == "__main__":

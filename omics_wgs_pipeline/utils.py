@@ -1,6 +1,8 @@
-from typing import Callable, Iterable, Type, TypeVar
+from typing import Any, Callable, Iterable, Type, TypeVar
 
 import pandas as pd
+import requests
+from click import echo
 from pydantic import BaseModel
 
 from omics_wgs_pipeline.types import TypedDataFrame
@@ -161,3 +163,32 @@ def anti_join(
 
     # keep only the non-matches
     return merged.loc[merged["dummy_col"].isna(), x.columns.tolist()]
+
+
+def call_firecloud_api(func: Callable, *args: object, **kwargs: object) -> Any:
+    """
+    Call a Firecloud API endpoint and check the response for a valid HTTP status code.
+
+    :param func: a `firecloud.api` method
+    :param args: arguments to `func`
+    :param kwargs: keyword arguments to `func`
+    :return: the API response, if any
+    """
+
+    res = func(*args, **kwargs)
+
+    if 200 <= res.status_code <= 299:
+        try:
+            return res.json()
+        except requests.exceptions.JSONDecodeError:
+            return res.text
+
+    try:
+        raise requests.exceptions.RequestException(
+            f"HTTP {res.status_code} error: {res.json()}"
+        )
+    except Exception as e:
+        # it's returning HTML or something is preventing us from parsing the JSON
+        echo(f"Error getting response as JSON: {e}", err=True)
+        echo(f"Response text: {res.text}", err=True)
+        raise requests.exceptions.RequestException(f"HTTP {res.status_code} error")
