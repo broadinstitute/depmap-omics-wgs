@@ -7,7 +7,9 @@ from google.cloud import storage
 from omics_wgs_pipeline.types import PersistedWdl
 
 IMPORT_PATTERN = re.compile(r"^import\s+\"(?!http)([^\"]+)\"\s+as\s+(\S+)$")
-VERSION_PATTERN = re.compile(r"^version\s+([\d.]+)$")
+PIPELINE_VERSION_PATTERN = re.compile(
+    r"^\s*String pipeline_version\s*=\s*\"([\d.]+)\"$"
+)
 
 
 def persist_wdl_script(
@@ -20,21 +22,24 @@ def persist_wdl_script(
     :param bucket: a GCS bucket
     :param wdl_path: the absolute path to a WDL script
     :param subpath: a prefix to prepend to the destiation URL
-    :return: a dictionary of the uploaded WDL and its public GCS URL
+    :return: a dictionary of the uploaded WDL, its public GCS URL, and its
+    `pipeline_version` (if found as a variable in the `workflow`)
     """
 
     with open(wdl_path, "r") as f:
         wdl_lines = f.readlines()
 
     wdl_basename = os.path.basename(wdl_path)
+    version = None
     versioned_subpath = subpath
     buffer = []
 
     # include the version number on the uploaded object path if one is found
     for line in wdl_lines:
-        if version_match := re.match(VERSION_PATTERN, line):
+        if version_match := re.match(PIPELINE_VERSION_PATTERN, line):
+            version = version_match[1]
             versioned_subpath = "/".join(
-                [versioned_subpath, Path(wdl_basename).stem, version_match[1]]
+                [versioned_subpath, Path(wdl_basename).stem, version]
             )
 
     for line in wdl_lines:
@@ -74,4 +79,4 @@ def persist_wdl_script(
     blob.upload_from_string(converted_wdl)
     blob.make_public()
 
-    return {"wdl": converted_wdl, "public_url": blob.public_url}
+    return {"wdl": converted_wdl, "public_url": blob.public_url, "version": version}
