@@ -126,6 +126,7 @@ class GumboClient(BaseClient):
                 url
                 workflow_name
                 workflow_source_url
+                workflow_version
               }
             }
             """

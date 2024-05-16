@@ -32,6 +32,7 @@ class GetTaskResultsRecords(BaseModel):
     url: Optional[str]
     workflow_name: str
     workflow_source_url: Optional[str]
+    workflow_version: Optional[str]
 
 
 class GetTaskResultsRecordsTaskEntity(BaseModel):

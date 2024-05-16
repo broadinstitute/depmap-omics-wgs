@@ -786,6 +786,7 @@ class task_result_select_column(str, Enum):
     url = "url"
     workflow_name = "workflow_name"
     workflow_source_url = "workflow_source_url"
+    workflow_version = "workflow_version"
 
 
 class task_result_update_column(str, Enum):
@@ -812,6 +813,7 @@ class task_result_update_column(str, Enum):
     url = "url"
     workflow_name = "workflow_name"
     workflow_source_url = "workflow_source_url"
+    workflow_version = "workflow_version"
 
 
 class terra_sync_constraint(str, Enum):

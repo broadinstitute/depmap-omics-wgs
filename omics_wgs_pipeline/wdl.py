@@ -8,7 +8,7 @@ from omics_wgs_pipeline.types import PersistedWdl
 
 IMPORT_PATTERN = re.compile(r"^import\s+\"(?!http)([^\"]+)\"\s+as\s+(\S+)$")
 PIPELINE_VERSION_PATTERN = re.compile(
-    r"^\s*String pipeline_version\s*=\s*\"([\d.]+)\"$"
+    r"^\s*String\s+pipeline_version\s*=\s*\"([\d.]+)\"\s*$"
 )
 
 

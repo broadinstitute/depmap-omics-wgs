@@ -15,13 +15,13 @@ from gumbo_gql_client import (
     task_result_bool_exp,
     task_result_insert_input,
 )
+from omics_wgs_pipeline.types import CoercedDataFrame
 from omics_wgs_pipeline.utils import (
     anti_join,
     df_to_model,
     expand_dict_columns,
     model_to_df,
 )
-from omics_wgs_pipeline.validators import CoercedDataFrame
 
 pd.set_option("display.max_columns", 30)
 pd.set_option("display.max_colwidth", 50)

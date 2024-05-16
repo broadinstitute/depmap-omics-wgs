@@ -25,6 +25,7 @@ query GetTaskResults($where: task_result_bool_exp!) {
     url
     workflow_name
     workflow_source_url
+    workflow_version
   }
 }
 

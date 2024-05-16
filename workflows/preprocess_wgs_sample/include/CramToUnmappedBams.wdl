@@ -1,6 +1,6 @@
-# https://github.com/broadinstitute/warp/blob/GDCWholeGenomeSomaticSingleSample_v1.3.1/pipelines/broad/reprocessing/cram_to_unmapped_bams/CramToUnmappedBams.wdl
-
 version 1.0
+
+# https://github.com/broadinstitute/warp/blob/GDCWholeGenomeSomaticSingleSample_v1.3.1/pipelines/broad/reprocessing/cram_to_unmapped_bams/CramToUnmappedBams.wdl
 
 # Exactly one of input_cram and input_bam should be supplied to this workflow. If an input_cram is supplied, a ref_fasta
 # and ref_fasta_index must also be supplied. The ref_fasta and ref_fasta_index are used to generate a bam, so if an
@@ -10,7 +10,6 @@ version 1.0
 # found in the input_cram / input_bam and the desired name of the unmapped bams generated for each.
 # If the file is not provided, the output names of the unmapped bams will be the read_group_id<unmapped_bam_suffix>
 workflow CramToUnmappedBams {
-
     String pipeline_version = "1.1.2"
 
     input {

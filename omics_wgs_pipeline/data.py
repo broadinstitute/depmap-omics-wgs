@@ -3,13 +3,13 @@ import pathlib
 
 from gumbo_gql_client import GumboClient, task_result_bool_exp
 from omics_wgs_pipeline.terra import TerraWorkflow, TerraWorkspace
-from omics_wgs_pipeline.types import TypedDataFrame
-from omics_wgs_pipeline.utils import expand_dict_columns, model_to_df, type_data_frame
-from omics_wgs_pipeline.validators import (
+from omics_wgs_pipeline.types import (
     GumboTaskResult,
     GumboWgsSequencing,
     TerraSample,
+    TypedDataFrame,
 )
+from omics_wgs_pipeline.utils import expand_dict_columns, model_to_df, type_data_frame
 
 
 def make_terra_samples() -> TypedDataFrame[TerraSample]:

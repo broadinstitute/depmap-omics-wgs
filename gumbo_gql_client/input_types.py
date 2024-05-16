@@ -2515,6 +2515,7 @@ class task_result_bool_exp(BaseModel):
     url: Optional["String_comparison_exp"] = None
     workflow_name: Optional["String_comparison_exp"] = None
     workflow_source_url: Optional["String_comparison_exp"] = None
+    workflow_version: Optional["String_comparison_exp"] = None
 
 
 class task_result_delete_at_path_input(BaseModel):
@@ -2562,6 +2563,7 @@ class task_result_insert_input(BaseModel):
     url: Optional[str] = None
     workflow_name: Optional[str] = None
     workflow_source_url: Optional[str] = None
+    workflow_version: Optional[str] = None
 
 
 class task_result_max_order_by(BaseModel):
@@ -2587,6 +2589,7 @@ class task_result_max_order_by(BaseModel):
     url: Optional[order_by] = None
     workflow_name: Optional[order_by] = None
     workflow_source_url: Optional[order_by] = None
+    workflow_version: Optional[order_by] = None
 
 
 class task_result_min_order_by(BaseModel):
@@ -2612,6 +2615,7 @@ class task_result_min_order_by(BaseModel):
     url: Optional[order_by] = None
     workflow_name: Optional[order_by] = None
     workflow_source_url: Optional[order_by] = None
+    workflow_version: Optional[order_by] = None
 
 
 class task_result_on_conflict(BaseModel):
@@ -2646,6 +2650,7 @@ class task_result_order_by(BaseModel):
     url: Optional[order_by] = None
     workflow_name: Optional[order_by] = None
     workflow_source_url: Optional[order_by] = None
+    workflow_version: Optional[order_by] = None
 
 
 class task_result_pk_columns_input(BaseModel):
@@ -2680,6 +2685,7 @@ class task_result_set_input(BaseModel):
     url: Optional[str] = None
     workflow_name: Optional[str] = None
     workflow_source_url: Optional[str] = None
+    workflow_version: Optional[str] = None
 
 
 class task_result_stddev_order_by(BaseModel):
@@ -2732,6 +2738,7 @@ class task_result_stream_cursor_value_input(BaseModel):
     url: Optional[str] = None
     workflow_name: Optional[str] = None
     workflow_source_url: Optional[str] = None
+    workflow_version: Optional[str] = None
 
 
 class task_result_sum_order_by(BaseModel):

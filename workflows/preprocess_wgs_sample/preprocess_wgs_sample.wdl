@@ -1,9 +1,9 @@
-# https://github.com/broadinstitute/warp/blob/GDCWholeGenomeSomaticSingleSample_v1.3.1/pipelines/broad/dna_seq/somatic/single_sample/wgs/gdc_genome/GDCWholeGenomeSomaticSingleSample.wdl
-
 version 1.0
 
-import "https://gist.githubusercontent.com/dpmccabe/579f0c3f0ba714a161f99bcbc2bd494e/raw/36fa13ed322d7dc4f87c0c163c30924c59e81826/CramToUnmappedBams.wdl" as ToUbams
-import "https://gist.githubusercontent.com/dpmccabe/579f0c3f0ba714a161f99bcbc2bd494e/raw/62c3c52a0c408354a6cebe1fd31bb7f60d7b01a5/CheckContaminationSomatic.wdl" as CheckContamination
+# https://github.com/broadinstitute/warp/blob/GDCWholeGenomeSomaticSingleSample_v1.3.1/pipelines/broad/dna_seq/somatic/single_sample/wgs/gdc_genome/GDCWholeGenomeSomaticSingleSample.wdl
+
+import "https://gist.githubusercontent.com/dpmccabe/579f0c3f0ba714a161f99bcbc2bd494e/raw/14e671ecd221a4a6e7029adad2f932aa05546358/CramToUnmappedBams.wdl" as ToUbams
+import "https://gist.githubusercontent.com/dpmccabe/579f0c3f0ba714a161f99bcbc2bd494e/raw/14e671ecd221a4a6e7029adad2f932aa05546358/CheckContaminationSomatic.wdl" as CheckContamination
 
 #import "./include/CramToUnmappedBams.wdl" as ToUbams
 #import "./include/CheckContaminationSomatic.wdl" as CheckContamination
@@ -19,6 +19,187 @@ struct FastqSingleRecord {
     File fastq
     String readgroup
     String readgroup_id
+}
+
+workflow GDCWholeGenomeSomaticSingleSample {
+    String pipeline_version = "1.3.1"
+
+    input {
+        File? input_cram
+        File? input_crai
+        File? input_bam
+        File? input_bai
+        File? cram_ref_fasta
+        File? cram_ref_fasta_index
+        File? output_map
+        String? unmapped_bam_suffix
+        String base_file_name
+
+        File? ubam
+
+        File contamination_vcf
+        File contamination_vcf_index
+        File dbsnp_vcf
+        File dbsnp_vcf_index
+
+        File ref_fasta
+        File ref_fai
+        File ref_dict
+        File ref_amb
+        File ref_ann
+        File ref_bwt
+        File ref_pac
+        File ref_sa
+    }
+
+    String outbam = if (defined(ubam) || defined(input_bam)) then basename(select_first([ubam, input_bam]), ".bam") + ".aln.mrkdp.bam"
+                    else basename(select_first([input_cram]), ".cram") + ".aln.mrkdp.bam"
+
+    if (!defined(ubam)) {
+        call ToUbams.CramToUnmappedBams {
+            input:
+                input_cram = input_cram,
+                input_bam = input_bam,
+                ref_fasta = select_first([cram_ref_fasta, ref_fasta]),
+                ref_fasta_index = select_first([cram_ref_fasta_index, ref_fai]),
+                output_map = output_map,
+                base_file_name = base_file_name,
+                unmapped_bam_suffix = unmapped_bam_suffix
+        }
+    }
+
+    Array[File] ubams = if defined(ubam) then [select_first([ubam])] else select_first([CramToUnmappedBams.unmapped_bams])
+
+    scatter (ubam in ubams) {
+        call bam_readgroup_to_contents {
+            input: bam = ubam
+        }
+
+        call biobambam_bamtofastq {
+            input: filename = ubam
+        }
+    }
+
+    Array[Object] readgroups = flatten(bam_readgroup_to_contents.readgroups)
+
+    Array[File] fastq1 = flatten(biobambam_bamtofastq.output_fastq1)
+    Array[File] fastq2 = flatten(biobambam_bamtofastq.output_fastq2)
+    Array[File] fastq_o1 = flatten(biobambam_bamtofastq.output_fastq_o1)
+    Array[File] fastq_o2 = flatten(biobambam_bamtofastq.output_fastq_o2)
+    Array[File] fastq_s = flatten(biobambam_bamtofastq.output_fastq_s)
+
+    Int pe_count = length(fastq1)
+    Int o1_count = length(fastq_o1)
+    Int o2_count = length(fastq_o2)
+    Int s_count = length(fastq_s)
+
+    if (pe_count > 0) {
+        call emit_pe_records {
+            input:
+                fastq1_files = fastq1,
+                fastq2_files = fastq2,
+                readgroups = readgroups
+        }
+        scatter (pe_record in emit_pe_records.fastq_pair_records) {
+            call bwa_pe {
+                input:
+                    fastq_record = pe_record,
+                    ref_fasta = ref_fasta,
+                    ref_fai = ref_fai,
+                    ref_dict = ref_dict,
+                    ref_amb = ref_amb,
+                    ref_ann = ref_ann,
+                    ref_bwt = ref_bwt,
+                    ref_pac = ref_pac,
+                    ref_sa = ref_sa
+            }
+        }
+    }
+
+    if (o1_count + o2_count + s_count > 0) {
+        call emit_se_records {
+            input:
+                fastq_o1_files = fastq_o1,
+                fastq_o2_files = fastq_o2,
+                fastq_s_files = fastq_s,
+                readgroups = readgroups
+        }
+        scatter (se_record in emit_se_records.fastq_single_records) {
+            call bwa_se {
+                input:
+                    fastq_record = se_record,
+                    ref_fasta = ref_fasta,
+                    ref_fai = ref_fai,
+                    ref_dict = ref_dict,
+                    ref_amb = ref_amb,
+                    ref_ann = ref_ann,
+                    ref_bwt = ref_bwt,
+                    ref_pac = ref_pac,
+                    ref_sa = ref_sa
+            }
+        }
+    }
+
+    Array[File] aligned_bams = flatten([select_first([bwa_pe.bam, []]), select_first([bwa_se.bam, []])])
+
+    call picard_markduplicates {
+        input:
+            bams = aligned_bams,
+            outbam = outbam
+    }
+
+    call sort_and_index_markdup_bam {
+        input: input_bam = picard_markduplicates.bam
+    }
+
+    call CheckContamination.CalculateSomaticContamination as check_contamination {
+        input:
+            reference = ref_fasta,
+            reference_dict = ref_dict,
+            reference_index = ref_fai,
+            tumor_cram_or_bam = sort_and_index_markdup_bam.bam,
+            tumor_crai_or_bai = sort_and_index_markdup_bam.bai,
+            contamination_vcf = contamination_vcf,
+            contamination_vcf_index = contamination_vcf_index
+    }
+
+    call gatk_baserecalibrator {
+        input:
+            bam = sort_and_index_markdup_bam.bam,
+            ref_fasta = ref_fasta,
+            ref_fai = ref_fai,
+            ref_dict = ref_dict,
+            dbsnp_vcf = dbsnp_vcf,
+            dbsnp_vcf_index = dbsnp_vcf_index
+    }
+
+    call gatk_applybqsr {
+        input:
+            input_bam = sort_and_index_markdup_bam.bam,
+            bqsr_recal_file = gatk_baserecalibrator.bqsr_recal_file
+    }
+
+    String output_bam_prefix = basename(gatk_applybqsr.bam, ".bam")
+
+    call collect_insert_size_metrics {
+        input:
+            input_bam = gatk_applybqsr.bam,
+            output_bam_prefix = output_bam_prefix
+    }
+
+    output {
+        Array[File]? validation_report = CramToUnmappedBams.validation_report
+        Array[File]? unmapped_bams = CramToUnmappedBams.unmapped_bams
+        File bam = gatk_applybqsr.bam
+        File bai = gatk_applybqsr.bai
+        File md_metrics = picard_markduplicates.metrics
+        File insert_size_metrics = collect_insert_size_metrics.insert_size_metrics
+        File insert_size_histogram_pdf = collect_insert_size_metrics.insert_size_histogram_pdf
+        File contamination = check_contamination.contamination
+    }
+    meta {
+        allowNestedInputs: true
+    }
 }
 
 task bam_readgroup_to_contents {
@@ -623,187 +804,4 @@ task collect_insert_size_metrics {
     File insert_size_histogram_pdf = "~{output_bam_prefix}.insert_size_histogram.pdf"
     File insert_size_metrics = "~{output_bam_prefix}.insert_size_metrics"
   }
-}
-
-
-workflow GDCWholeGenomeSomaticSingleSample {
-
-    String pipeline_version = "1.3.1"
-
-    input {
-        File? input_cram
-        File? input_crai
-        File? input_bam
-        File? input_bai
-        File? cram_ref_fasta
-        File? cram_ref_fasta_index
-        File? output_map
-        String? unmapped_bam_suffix
-        String base_file_name
-
-        File? ubam
-
-        File contamination_vcf
-        File contamination_vcf_index
-        File dbsnp_vcf
-        File dbsnp_vcf_index
-
-        File ref_fasta
-        File ref_fai
-        File ref_dict
-        File ref_amb
-        File ref_ann
-        File ref_bwt
-        File ref_pac
-        File ref_sa
-    }
-
-    String outbam = if (defined(ubam) || defined(input_bam)) then basename(select_first([ubam, input_bam]), ".bam") + ".aln.mrkdp.bam"
-                    else basename(select_first([input_cram]), ".cram") + ".aln.mrkdp.bam"
-
-    if (!defined(ubam)) {
-        call ToUbams.CramToUnmappedBams {
-             input:
-                 input_cram = input_cram,
-                 input_bam = input_bam,
-                 ref_fasta = select_first([cram_ref_fasta, ref_fasta]),
-                 ref_fasta_index = select_first([cram_ref_fasta_index, ref_fai]),
-                 output_map = output_map,
-                 base_file_name = base_file_name,
-                 unmapped_bam_suffix = unmapped_bam_suffix
-        }
-    }
-
-    Array[File] ubams = if defined(ubam) then [select_first([ubam])] else select_first([CramToUnmappedBams.unmapped_bams])
-
-    scatter (ubam in ubams) {
-        call bam_readgroup_to_contents {
-            input: bam = ubam
-        }
-
-        call biobambam_bamtofastq {
-             input: filename = ubam
-        }
-    }
-
-    Array[Object] readgroups = flatten(bam_readgroup_to_contents.readgroups)
-
-    Array[File] fastq1 = flatten(biobambam_bamtofastq.output_fastq1)
-    Array[File] fastq2 = flatten(biobambam_bamtofastq.output_fastq2)
-    Array[File] fastq_o1 = flatten(biobambam_bamtofastq.output_fastq_o1)
-    Array[File] fastq_o2 = flatten(biobambam_bamtofastq.output_fastq_o2)
-    Array[File] fastq_s = flatten(biobambam_bamtofastq.output_fastq_s)
-
-    Int pe_count = length(fastq1)
-    Int o1_count = length(fastq_o1)
-    Int o2_count = length(fastq_o2)
-    Int s_count = length(fastq_s)
-
-    if (pe_count > 0) {
-        call emit_pe_records {
-            input:
-                fastq1_files = fastq1,
-                fastq2_files = fastq2,
-                readgroups = readgroups
-        }
-        scatter (pe_record in emit_pe_records.fastq_pair_records) {
-            call bwa_pe {
-                input:
-                    fastq_record = pe_record,
-                    ref_fasta = ref_fasta,
-                    ref_fai = ref_fai,
-                    ref_dict = ref_dict,
-                    ref_amb = ref_amb,
-                    ref_ann = ref_ann,
-                    ref_bwt = ref_bwt,
-                    ref_pac = ref_pac,
-                    ref_sa = ref_sa
-            }
-        }
-    }
-
-    if (o1_count + o2_count + s_count > 0) {
-        call emit_se_records {
-            input:
-                fastq_o1_files = fastq_o1,
-                fastq_o2_files = fastq_o2,
-                fastq_s_files = fastq_s,
-                readgroups = readgroups
-        }
-        scatter (se_record in emit_se_records.fastq_single_records) {
-            call bwa_se {
-                input:
-                    fastq_record = se_record,
-                    ref_fasta = ref_fasta,
-                    ref_fai = ref_fai,
-                    ref_dict = ref_dict,
-                    ref_amb = ref_amb,
-                    ref_ann = ref_ann,
-                    ref_bwt = ref_bwt,
-                    ref_pac = ref_pac,
-                    ref_sa = ref_sa
-            }
-        }
-    }
-
-    Array[File] aligned_bams = flatten([select_first([bwa_pe.bam, []]), select_first([bwa_se.bam, []])])
-
-    call picard_markduplicates {
-        input:
-            bams = aligned_bams,
-            outbam = outbam
-    }
-
-    call sort_and_index_markdup_bam {
-        input: input_bam = picard_markduplicates.bam
-    }
-
-    call CheckContamination.CalculateSomaticContamination as check_contamination {
-        input:
-            reference = ref_fasta,
-            reference_dict = ref_dict,
-            reference_index = ref_fai,
-            tumor_cram_or_bam = sort_and_index_markdup_bam.bam,
-            tumor_crai_or_bai = sort_and_index_markdup_bam.bai,
-            contamination_vcf = contamination_vcf,
-            contamination_vcf_index = contamination_vcf_index
-    }
-
-    call gatk_baserecalibrator {
-        input:
-            bam = sort_and_index_markdup_bam.bam,
-            ref_fasta = ref_fasta,
-            ref_fai = ref_fai,
-            ref_dict = ref_dict,
-            dbsnp_vcf = dbsnp_vcf,
-            dbsnp_vcf_index = dbsnp_vcf_index
-    }
-
-    call gatk_applybqsr {
-        input:
-            input_bam = sort_and_index_markdup_bam.bam,
-            bqsr_recal_file = gatk_baserecalibrator.bqsr_recal_file
-    }
-
-    String output_bam_prefix = basename(gatk_applybqsr.bam, ".bam")
-
-    call collect_insert_size_metrics {
-        input:
-            input_bam = gatk_applybqsr.bam,
-            output_bam_prefix = output_bam_prefix
-    }
-
-    output {
-        Array[File]? validation_report = CramToUnmappedBams.validation_report
-        Array[File]? unmapped_bams = CramToUnmappedBams.unmapped_bams
-        File bam = gatk_applybqsr.bam
-        File bai = gatk_applybqsr.bai
-        File md_metrics = picard_markduplicates.metrics
-        File insert_size_metrics = collect_insert_size_metrics.insert_size_metrics
-        File insert_size_histogram_pdf = collect_insert_size_metrics.insert_size_histogram_pdf
-        File contamination = check_contamination.contamination
-    }
-    meta {
-        allowNestedInputs: true
-    }
 }

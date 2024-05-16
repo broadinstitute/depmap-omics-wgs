@@ -1,6 +1,6 @@
-# https://github.com/broadinstitute/warp/blob/GDCWholeGenomeSomaticSingleSample_v1.3.1/tasks/broad/CheckContaminationSomatic.wdl
-
 version 1.0
+
+# https://github.com/broadinstitute/warp/blob/GDCWholeGenomeSomaticSingleSample_v1.3.1/tasks/broad/CheckContaminationSomatic.wdl
 
 task CalculateSomaticContamination {
     input {

@@ -13,6 +13,7 @@ from google.cloud import storage
 from gumbo_gql_client import task_result_insert_input
 from omics_wgs_pipeline.types import (
     PanderaBaseSchema,
+    PersistedWdl,
     TerraJobSubmissionKwargs,
     TypedDataFrame,
 )
@@ -41,8 +42,7 @@ class TerraWorkflow:
         self.workflow_wdl_path = workflow_wdl_path
         self.method_config_json_path = method_config_json_path
         self.method_config = json.load(open(self.method_config_json_path, "r"))
-        self.persisted_wdl_url: str | None = None
-        self.persisted_wdl: str | None = None
+        self.persisted_wdl_script: PersistedWdl | None = None
 
     def persist_method_on_gcs(self) -> None:
         """
@@ -50,17 +50,27 @@ class TerraWorkflow:
         WDL scripts as needed.
         """
 
-        storage_client = storage.Client(project=self.gcp_project_id)
-        bucket = storage_client.bucket(
-            self.pipelines_bucket_name, user_project=self.gcp_project_id
-        )
+        if self.persisted_wdl_script is None:
+            storage_client = storage.Client(project=self.gcp_project_id)
+            bucket = storage_client.bucket(
+                self.pipelines_bucket_name, user_project=self.gcp_project_id
+            )
 
-        res = persist_wdl_script(
-            bucket=bucket, wdl_path=self.workflow_wdl_path, subpath="wdl"
-        )
+            self.persisted_wdl_script = persist_wdl_script(
+                bucket=bucket, wdl_path=self.workflow_wdl_path, subpath="wdl"
+            )
 
-        self.persisted_wdl = res["wdl"]
-        self.persisted_wdl_url = res["public_url"]
+    def comment(self) -> str:
+        self.persist_method_on_gcs()
+        assert self.persisted_wdl_script is not None
+
+        return json.dumps(
+            {
+                "workflow_name": self.repo_method_name,
+                "workflow_source_url": self.persisted_wdl_script["public_url"],
+                "workflow_version": self.persisted_wdl_script["version"],
+            },
+        )
 
     def get_method_snapshots(self) -> list[dict]:
         """
@@ -78,7 +88,7 @@ class TerraWorkflow:
         snapshots.sort(key=lambda x: x["snapshotId"], reverse=True)
         return snapshots
 
-    def delete_old_method_snapshots(self, n: int = 2) -> None:
+    def delete_old_method_snapshots(self, nkeep: int) -> None:
         """
         Delete all but `n` of the most recent snapshots of the method. This might fail
         if the service account doesn't have OWNER permission on the method configuration
@@ -86,12 +96,12 @@ class TerraWorkflow:
         `setConfigNamespaceACL` endpoint on https://api.firecloud.org/ once to resolve
         this problem.
 
-        :param n: the number of snapshots to keep
+        :param nkeep: the number of snapshots to keep
         """
 
         snapshots = self.get_method_snapshots()
 
-        to_delete = snapshots[n:]
+        to_delete = snapshots[nkeep:]
         echo(f"Deleting {len(to_delete)} old snapshot(s)")
 
         for x in to_delete:
@@ -211,12 +221,16 @@ class TerraWorkspace:
         :return: the latest method's snapshot
         """
 
+        terra_workflow.persist_method_on_gcs()
+        assert terra_workflow.persisted_wdl_script is not None
+
         snapshot = call_firecloud_api(
             firecloud_api.update_repository_method,
             namespace=terra_workflow.repo_namespace,
             method=terra_workflow.repo_method_name,
             synopsis=terra_workflow.method_synopsis,
             wdl=terra_workflow.workflow_wdl_path,
+            comment=terra_workflow.comment(),
         )
 
         # set permissions
@@ -240,10 +254,10 @@ class TerraWorkspace:
 
         # get contents of WDL uploaded to GCS
         terra_workflow.persist_method_on_gcs()
-        assert terra_workflow.persisted_wdl is not None
+        assert terra_workflow.persisted_wdl_script is not None
 
         with tempfile.NamedTemporaryFile("w") as f:
-            f.write(terra_workflow.persisted_wdl)
+            f.write(terra_workflow.persisted_wdl_script["wdl"])
 
             snapshot = call_firecloud_api(
                 firecloud_api.update_repository_method,
@@ -251,6 +265,7 @@ class TerraWorkspace:
                 method=terra_workflow.repo_method_name,
                 synopsis=terra_workflow.method_synopsis,
                 wdl=f.name,
+                comment=terra_workflow.comment(),
             )
 
         # set permissions again
@@ -299,7 +314,7 @@ class TerraWorkspace:
             self.update_workspace_config(terra_workflow, terra_workflow.method_config)
 
         # don't let old method configs accumulate
-        terra_workflow.delete_old_method_snapshots(2)
+        terra_workflow.delete_old_method_snapshots(nkeep=20)
 
     def submit_workflow_run(
         self, terra_workflow: TerraWorkflow, **kwargs: Unpack[TerraJobSubmissionKwargs]
@@ -386,13 +401,13 @@ class TerraWorkspace:
                 # created_at=None,
                 # size=None,
                 # task_entity_id=,
-                terra_method_config_name=s["methodConfigurationName"],
-                terra_method_config_namespace=s["methodConfigurationNamespace"],
-                terra_submission_id=s["submissionId"],
+                terra_method_config_name=str(s["methodConfigurationName"]),
+                terra_method_config_namespace=str(s["methodConfigurationNamespace"]),
+                terra_submission_id=str(s["submissionId"]),
                 terra_workspace_name=self.workspace_name,
                 terra_workspace_namespace=self.workspace_namespace,
-                # workflow_name=None,
                 # workflow_source_url=None,
+                # workflow_version=None,
             )
 
             submission = call_firecloud_api(
@@ -418,13 +433,14 @@ class TerraWorkspace:
                 if wmd["status"] != "Succeeded":
                     continue
 
+                r.workflow_name = wmd["workflowName"]
                 r.terra_workflow_inputs = wmd["inputs"]
-                r.terra_workspace_id = wmd["labels"]["workspace-id"]
                 r.terra_workflow_root_dir = wmd["workflowRoot"]
+                r.terra_workspace_id = wmd["labels"]["workspace-id"]
 
                 for label, url in wmd["outputs"]:
                     r.task_name, r.label = label.rsplit(".", maxsplit=1)
-                    r.url = url
+                    r.url = str(url)
                     r.format = pathlib.Path(r.url).suffix[1:].upper()
 
                     results.append(r)
