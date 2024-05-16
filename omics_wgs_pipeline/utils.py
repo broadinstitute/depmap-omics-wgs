@@ -56,12 +56,13 @@ def expand_dict_columns(
             # if the column contains dictionaries, recursively flatten them
             nested_df = pd.json_normalize(s.tolist())
 
-            nested_df.columns = [
-                sep.join([parent_key, c, str(col)])
-                if name_columns_with_parent and parent_key != ""
-                else str(col)
-                for col in nested_df.columns
-            ]
+            if name_columns_with_parent:
+                nested_df.columns = [
+                    sep.join([parent_key, c, str(col)])
+                    if parent_key != ""
+                    else sep.join([c, str(col)])
+                    for col in nested_df.columns
+                ]
 
             flattened_dict.update(
                 expand_dict_columns(
@@ -78,15 +79,16 @@ def expand_dict_columns(
 
     df = pd.DataFrame(flattened_dict)
 
-    # make sure there are no duplicate column names after expansion
-    col_name_counts = df.columns.value_counts()
+    if parent_key == "":
+        # make sure there are no duplicate column names after all expansion is done
+        col_name_counts = df.columns.value_counts()
 
-    if col_name_counts.gt(1).any():
-        dup_names = set(col_name_counts[col_name_counts.gt(1)].index)
-        raise NameError(
-            f"Column names {dup_names} are duplicated. "
-            "Try calling `expand_dict_columns` with `name_columns_with_parent=True`."
-        )
+        if col_name_counts.gt(1).any():
+            dup_names = set(col_name_counts[col_name_counts.gt(1)].index)
+            raise NameError(
+                f"Column names {dup_names} are duplicated. Try calling "
+                "`expand_dict_columns` with `name_columns_with_parent=True`."
+            )
 
     return df
 

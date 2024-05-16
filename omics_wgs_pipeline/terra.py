@@ -9,10 +9,14 @@ import requests
 from click import echo
 from firecloud import api as firecloud_api
 
-from gumbo_gql_client import GumboClient
+from gumbo_gql_client import GumboClient, task_result_bool_exp
 from omics_wgs_pipeline.types import TypedDataFrame
-from omics_wgs_pipeline.utils import type_data_frame
-from omics_wgs_pipeline.validators import SampleToPreprocess
+from omics_wgs_pipeline.utils import expand_dict_columns, model_to_df, type_data_frame
+from omics_wgs_pipeline.validators import (
+    GumboTaskResult,
+    GumboWgsSequencing,
+    SampleToPreprocess,
+)
 
 
 def call_firecloud_api(func: Callable, *args: object, **kwargs: object) -> Any:
@@ -81,34 +85,48 @@ def refresh_terra_samples(workspace_namespace: str, workspace_name: str) -> None
         headers={"X-Hasura-Admin-Secret": os.environ["HASURA_ADMIN_SECRET"]},
     )
 
-    records = gumbo_client.wgs_sequencings().model_dump()["records"]
-    df = pd.DataFrame(records)
-
-    # fix some column names that Ariadne doesn't name properly
-    df = df.rename(
-        columns={
-            "hg_19_bai_filepath": "hg19_bai_filepath",
-            "hg_19_bam_filepath": "hg19_bam_filepath",
-            "hg_38_crai_filepath": "hg38_crai_filepath",
-            "hg_38_cram_filepath": "hg38_cram_filepath",
-        }
+    wgs_sequencings = model_to_df(
+        gumbo_client.wgs_sequencings(),
+        GumboWgsSequencing,
+        mutator=lambda df: df.rename(
+            columns={
+                "hg_19_bai_filepath": "hg19_bai_filepath",
+                "hg_19_bam_filepath": "hg19_bam_filepath",
+                "hg_38_crai_filepath": "hg38_crai_filepath",
+                "hg_38_cram_filepath": "hg38_cram_filepath",
+            }
+        ),
     )
 
-    samples = make_samples_to_preprocess(df)
+    task_results = model_to_df(
+        gumbo_client.get_task_results(
+            task_result_bool_exp(workflow_name={"eq": "preprocess_wgs_sample"})
+        ),
+        GumboTaskResult,
+        mutator=lambda df: expand_dict_columns(df).rename(
+            columns={"task_entity__sequencing_id": "sample_id"}
+        ),
+    )
+
+    samples = make_samples_to_preprocess(wgs_sequencings, task_results)
 
     echo(f"Upserting {len(samples)} samples to Terra")
     upload_entities_to_terra(workspace_namespace, workspace_name, df=samples)
 
 
-def make_samples_to_preprocess(df: pd.DataFrame) -> TypedDataFrame[SampleToPreprocess]:
+def make_samples_to_preprocess(
+    wgs_sequencings: TypedDataFrame[GumboWgsSequencing],
+    task_results: TypedDataFrame[GumboTaskResult],
+) -> TypedDataFrame[SampleToPreprocess]:
     """
     Make a data frame to upload to Terra as the `sample` data table.
 
-    :param df: the Gumbo metadata
+    :param wgs_sequencings: data frame of Gumbo `omics_sequencing` records
+    :param task_results: data frame of Gumbo `task_result` records
     :return: a data frame for the `sample` data table in Terra
     """
 
-    samples = df.copy()
+    samples = wgs_sequencings.copy()
 
     samples = samples.rename(columns={"sequencing_id": "sample_id"})
 
@@ -129,27 +147,18 @@ def make_samples_to_preprocess(df: pd.DataFrame) -> TypedDataFrame[SampleToPrepr
         lambda x: pathlib.Path(x).suffix[1:].upper()
     )
 
-    samples["delivery_ref_fasta"] = (
-        "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta"
-    )
-
-    samples["delivery_ref_fasta_index"] = (
-        "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta"
-        ".fai"
-    )
-
-    # all new samples should be hg38, but this correctly assigns hg19 if necessary
+    # all new samples should be hg38, but this removes hg19 ones if necessary
     samples["is_hg19"] = (
         samples["delivery_cram_bam"].eq(samples["hg19_bam_filepath"]).fillna(False)
     )
+    samples = samples.loc[~samples["is_hg19"]]
 
-    samples.loc[samples["is_hg19"], "delivery_ref_fasta"] = (
-        "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta"
-    )
+    # join already preprocessed BAM/BAI files to canonical set of WGS samples
+    bam_bais = task_results.pivot(
+        index="sample_id", columns="label", values="url"
+    ).reset_index()
 
-    samples.loc[samples["is_hg19"], "delivery_ref_fasta_index"] = (
-        "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.fai"
-    )
+    samples = samples.merge(bam_bais, how="left", on="sample_id")
 
     return type_data_frame(samples, SampleToPreprocess)
 
