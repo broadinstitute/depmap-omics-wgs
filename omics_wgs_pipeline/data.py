@@ -42,7 +42,9 @@ def make_terra_samples() -> TypedDataFrame[TerraSample]:
     task_results = model_to_df(
         gumbo_client.get_task_results(
             # TODO: other output files
-            task_result_bool_exp(workflow_name={"eq": "preprocess_wgs_sample"})
+            task_result_bool_exp(
+                workflow_name={"eq": "preprocess_wgs_sample"},  # pyright: ignore
+            )
         ),
         GumboTaskResult,
         mutator=lambda df: expand_dict_columns(df).rename(

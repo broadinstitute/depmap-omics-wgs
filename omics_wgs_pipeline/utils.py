@@ -62,9 +62,9 @@ def expand_dict_columns(
                 # e.g. if current column `c` is "foo" and the nested data contains a
                 # field "bar", the resulting column name is "foo__bar"
                 nested_df.columns = [
-                    sep.join([parent_key, c, str(col)])
+                    sep.join([parent_key, str(c), str(col)])
                     if parent_key != ""
-                    else sep.join([c, str(col)])
+                    else sep.join([str(c), str(col)])
                     for col in nested_df.columns
                 ]
 
@@ -89,7 +89,9 @@ def expand_dict_columns(
         col_name_counts = df.columns.value_counts()
 
         if col_name_counts.gt(1).any():
-            dup_names = set(col_name_counts[col_name_counts.gt(1)].index)
+            dup_names = set(
+                col_name_counts[col_name_counts.gt(1)].index,  # pyright: ignore
+            )
             raise NameError(
                 f"Column names {dup_names} are duplicated. Try calling "
                 "`expand_dict_columns` with `name_columns_with_parent=True`."

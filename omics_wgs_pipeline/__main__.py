@@ -31,9 +31,9 @@ def done(*args, **kwargs):
 @app.callback(result_callback=done)
 def main(
     ctx: typer.Context,
-    config_path: Annotated[Optional[Path], typer.Option(exists=True)],
+    config_path: Annotated[Path, typer.Option(exists=True)],
 ):
-    with open(config_path, "rb") as f:
+    with open(config_path.name, "rb") as f:
         config.update(tomllib.load(f))
 
     ctx.obj = {

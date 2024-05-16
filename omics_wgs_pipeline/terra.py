@@ -237,6 +237,7 @@ class TerraWorkspace:
 
         # get contents of WDL uploaded to GCS
         terra_workflow.persist_method_on_gcs()
+        assert terra_workflow.persisted_wdl is not None
 
         with tempfile.NamedTemporaryFile("w") as f:
             f.write(terra_workflow.persisted_wdl)
@@ -341,7 +342,9 @@ class TerraWorkspace:
         sample_sets["entity:sample_set_id"] = sample_set_id
 
         echo("Creating new sample set in Terra")
-        self.upload_entities(sample_sets[["entity:sample_set_id"]].drop_duplicates())
+        self.upload_entities(
+            sample_sets.loc[:, ["entity:sample_set_id"]].drop_duplicates()
+        )
 
         # construct the join table between the sample set and its samples
         sample_sets = sample_sets.rename(
