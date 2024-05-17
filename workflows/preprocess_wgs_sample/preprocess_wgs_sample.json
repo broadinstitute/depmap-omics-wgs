@@ -1,25 +1,19 @@
 {
   "deleted": false,
   "inputs": {
-    "GDCWholeGenomeSomaticSingleSample.contamination_vcf": "\"gs://gatk-best-practices/somatic-hg38/small_exac_common_3.hg38.vcf.gz\"",
-    "GDCWholeGenomeSomaticSingleSample.contamination_vcf_index": "\"gs://gatk-best-practices/somatic-hg38/small_exac_common_3.hg38.vcf.gz.tbi\"",
-    "GDCWholeGenomeSomaticSingleSample.dbsnp_vcf": "workspace.referenceData_hg38_dbsnp_vcf",
-    "GDCWholeGenomeSomaticSingleSample.dbsnp_vcf_index": "workspace.referenceData_hg38_dbsnp_vcf_index",
-    "GDCWholeGenomeSomaticSingleSample.ref_amb": "workspace.referenceData_hg38_ref_amb",
-    "GDCWholeGenomeSomaticSingleSample.ref_ann": "workspace.referenceData_hg38_ref_ann",
-    "GDCWholeGenomeSomaticSingleSample.ref_bwt": "workspace.referenceData_hg38_ref_bwt",
-    "GDCWholeGenomeSomaticSingleSample.ref_dict": "workspace.referenceData_hg38_ref_dict",
-    "GDCWholeGenomeSomaticSingleSample.ref_fai": "workspace.referenceData_hg38_ref_fasta_index",
-    "GDCWholeGenomeSomaticSingleSample.ref_fasta": "workspace.referenceData_hg38_ref_fasta",
-    "GDCWholeGenomeSomaticSingleSample.ref_pac": "workspace.referenceData_hg38_ref_pac",
-    "GDCWholeGenomeSomaticSingleSample.ref_sa": "workspace.referenceData_hg38_ref_sa",
-    "GDCWholeGenomeSomaticSingleSample.base_file_name": "this.sample_id",
-    "GDCWholeGenomeSomaticSingleSample.input_cram": "this.delivery_cram_bam",
-    "GDCWholeGenomeSomaticSingleSample.input_crai": "this.delivery_crai_bai",
-    "GDCWholeGenomeSomaticSingleSample.input_bam": "this.delivery_cram_bam",
-    "GDCWholeGenomeSomaticSingleSample.input_bai": "this.delivery_crai_bai",
-    "GDCWholeGenomeSomaticSingleSample.cram_ref_fasta": "workspace.referenceData_hg38_ref_fasta",
-    "GDCWholeGenomeSomaticSingleSample.cram_ref_fasta_index": "workspace.referenceData_hg38_ref_fasta_index"
+    "preprocess_wgs_sample.contamination_vcf": "\"gs://gatk-best-practices/somatic-hg38/small_exac_common_3.hg38.vcf.gz\"",
+    "preprocess_wgs_sample.contamination_vcf_index": "\"gs://gatk-best-practices/somatic-hg38/small_exac_common_3.hg38.vcf.gz.tbi\"",
+    "preprocess_wgs_sample.dbsnp_vcf": "workspace.referenceData_hg38_dbsnp_vcf",
+    "preprocess_wgs_sample.dbsnp_vcf_index": "workspace.referenceData_hg38_dbsnp_vcf_index",
+    "preprocess_wgs_sample.ref_amb": "workspace.referenceData_hg38_ref_amb",
+    "preprocess_wgs_sample.ref_ann": "workspace.referenceData_hg38_ref_ann",
+    "preprocess_wgs_sample.ref_bwt": "workspace.referenceData_hg38_ref_bwt",
+    "preprocess_wgs_sample.ref_dict": "workspace.referenceData_hg38_ref_dict",
+    "preprocess_wgs_sample.ref_fai": "workspace.referenceData_hg38_ref_fasta_index",
+    "preprocess_wgs_sample.ref_fasta": "workspace.referenceData_hg38_ref_fasta",
+    "preprocess_wgs_sample.ref_pac": "workspace.referenceData_hg38_ref_pac",
+    "preprocess_wgs_sample.ref_sa": "workspace.referenceData_hg38_ref_sa",
+    "preprocess_wgs_sample.base_file_name": "this.sample_id"
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
@@ -30,12 +24,12 @@
   "namespace": "cds-pipelines",
   "name": "preprocess_wgs_sample",
   "outputs": {
-    "GDCWholeGenomeSomaticSingleSample.bam": "this.bam",
-    "GDCWholeGenomeSomaticSingleSample.bai": "this.bai",
-    "GDCWholeGenomeSomaticSingleSample.md_metrics": "this.preprocess_md_metrics",
-    "GDCWholeGenomeSomaticSingleSample.insert_size_metrics": "this.preprocess_insert_size_metrics",
-    "GDCWholeGenomeSomaticSingleSample.insert_size_histogram_pdf": "this.preprocess_insert_size_histogram_pdf",
-    "GDCWholeGenomeSomaticSingleSample.contamination": "this.preprocess_contamination"
+    "preprocess_wgs_sample.bam": "this.bam",
+    "preprocess_wgs_sample.bai": "this.bai",
+    "preprocess_wgs_sample.md_metrics": "this.preprocess_md_metrics",
+    "preprocess_wgs_sample.insert_size_metrics": "this.preprocess_insert_size_metrics",
+    "preprocess_wgs_sample.insert_size_histogram_pdf": "this.preprocess_insert_size_histogram_pdf",
+    "preprocess_wgs_sample.contamination": "this.preprocess_contamination"
   },
   "rootEntityType": "sample"
 }

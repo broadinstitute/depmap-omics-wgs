@@ -7,8 +7,8 @@ from google.cloud import storage
 from omics_wgs_pipeline.types import PersistedWdl
 
 IMPORT_PATTERN = re.compile(r"^import\s+\"(?!http)([^\"]+)\"\s+as\s+(\S+)$")
-PIPELINE_VERSION_PATTERN = re.compile(
-    r"^\s*String\s+pipeline_version\s*=\s*\"([\d.]+)\"\s*$"
+WORKFLOW_VERSION_PATTERN = re.compile(
+    r"^\s*String\s+workflow_version\s*=\s*\"([a-zA-Z0-9.]+)\"\s*$"
 )
 
 
@@ -36,7 +36,7 @@ def persist_wdl_script(
 
     # include the version number on the uploaded object path if one is found
     for line in wdl_lines:
-        if version_match := re.match(PIPELINE_VERSION_PATTERN, line):
+        if version_match := re.match(WORKFLOW_VERSION_PATTERN, line):
             version = version_match[1]
             versioned_subpath = "/".join(
                 [versioned_subpath, Path(wdl_basename).stem, version]

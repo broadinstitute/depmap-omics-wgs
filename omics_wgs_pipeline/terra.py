@@ -299,6 +299,15 @@ class TerraWorkspace:
             "snapshotId"
         ]
 
+        # inject the workflow version and URL into inputs so it gets stored in job
+        # submissions
+        terra_workflow.method_config["inputs"][
+            f"{terra_workflow.repo_method_name}.workflow_version"
+        ] = f'"{terra_workflow.persisted_wdl_script["version"]}"'
+        terra_workflow.method_config["inputs"][
+            f"{terra_workflow.repo_method_name}.workflow_url"
+        ] = f'"{terra_workflow.persisted_wdl_script["public_url"]}"'
+
         # check if there is already a workspace config
         res = firecloud_api.get_workspace_config(
             namespace=self.workspace_namespace,
@@ -406,8 +415,6 @@ class TerraWorkspace:
                 terra_submission_id=str(s["submissionId"]),
                 terra_workspace_name=self.workspace_name,
                 terra_workspace_namespace=self.workspace_namespace,
-                # workflow_source_url=None,
-                # workflow_version=None,
             )
 
             submission = call_firecloud_api(
@@ -437,6 +444,12 @@ class TerraWorkspace:
                 r.terra_workflow_inputs = wmd["inputs"]
                 r.terra_workflow_root_dir = wmd["workflowRoot"]
                 r.terra_workspace_id = wmd["labels"]["workspace-id"]
+
+                if "workflow_source_url" in wmd["inputs"]:
+                    r.workflow_source_url = wmd["inputs"]["workflow_source_url"]
+
+                if "workflow_version" in wmd["inputs"]:
+                    r.workflow_version = wmd["inputs"]["workflow_version"]
 
                 for label, url in wmd["outputs"]:
                     r.task_name, r.label = label.rsplit(".", maxsplit=1)
