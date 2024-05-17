@@ -17,7 +17,7 @@ from omics_wgs_pipeline.types import (
     TerraJobSubmissionKwargs,
     TypedDataFrame,
 )
-from omics_wgs_pipeline.utils import call_firecloud_api
+from omics_wgs_pipeline.utils import call_firecloud_api, expand_dict_columns
 from omics_wgs_pipeline.wdl import persist_wdl_script
 
 
@@ -391,21 +391,31 @@ class TerraWorkspace:
     def collect_workflow_outputs(
         self, since: datetime.datetime | None = None
     ) -> list[task_result_insert_input]:
+        # get all job submissions
         submissions = pd.DataFrame(
             call_firecloud_api(
                 firecloud_api.list_submissions,
-                wnamespace=self.workspace_namespace,
+                namespace=self.workspace_namespace,
                 workspace=self.workspace_name,
             )
         ).convert_dtypes()
 
+        submissions = expand_dict_columns(submissions).convert_dtypes()
+
         if since is not None:
+            # the list of submissions can grow very long and the endpoint doesn't
+            # support filtering
             submissions = submissions.loc[submissions["submissionDate"].ge(since)]
 
-        results = []
+        # only collect outputs from submissions with successful workflow runs
+        submissions = submissions.loc[submissions["workflowStatuses__Succeeded"].gt(0)]
+
+        outputs = []
 
         for _, s in submissions.iterrows():
-            r = task_result_insert_input(
+            # start constructing a common output object to be used for `task_result`
+            # inserts
+            base_o = task_result_insert_input(
                 # crc_32_c_hash=None,
                 # created_at=None,
                 # size=None,
@@ -417,6 +427,7 @@ class TerraWorkspace:
                 terra_workspace_namespace=self.workspace_namespace,
             )
 
+            # get the workflows for this job submission (often there is only 1)
             submission = call_firecloud_api(
                 firecloud_api.get_submission,
                 namespace=self.workspace_namespace,
@@ -425,10 +436,11 @@ class TerraWorkspace:
             )
 
             for w in submission["workflows"]:
-                r.terra_workflow_id = w["workflowId"]
-                r.terra_entity_name = w["workflowEntity"]["entityName"]
-                r.terra_entity_type = w["workflowEntity"]["entityType"]
+                base_o.terra_workflow_id = w["workflowId"]
+                base_o.terra_entity_name = w["workflowEntity"]["entityName"]
+                base_o.terra_entity_type = w["workflowEntity"]["entityType"]
 
+                # get the call-level metadata for this workflow run
                 wmd = call_firecloud_api(
                     firecloud_api.get_workflow_metadata,
                     namespace=self.workspace_namespace,
@@ -440,22 +452,40 @@ class TerraWorkspace:
                 if wmd["status"] != "Succeeded":
                     continue
 
-                r.workflow_name = wmd["workflowName"]
-                r.terra_workflow_inputs = wmd["inputs"]
-                r.terra_workflow_root_dir = wmd["workflowRoot"]
-                r.terra_workspace_id = wmd["labels"]["workspace-id"]
+                base_o.workflow_name = wmd["workflowName"]
+                base_o.terra_workflow_inputs = wmd["inputs"]
+                base_o.terra_workflow_root_dir = wmd["workflowRoot"]
+                base_o.terra_workspace_id = wmd["labels"]["workspace-id"]
 
+                # workflow URL and version should be injected into the inputs when the
+                # method config is deployed
                 if "workflow_source_url" in wmd["inputs"]:
-                    r.workflow_source_url = wmd["inputs"]["workflow_source_url"]
+                    base_o.workflow_source_url = wmd["inputs"]["workflow_source_url"]
 
                 if "workflow_version" in wmd["inputs"]:
-                    r.workflow_version = wmd["inputs"]["workflow_version"]
+                    base_o.workflow_version = wmd["inputs"]["workflow_version"]
 
-                for label, url in wmd["outputs"]:
-                    r.task_name, r.label = label.rsplit(".", maxsplit=1)
-                    r.url = str(url)
-                    r.format = pathlib.Path(r.url).suffix[1:].upper()
+                # iterate through the outputs and make a `task_result` object for each
+                for label, output in wmd["outputs"].items():
+                    # all attributes up to now have been invariant between outputs
+                    o = base_o.copy()
 
-                    results.append(r)
+                    # the workflow outputs are named like `workflow_name.output_name`
+                    o.label = label.rsplit(".", maxsplit=1)[-1]
 
-        return results
+                    if isinstance(output, list):
+                        continue
+                    elif isinstance(output, str):
+                        if output.startswith("gs://"):
+                            o.url = output
+                            o.format = pathlib.Path(o.url).suffix[1:].upper()
+                        else:
+                            # it's a plain string
+                            raise NotImplementedError  # TODO
+                    else:
+                        # it's a number, bool, or what else?
+                        raise NotImplementedError  # TODO
+
+                    outputs.append(o)
+
+        return outputs

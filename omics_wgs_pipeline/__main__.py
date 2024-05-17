@@ -98,5 +98,10 @@ def run_workflow(
         raise NotImplementedError(f"Workflow {workflow_name} not implemented")
 
 
+@app.command()
+def persist_outputs_in_gumbo(ctx: typer.Context) -> None:
+    outputs = ctx.obj["terra_workspace"].collect_workflow_outputs()
+
+
 if __name__ == "__main__":
     app()

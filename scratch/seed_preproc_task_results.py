@@ -132,11 +132,10 @@ def make_task_results(task_results):
     task_results = task_results.loc[:, ["task_entity_id", "bam", "bai"]]
 
     task_results["workflow_name"] = "preprocess_wgs_sample"
-    task_results["task_name"] = "gatk_applybqsr"
     task_results["created_at"] = pd.Timestamp.now(tz="UTC").isoformat()
 
     task_results = task_results.melt(
-        id_vars=["task_entity_id", "workflow_name", "task_name", "created_at"],
+        id_vars=["task_entity_id", "workflow_name", "created_at"],
         value_vars=["bam", "bai"],
         var_name="label",
         value_name="url",
@@ -165,10 +164,7 @@ task_results = make_task_results(task_results)
 
 existing_task_results = model_to_df(
     gumbo_client.get_task_results(
-        task_result_bool_exp(
-            workflow_name={"eq": "preprocess_wgs_sample"},
-            task_name={"eq": "gatk_applybqsr"},
-        )
+        task_result_bool_exp(workflow_name={"eq": "preprocess_wgs_sample"})
     ),
     CoercedDataFrame,
     remove_unknown_cols=False,
@@ -181,7 +177,7 @@ existing_task_results = expand_dict_columns(
 new_task_results = anti_join(
     task_results,
     existing_task_results,
-    on=["workflow_name", "task_name", "label", "url", "format"],
+    on=["workflow_name", "label", "url", "format"],
 )
 
 if len(new_task_results) > 0:

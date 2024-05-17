@@ -2498,7 +2498,6 @@ class task_result_bool_exp(BaseModel):
     size: Optional["bigint_comparison_exp"] = None
     task_entity: Optional["task_entity_bool_exp"] = None
     task_entity_id: Optional["bigint_comparison_exp"] = None
-    task_name: Optional["String_comparison_exp"] = None
     terra_entity_name: Optional["String_comparison_exp"] = None
     terra_entity_type: Optional["String_comparison_exp"] = None
     terra_method_config_name: Optional["String_comparison_exp"] = None
@@ -2546,7 +2545,6 @@ class task_result_insert_input(BaseModel):
     size: Optional[int] = None
     task_entity: Optional["task_entity_obj_rel_insert_input"] = None
     task_entity_id: Optional[int] = None
-    task_name: Optional[str] = None
     terra_entity_name: Optional[str] = None
     terra_entity_type: Optional[str] = None
     terra_method_config_name: Optional[str] = None
@@ -2574,7 +2572,6 @@ class task_result_max_order_by(BaseModel):
     label: Optional[order_by] = None
     size: Optional[order_by] = None
     task_entity_id: Optional[order_by] = None
-    task_name: Optional[order_by] = None
     terra_entity_name: Optional[order_by] = None
     terra_entity_type: Optional[order_by] = None
     terra_method_config_name: Optional[order_by] = None
@@ -2600,7 +2597,6 @@ class task_result_min_order_by(BaseModel):
     label: Optional[order_by] = None
     size: Optional[order_by] = None
     task_entity_id: Optional[order_by] = None
-    task_name: Optional[order_by] = None
     terra_entity_name: Optional[order_by] = None
     terra_entity_type: Optional[order_by] = None
     terra_method_config_name: Optional[order_by] = None
@@ -2633,7 +2629,6 @@ class task_result_order_by(BaseModel):
     size: Optional[order_by] = None
     task_entity: Optional["task_entity_order_by"] = None
     task_entity_id: Optional[order_by] = None
-    task_name: Optional[order_by] = None
     terra_entity_name: Optional[order_by] = None
     terra_entity_type: Optional[order_by] = None
     terra_method_config_name: Optional[order_by] = None
@@ -2669,7 +2664,6 @@ class task_result_set_input(BaseModel):
     label: Optional[str] = None
     size: Optional[int] = None
     task_entity_id: Optional[int] = None
-    task_name: Optional[str] = None
     terra_entity_name: Optional[str] = None
     terra_entity_type: Optional[str] = None
     terra_method_config_name: Optional[str] = None
@@ -2722,7 +2716,6 @@ class task_result_stream_cursor_value_input(BaseModel):
     label: Optional[str] = None
     size: Optional[int] = None
     task_entity_id: Optional[int] = None
-    task_name: Optional[str] = None
     terra_entity_name: Optional[str] = None
     terra_entity_type: Optional[str] = None
     terra_method_config_name: Optional[str] = None

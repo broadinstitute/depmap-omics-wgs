@@ -98,6 +98,7 @@ workflow preprocess_wgs_sample {
                 fastq2_files = fastq2,
                 readgroups = readgroups
         }
+
         scatter (pe_record in emit_pe_records.fastq_pair_records) {
             call bwa_pe {
                 input:
@@ -122,6 +123,7 @@ workflow preprocess_wgs_sample {
                 fastq_s_files = fastq_s,
                 readgroups = readgroups
         }
+
         scatter (se_record in emit_se_records.fastq_single_records) {
             call bwa_se {
                 input:
@@ -186,8 +188,6 @@ workflow preprocess_wgs_sample {
     }
 
     output {
-        Array[File]? validation_report = CramToUnmappedBams.validation_report
-        Array[File]? unmapped_bams = CramToUnmappedBams.unmapped_bams
         File bam = gatk_applybqsr.bam
         File bai = gatk_applybqsr.bai
         File md_metrics = picard_markduplicates.metrics
@@ -195,6 +195,7 @@ workflow preprocess_wgs_sample {
         File insert_size_histogram_pdf = collect_insert_size_metrics.insert_size_histogram_pdf
         File contamination = check_contamination.contamination
     }
+
     meta {
         allowNestedInputs: true
     }

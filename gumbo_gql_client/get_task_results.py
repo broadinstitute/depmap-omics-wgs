@@ -17,7 +17,6 @@ class GetTaskResultsRecords(BaseModel):
     label: str
     size: Optional[int]
     task_entity: "GetTaskResultsRecordsTaskEntity"
-    task_name: str
     terra_entity_name: Optional[str]
     terra_entity_type: Optional[str]
     terra_method_config_name: Optional[str]

@@ -111,7 +111,6 @@ class GumboClient(BaseClient):
                   id
                   sequencing_id
                 }
-                task_name
                 terra_entity_name
                 terra_entity_type
                 terra_method_config_name
