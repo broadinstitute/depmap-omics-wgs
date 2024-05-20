@@ -416,10 +416,6 @@ class TerraWorkspace:
             # start constructing a common output object to be used for `task_result`
             # inserts
             base_o = task_result_insert_input(
-                # crc_32_c_hash=None,
-                # created_at=None,
-                # size=None,
-                # task_entity_id=,
                 terra_method_config_name=str(s["methodConfigurationName"]),
                 terra_method_config_namespace=str(s["methodConfigurationNamespace"]),
                 terra_submission_id=str(s["submissionId"]),

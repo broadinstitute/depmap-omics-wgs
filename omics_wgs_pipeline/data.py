@@ -1,30 +1,36 @@
-import os
 import pathlib
 
-from gumbo_gql_client import GumboClient, task_result_bool_exp
+from click import echo
+
+from gumbo_gql_client import (
+    task_entity_insert_input,
+    task_result_bool_exp,
+    task_result_insert_input,
+)
 from omics_wgs_pipeline.terra import TerraWorkflow, TerraWorkspace
 from omics_wgs_pipeline.types import (
+    CoercedDataFrame,
+    GumboClient,
     GumboTaskResult,
     GumboWgsSequencing,
     TerraSample,
     TypedDataFrame,
 )
-from omics_wgs_pipeline.utils import expand_dict_columns, model_to_df, type_data_frame
+from omics_wgs_pipeline.utils import (
+    expand_dict_columns,
+    get_gcs_object_metadata,
+    model_to_df,
+    type_data_frame,
+)
 
 
-def make_terra_samples() -> TypedDataFrame[TerraSample]:
+def make_terra_samples(gumbo_client: GumboClient) -> TypedDataFrame[TerraSample]:
     """
     Make a data frame to use as a Terra `sample` data table using ground truth data from
     Gumbo.
 
     :return: a data frame to use as a Terra `sample` data table
     """
-
-    # collect ground truth set of samples from Gumbo
-    gumbo_client = GumboClient(
-        url=os.environ["HASURA_URL"],
-        headers={"X-Hasura-Admin-Secret": os.environ["HASURA_ADMIN_SECRET"]},
-    )
 
     wgs_sequencings = model_to_df(
         gumbo_client.wgs_sequencings(),
@@ -131,3 +137,61 @@ def delta_preprocess_wgs_samples(
         use_reference_disks=False,
         memory_retry_multiplier=1.2,  # pyright: ignore
     )
+
+
+def put_task_results(
+    gumbo_client: GumboClient,
+    gcp_project_id: str,
+    outputs: list[task_result_insert_input],
+):
+    echo("Getting existing task entity records for sequencings")
+    # get existing task entity IDs for `omics_sequecing` records
+    task_entities = model_to_df(
+        gumbo_client.sequencing_task_entities(),
+        CoercedDataFrame,
+        remove_unknown_cols=False,
+    )
+
+    # check if any need to be created (a new `task_result` record must belong to one)
+    req_seq_ids = set([x.terra_entity_name for x in outputs])
+    missing_seq_ids = req_seq_ids.difference(task_entities["sequencing_id"])
+
+    if len(missing_seq_ids) > 0:
+        echo(f"Creating {len(missing_seq_ids)} missing task entity records")
+        gumbo_client.insert_task_entities(
+            username=gumbo_client.username,
+            objects=[
+                task_entity_insert_input(sequencing_id=x) for x in missing_seq_ids
+            ],
+        )
+
+        # get the records again
+        task_entities = model_to_df(
+            gumbo_client.sequencing_task_entities(),
+            CoercedDataFrame,
+            remove_unknown_cols=False,
+        )
+
+    # create a mapping from sequencing to task entity IDs
+    task_entities = task_entities.set_index("sequencing_id").rename(
+        columns={"id": "task_entity_id"}
+    )
+
+    # get GCS object metadata for this set of output URLs
+    object_metadata = get_gcs_object_metadata(
+        [x.url for x in outputs], gcp_project_id
+    ).set_index("url")
+
+    for i in range(len(outputs)):
+        # assign final missing task result values
+        outputs[i].task_entity_id = task_entities.loc[
+            outputs[i].terra_entity_name, "task_entity_id"
+        ]
+
+        om = object_metadata.loc[outputs[i].url]
+        outputs[i].size = om["size"]
+        outputs[i].crc_32_c_hash = om["crc32c_hash"]
+        outputs[i].created_at = om["created_at"]
+
+    echo(f"Inserting {len(outputs)} task results")
+    gumbo_client.insert_task_results(username=gumbo_client.username, objects=outputs)

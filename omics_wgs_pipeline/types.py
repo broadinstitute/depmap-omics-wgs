@@ -1,11 +1,26 @@
-from typing import TypedDict, TypeVar
+from typing import Optional, TypedDict, TypeVar
 
+import httpx
 import pandas as pd
 import pandera as pa
 import pandera.typing
 from pandera.api.pandas.model_config import BaseConfig as PaBaseConfig
 from pandera.typing import Series
 from pydantic import BaseModel
+
+from gumbo_gql_client.gumbo_client import GumboClient as AriadneGumboClient
+
+
+class GumboClient(AriadneGumboClient):
+    def __init__(
+        self,
+        url: str,
+        username: str,
+        headers: dict[str, str],
+        http_client: Optional[httpx.Client] = None,
+    ):
+        super().__init__(url=url, headers=headers, http_client=http_client)
+        self.username = username  # store username on this object for use in mutations
 
 
 class PersistedWdl(TypedDict):
@@ -54,6 +69,13 @@ class GumboTaskResult(CoercedDataFrame):
     sample_id: Series[pd.StringDtype]
     label: Series[pd.StringDtype]
     url: Series[pd.StringDtype] = pa.Field(nullable=True)
+
+
+class GcsObject(CoercedDataFrame):
+    url: Series[pd.StringDtype]
+    size: Series[pd.Int64Dtype]
+    crc32c_hash: Series[pd.StringDtype]
+    created_at: Series[pd.Timestamp]
 
 
 PydanticBaseModel = TypeVar("PydanticBaseModel", bound=BaseModel)

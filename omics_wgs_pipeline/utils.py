@@ -1,10 +1,13 @@
+from math import ceil
 from typing import Any, Callable, Iterable, Type
 
 import pandas as pd
 import requests
 from click import echo
+from google.cloud import storage
 
 from omics_wgs_pipeline.types import (
+    GcsObject,
     PanderaBaseSchema,
     PydanticBaseModel,
     TypedDataFrame,
@@ -197,3 +200,56 @@ def call_firecloud_api(func: Callable, *args: object, **kwargs: object) -> Any:
         echo(f"Error getting response as JSON: {e}", err=True)
         echo(f"Response text: {res.text}", err=True)
         raise requests.exceptions.RequestException(f"HTTP {res.status_code} error")
+
+
+def get_gcs_object_metadata(
+    urls: Iterable[str], gcp_project_id: str
+) -> TypedDataFrame[GcsObject]:
+    """
+    Check existence and get sizes of GCS objects.
+
+    :param urls: iterable of GCS URLs
+    :param gcp_project_id: the ID of a GCP project to use for billing
+    :return: data frame of object URLs and metadata
+    """
+
+    echo("Getting metadata about GCS objects")
+    storage_client = storage.Client(project=gcp_project_id)
+    blobs = {}
+
+    # create evenly-sized batches of URLs to check (the GCS batch context below has a
+    # max batch size of 1000, so do this outer layer of batching, too)
+    urls = list(urls)
+    n_urls = len(urls)
+    max_batch_size = 100
+    n_batches = 1 + n_urls // max_batch_size
+    batch_size = ceil(n_urls / n_batches)
+
+    for i in range(0, n_batches):
+        batch = urls[(i * batch_size) : (i * batch_size + batch_size)]
+
+        with storage_client.batch(raise_exception=False):
+            for url in batch:
+                blob = storage.Blob.from_string(url, client=storage_client)
+                bucket = storage_client.bucket(
+                    blob.bucket.name, user_project=gcp_project_id
+                )
+                blob = bucket.get_blob(blob.name)
+                blobs[url] = blob
+
+    df = pd.DataFrame(
+        [
+            {
+                "url": k,
+                "size": v.size,
+                "crc32c_hash": v.crc32c,
+                "created_at": v.time_created,
+            }
+            for k, v in blobs.items()
+        ]
+    )
+
+    # batching without raising exceptions makes all columns NA if an object was missing
+    df = df.dropna()
+
+    return type_data_frame(df, GcsObject)
