@@ -2,7 +2,7 @@ version 1.0
 
 # https://github.com/broadinstitute/warp/blob/GDCWholeGenomeSomaticSingleSample_v1.3.1/pipelines/broad/dna_seq/somatic/single_sample/wgs/gdc_genome/GDCWholeGenomeSomaticSingleSample.wdl
 
-#import "https://gist.githubusercontent.com/dpmccabe/579f0c3f0ba714a161f99bcbc2bd494e/raw/14e671ecd221a4a6e7029adad2f932aa05546358/CramToUnmappedBams.wdl" as ToUbams
+import "https://gist.githubusercontent.com/dpmccabe/579f0c3f0ba714a161f99bcbc2bd494e/raw/c09ee36d3650230294cc2715361e832b3b3b4bce/CramToUnmappedBams.wdl" as ToUbams
 #import "./include/CramToUnmappedBams.wdl" as ToUbams
 
 struct FastqPairRecord {

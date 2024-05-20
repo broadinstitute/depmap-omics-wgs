@@ -138,7 +138,9 @@ class TerraWorkspace:
             etype=entity_type,
         )
 
-        return TypedDataFrame[pandera_schema](pd.DataFrame(j))
+        records = [{f"{entity_type}_id": x["name"], **x["attributes"]} for x in j]
+
+        return TypedDataFrame[pandera_schema](pd.DataFrame(records))
 
     def upload_entities(self, df: pd.DataFrame) -> None:
         """
@@ -334,6 +336,7 @@ class TerraWorkspace:
         :param terra_workflow: a `TerraWorkflow` instance
         """
 
+        echo(f"Starting {terra_workflow.repo_method_name} workflow")
         call_firecloud_api(
             firecloud_api.create_submission,
             wnamespace=self.workspace_namespace,
@@ -359,6 +362,7 @@ class TerraWorkspace:
                 "samples",
                 datetime.datetime.now(datetime.UTC)
                 .isoformat(timespec="seconds")
+                .rstrip("+00:00")
                 .replace(":", "-"),
                 suffix,
             ]

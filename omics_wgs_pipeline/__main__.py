@@ -103,7 +103,7 @@ def run_workflow(
         ).resolve(),
     )
 
-    if workflow_name == "preprocess_new_samples":
+    if workflow_name == "preprocess_wgs_sample":
         delta_preprocess_wgs_samples(ctx.obj["terra_workspace"], terra_workflow)
     else:
         raise NotImplementedError(f"Workflow {workflow_name} not implemented")

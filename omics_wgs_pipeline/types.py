@@ -48,9 +48,11 @@ class CoercedDataFrame(pa.DataFrameModel):
 
 class TerraSample(CoercedDataFrame):
     sample_id: Series[pd.StringDtype]
-    delivery_file_format: Series[pd.StringDtype] = pa.Field(isin={"CRAM", "BAM"})
-    delivery_cram_bam: Series[pd.StringDtype]
-    delivery_crai_bai: Series[pd.StringDtype]
+    delivery_file_format: Series[pd.StringDtype] = pa.Field(
+        isin={"CRAM", "BAM"}, nullable=True
+    )
+    delivery_cram_bam: Series[pd.StringDtype] = pa.Field(nullable=True)
+    delivery_crai_bai: Series[pd.StringDtype] = pa.Field(nullable=True)
     bam: Series[pd.StringDtype] = pa.Field(nullable=True)
     bai: Series[pd.StringDtype] = pa.Field(nullable=True)
 

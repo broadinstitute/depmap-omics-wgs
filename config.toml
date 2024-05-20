@@ -9,7 +9,7 @@ workspace_namespace = "broad-firecloud-ccle"
 workspace_name = "omics_wgs_pipeline"
 firecloud_owners = ["dmccabe@broadinstitute.org", "omics-pipeline-runner@depmap-omics.iam.gserviceaccount.com"]
 
-[terra.preprocess]
+[terra.preprocess_wgs_sample]
 repo_method_name = "preprocess_wgs_sample"
 method_config_name = "preprocess_wgs_sample"
 method_synopsis = "Run WARP GDC single-sample preprocessing workflow"
