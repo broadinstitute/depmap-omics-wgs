@@ -1,9 +1,11 @@
+import datetime
 import pathlib
 
 from click import echo
 
 from gumbo_gql_client import (
     task_entity_insert_input,
+    task_result_arr_rel_insert_input,
     task_result_bool_exp,
     task_result_insert_input,
 )
@@ -194,4 +196,12 @@ def put_task_results(
         outputs[i].created_at = om["created_at"]
 
     echo(f"Inserting {len(outputs)} task results")
-    gumbo_client.insert_task_results(username=gumbo_client.username, objects=outputs)
+    res = gumbo_client.insert_terra_sync(
+        username=gumbo_client.username,
+        created_at=datetime.datetime.now(datetime.UTC),
+        terra_workspace_namespace=outputs[0].terra_workspace_namespace,
+        terra_workspace_name=outputs[0].terra_workspace_name,
+        task_results=task_result_arr_rel_insert_input(data=outputs),
+    )
+
+    echo(f"Created Terra sync record {res.insert_terra_sync.returning[0].id}")
