@@ -2,41 +2,35 @@ version 1.0
 
 # https://github.com/broadinstitute/warp/blob/GDCWholeGenomeSomaticSingleSample_v1.3.1/pipelines/broad/reprocessing/cram_to_unmapped_bams/CramToUnmappedBams.wdl
 
-# Exactly one of input_cram and input_bam should be supplied to this workflow. If an input_cram is supplied, a ref_fasta
-# and ref_fasta_index must also be supplied. The ref_fasta and ref_fasta_index are used to generate a bam, so if an
-# input_cram is not supplied, the input_bam is used instead and the ref_fasta and ref_fasta_index are not needed.
-
 # If the output_map file is provided, it is expected to be a tab-separated file containing a list of all the read group ids
 # found in the input_cram / input_bam and the desired name of the unmapped bams generated for each.
 # If the file is not provided, the output names of the unmapped bams will be the read_group_id<unmapped_bam_suffix>
 workflow CramToUnmappedBams {
     input {
-        File? input_cram
-        File? input_bam
+        String input_type
+        File input_cram_bam
+        File input_crai_bai
         File? ref_fasta
         File? ref_fasta_index
         File? output_map
-        String base_file_name
         String unmapped_bam_suffix = ".unmapped.bam"
         Int additional_disk = 20
     }
 
-    if (defined(input_cram)) {
-        Float cram_size = size(input_cram, "GiB")
-        String bam_from_cram_name = basename(input_cram_path, ".cram")
-        String input_cram_path = select_first([input_cram])
+    if (input_type == "CRAM") {
+        Float cram_size = size(input_cram_bam, "GiB")
 
         call CramToBam {
             input:
                 ref_fasta = select_first([ref_fasta]),
                 ref_fasta_index = select_first([ref_fasta_index]),
-                cram_file = select_first([input_cram]),
-                output_basename = bam_from_cram_name,
+                cram_file = input_cram_bam,
+                output_basename = basename(input_cram_bam, ".cram"),
                 disk_size = ceil(cram_size * 6) + additional_disk
         }
     }
 
-    File input_file = select_first([CramToBam.output_bam, input_bam])
+    File input_file = select_first([CramToBam.output_bam, input_cram_bam])
     Float input_size = size(input_file, "GiB")
 
     if (!defined(output_map)) {
@@ -90,6 +84,7 @@ workflow CramToUnmappedBams {
         Array[File] validation_report = ValidateSamFile.report
         Array[File] unmapped_bams = SortSam.output_bam
     }
+
     meta {
         allowNestedInputs: true
     }

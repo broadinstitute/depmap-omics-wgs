@@ -2,7 +2,7 @@ version 1.0
 
 # https://github.com/broadinstitute/warp/blob/GDCWholeGenomeSomaticSingleSample_v1.3.1/pipelines/broad/dna_seq/somatic/single_sample/wgs/gdc_genome/GDCWholeGenomeSomaticSingleSample.wdl
 
-import "https://gist.githubusercontent.com/dpmccabe/579f0c3f0ba714a161f99bcbc2bd494e/raw/c09ee36d3650230294cc2715361e832b3b3b4bce/CramToUnmappedBams.wdl" as ToUbams
+import "https://gist.githubusercontent.com/dpmccabe/579f0c3f0ba714a161f99bcbc2bd494e/raw/107ed4fae2e18f7d24bef7181a221f817c0c8a5c/CramToUnmappedBams.wdl" as ToUbams
 #import "./include/CramToUnmappedBams.wdl" as ToUbams
 
 struct FastqPairRecord {
@@ -20,20 +20,16 @@ struct FastqSingleRecord {
 
 workflow preprocess_wgs_sample {
     input {
-        String workflow_version = "1.3.1"
+        String workflow_version = "1.4"
         String workflow_url
 
-        File? input_cram
-        File? input_crai
-        File? input_bam
-        File? input_bai
+        String input_type
+        File input_cram_bam
+        File input_crai_bai
         File? cram_ref_fasta
         File? cram_ref_fasta_index
         File? output_map
         String? unmapped_bam_suffix
-        String base_file_name
-
-        File? ubam
 
         File contamination_vcf
         File contamination_vcf_index
@@ -50,25 +46,21 @@ workflow preprocess_wgs_sample {
         File ref_sa
     }
 
-    String outbam = if (defined(ubam) || defined(input_bam)) then basename(select_first([ubam, input_bam]), ".bam") + ".aln.mrkdp.bam"
-                    else basename(select_first([input_cram]), ".cram") + ".aln.mrkdp.bam"
+    String outbam = if (input_type == "BAM") then basename(input_cram_bam, ".bam") + ".aln.mrkdp.bam"
+                    else basename(input_cram_bam, ".cram") + ".aln.mrkdp.bam"
 
-    if (!defined(ubam)) {
-        call ToUbams.CramToUnmappedBams {
-            input:
-                input_cram = input_cram,
-                input_bam = input_bam,
-                ref_fasta = select_first([cram_ref_fasta, ref_fasta]),
-                ref_fasta_index = select_first([cram_ref_fasta_index, ref_fai]),
-                output_map = output_map,
-                base_file_name = base_file_name,
-                unmapped_bam_suffix = unmapped_bam_suffix
-        }
+    call ToUbams.CramToUnmappedBams {
+        input:
+            input_type = input_type,
+            input_cram_bam = input_cram_bam,
+            input_crai_bai = input_crai_bai,
+            ref_fasta = select_first([cram_ref_fasta, ref_fasta]),
+            ref_fasta_index = select_first([cram_ref_fasta_index, ref_fai]),
+            output_map = output_map,
+            unmapped_bam_suffix = unmapped_bam_suffix
     }
 
-    Array[File] ubams = if defined(ubam) then [select_first([ubam])] else select_first([CramToUnmappedBams.unmapped_bams])
-
-    scatter (ubam in ubams) {
+    scatter (ubam in CramToUnmappedBams.unmapped_bams) {
         call bam_readgroup_to_contents {
             input: bam = ubam
         }

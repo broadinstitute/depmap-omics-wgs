@@ -13,7 +13,9 @@
     "preprocess_wgs_sample.ref_fasta": "workspace.referenceData_hg38_ref_fasta",
     "preprocess_wgs_sample.ref_pac": "workspace.referenceData_hg38_ref_pac",
     "preprocess_wgs_sample.ref_sa": "workspace.referenceData_hg38_ref_sa",
-    "preprocess_wgs_sample.base_file_name": "this.sample_id"
+    "preprocess_wgs_sample.input_cram_bam": "this.delivery_cram_bam",
+    "preprocess_wgs_sample.input_crai_bai": "this.delivery_crai_bai",
+    "preprocess_wgs_sample.input_type": "this.delivery_file_format"
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
