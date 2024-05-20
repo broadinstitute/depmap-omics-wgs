@@ -125,7 +125,12 @@ def delta_preprocess_wgs_samples(
     """
 
     samples = terra_workspace.get_entities("sample", TerraSample)
-    samples = samples.loc[samples["bam"].isna() | samples["bai"].isna()]
+    samples = samples.loc[samples["bam"].isna() | samples["bai"].isna()].iloc[:2]
+
+    if len(samples) == 0:
+        echo("No new samples to preprocess")
+        return
+
     sample_set_id = terra_workspace.create_sample_set(
         samples["sample_id"], suffix="preprocess_wgs_sample"
     )
@@ -181,7 +186,7 @@ def put_task_results(
 
     # get GCS object metadata for this set of output URLs
     object_metadata = get_gcs_object_metadata(
-        [x.url for x in outputs], gcp_project_id
+        [str(x.url) for x in outputs], gcp_project_id
     ).set_index("url")
 
     for i in range(len(outputs)):
@@ -199,9 +204,10 @@ def put_task_results(
     res = gumbo_client.insert_terra_sync(
         username=gumbo_client.username,
         created_at=datetime.datetime.now(datetime.UTC),
-        terra_workspace_namespace=outputs[0].terra_workspace_namespace,
-        terra_workspace_name=outputs[0].terra_workspace_name,
+        terra_workspace_namespace=str(outputs[0].terra_workspace_namespace),
+        terra_workspace_name=str(outputs[0].terra_workspace_name),
         task_results=task_result_arr_rel_insert_input(data=outputs),
     )
 
-    echo(f"Created Terra sync record {res.insert_terra_sync.returning[0].id}")
+    sync_id = res.insert_terra_sync.returning[0].id  # pyright: ignore
+    echo(f"Created Terra sync record {sync_id}")

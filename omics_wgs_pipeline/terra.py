@@ -17,7 +17,11 @@ from omics_wgs_pipeline.types import (
     TerraJobSubmissionKwargs,
     TypedDataFrame,
 )
-from omics_wgs_pipeline.utils import call_firecloud_api, expand_dict_columns
+from omics_wgs_pipeline.utils import (
+    batch_evenly,
+    call_firecloud_api,
+    expand_dict_columns,
+)
 from omics_wgs_pipeline.wdl import persist_wdl_script
 
 
@@ -149,18 +153,19 @@ class TerraWorkspace:
         :param df: a data frame of entities
         """
 
-        with tempfile.NamedTemporaryFile(suffix="tsv") as f:
-            df.to_csv(f, sep="\t", index=False)
+        for batch in batch_evenly(df, max_batch_size=500):
+            with tempfile.NamedTemporaryFile(suffix="tsv") as f:
+                batch.to_csv(f, sep="\t", index=False)  # pyright: ignore
 
-            echo(f"Upserting {len(df)} entities to Terra")
+                echo(f"Upserting {len(batch)} entities to Terra")
 
-            call_firecloud_api(
-                firecloud_api.upload_entities_tsv,
-                namespace=self.workspace_namespace,
-                workspace=self.workspace_name,
-                entities_tsv=f.name,
-                model="flexible",
-            )
+                call_firecloud_api(
+                    firecloud_api.upload_entities_tsv,
+                    namespace=self.workspace_namespace,
+                    workspace=self.workspace_name,
+                    entities_tsv=f.name,
+                    model="flexible",
+                )
 
     def create_workspace_config(self, config_body: dict) -> None:
         """
@@ -303,6 +308,7 @@ class TerraWorkspace:
 
         # inject the workflow version and URL into inputs so it gets stored in job
         # submissions
+        assert terra_workflow.persisted_wdl_script is not None
         terra_workflow.method_config["inputs"][
             f"{terra_workflow.repo_method_name}.workflow_version"
         ] = f'"{terra_workflow.persisted_wdl_script["version"]}"'

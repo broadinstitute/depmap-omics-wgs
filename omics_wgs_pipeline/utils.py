@@ -1,5 +1,5 @@
 from math import ceil
-from typing import Any, Callable, Iterable, Type
+from typing import Any, Callable, Generator, Iterable, Type, TypeVar
 
 import pandas as pd
 import requests
@@ -12,6 +12,66 @@ from omics_wgs_pipeline.types import (
     PydanticBaseModel,
     TypedDataFrame,
 )
+
+T = TypeVar("T")
+
+
+def list_comprehender(x: list[T], i1: int, i2: int) -> list[T]:
+    """
+    Perform list comprehension to get a batch of items from a list.
+
+    :param x: the list to extract a batch from
+    :param i1: the lower index
+    :param i2: the higher index
+    :return: a batch from the list
+    """
+
+    return x[i1:i2]
+
+
+def df_comprehender(x: pd.DataFrame, i1: int, i2: int) -> pd.DataFrame:
+    """
+    Perform list comprehension to get a batch of rows from a data frame.
+
+    :param x: the data frame to extract a batch from
+    :param i1: the lower index
+    :param i2: the higher index
+    :return: a batch from the data frame
+    """
+
+    return x.iloc[i1:i2, :]
+
+
+def batch_evenly(
+    items: Iterable[T] | pd.DataFrame, max_batch_size: int
+) -> Generator[list[T] | pd.DataFrame, None, None]:
+    """
+    Yields evenly sized batches from an iterable or data frame such that each batch has
+    at most `max_batch_size` items.
+
+    :param items: the iterable or DataFrame to be batched
+    :param max_batch_size: the maximum size of each batch
+    :return: a generator yielding batches from the input items
+    """
+
+    if isinstance(items, pd.DataFrame):
+        batchable_items = items
+        comprehender = df_comprehender
+    else:
+        try:
+            batchable_items = list(items)
+            comprehender = list_comprehender
+        except TypeError as e:
+            raise TypeError(f"Cannot batch items of type {type(items)}: {e}")
+
+    n_items = len(batchable_items)
+    n_batches = 1 + n_items // max_batch_size
+    batch_size = n_items / n_batches
+
+    for i in range(n_batches):
+        i1 = ceil(i * batch_size)
+        i2 = ceil((i + 1) * batch_size)
+        yield comprehender(batchable_items, i1, i2)  # pyright:ignore
 
 
 def type_data_frame(
@@ -217,17 +277,9 @@ def get_gcs_object_metadata(
     storage_client = storage.Client(project=gcp_project_id)
     blobs = {}
 
-    # create evenly-sized batches of URLs to check (the GCS batch context below has a
-    # max batch size of 1000, so do this outer layer of batching, too)
-    urls = list(urls)
-    n_urls = len(urls)
-    max_batch_size = 100
-    n_batches = 1 + n_urls // max_batch_size
-    batch_size = ceil(n_urls / n_batches)
-
-    for i in range(0, n_batches):
-        batch = urls[(i * batch_size) : (i * batch_size + batch_size)]
-
+    # the GCS batch context below has a max batch size of 1000, so do this outer layer
+    # of batching, too)
+    for batch in batch_evenly(urls, max_batch_size=200):
         with storage_client.batch(raise_exception=False):
             for url in batch:
                 blob = storage.Blob.from_string(url, client=storage_client)
