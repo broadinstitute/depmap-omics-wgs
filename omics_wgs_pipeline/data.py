@@ -102,6 +102,25 @@ def join_existing_results_to_samples(
     )
     samples = samples.loc[~samples["is_hg19"]]
 
+    # specify reference genome files at the sample-level
+    ref_base_url = (
+        "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38"
+    )
+
+    ref_exts = {
+        "ref_amb": "fasta.amb",
+        "ref_ann": "fasta.ann",
+        "ref_bwt": "fasta.bwt",
+        "ref_dict": "dict",
+        "ref_fasta": "fasta",
+        "ref_fasta_index": "fasta.fai",
+        "ref_pac": "fasta.pac",
+        "ref_sa": "fasta.sa",
+    }
+
+    for k, v in ref_exts.items():
+        samples[k] = ".".join([ref_base_url, v])
+
     # join already processed output files to canonical set of WGS samples
     task_result_urls = task_results.pivot(
         index="sample_id", columns="label", values="url"
@@ -152,7 +171,6 @@ def put_task_results(
     outputs: list[task_result_insert_input],
 ):
     echo("Getting existing task entity records for sequencings")
-    # get existing task entity IDs for `omics_sequecing` records
     task_entities = model_to_df(
         gumbo_client.sequencing_task_entities(),
         CoercedDataFrame,

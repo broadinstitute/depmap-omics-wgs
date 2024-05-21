@@ -55,6 +55,14 @@ class TerraSample(CoercedDataFrame):
     delivery_crai_bai: Series[pd.StringDtype] = pa.Field(nullable=True)
     bam: Series[pd.StringDtype] = pa.Field(nullable=True)
     bai: Series[pd.StringDtype] = pa.Field(nullable=True)
+    ref_amb: Series[pd.StringDtype]
+    ref_ann: Series[pd.StringDtype]
+    ref_bwt: Series[pd.StringDtype]
+    ref_dict: Series[pd.StringDtype]
+    ref_fasta: Series[pd.StringDtype]
+    ref_fasta_index: Series[pd.StringDtype]
+    ref_pac: Series[pd.StringDtype]
+    ref_sa: Series[pd.StringDtype]
 
 
 class GumboWgsSequencing(CoercedDataFrame):

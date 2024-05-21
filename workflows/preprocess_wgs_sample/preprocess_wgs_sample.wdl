@@ -37,7 +37,7 @@ workflow preprocess_wgs_sample {
         File dbsnp_vcf_index
 
         File ref_fasta
-        File ref_fai
+        File ref_fasta_index
         File ref_dict
         File ref_amb
         File ref_ann
@@ -55,7 +55,7 @@ workflow preprocess_wgs_sample {
             input_cram_bam = input_cram_bam,
             input_crai_bai = input_crai_bai,
             ref_fasta = select_first([cram_ref_fasta, ref_fasta]),
-            ref_fasta_index = select_first([cram_ref_fasta_index, ref_fai]),
+            ref_fasta_index = select_first([cram_ref_fasta_index, ref_fasta_index]),
             output_map = output_map,
             unmapped_bam_suffix = unmapped_bam_suffix
     }
@@ -96,7 +96,7 @@ workflow preprocess_wgs_sample {
                 input:
                     fastq_record = pe_record,
                     ref_fasta = ref_fasta,
-                    ref_fai = ref_fai,
+                    ref_fasta_index = ref_fasta_index,
                     ref_dict = ref_dict,
                     ref_amb = ref_amb,
                     ref_ann = ref_ann,
@@ -121,7 +121,7 @@ workflow preprocess_wgs_sample {
                 input:
                     fastq_record = se_record,
                     ref_fasta = ref_fasta,
-                    ref_fai = ref_fai,
+                    ref_fasta_index = ref_fasta_index,
                     ref_dict = ref_dict,
                     ref_amb = ref_amb,
                     ref_ann = ref_ann,
@@ -148,7 +148,7 @@ workflow preprocess_wgs_sample {
         input:
             reference = ref_fasta,
             reference_dict = ref_dict,
-            reference_index = ref_fai,
+            reference_index = ref_fasta_index,
             tumor_cram_or_bam = sort_and_index_markdup_bam.bam,
             tumor_crai_or_bai = sort_and_index_markdup_bam.bai,
             contamination_vcf = contamination_vcf,
@@ -159,7 +159,7 @@ workflow preprocess_wgs_sample {
         input:
             bam = sort_and_index_markdup_bam.bam,
             ref_fasta = ref_fasta,
-            ref_fai = ref_fai,
+            ref_fasta_index = ref_fasta_index,
             ref_dict = ref_dict,
             dbsnp_vcf = dbsnp_vcf,
             dbsnp_vcf_index = dbsnp_vcf_index
@@ -456,7 +456,7 @@ task bwa_pe {
     input {
         FastqPairRecord fastq_record
         File ref_fasta
-        File ref_fai
+        File ref_fasta_index
         File ref_dict
         File ref_amb
         File ref_ann
@@ -473,7 +473,7 @@ task bwa_pe {
     File fastq2 = fastq_record.reverse_fastq
     String readgroup = fastq_record.readgroup
     String outbam = fastq_record.readgroup_id + ".bam"
-    Float ref_size =size([ref_fasta, ref_dict, ref_amb, ref_ann, ref_bwt, ref_pac, ref_sa, ref_fai], "GiB")
+    Float ref_size =size([ref_fasta, ref_dict, ref_amb, ref_ann, ref_bwt, ref_pac, ref_sa, ref_fasta_index], "GiB")
     Int mem = ceil(size([fastq1, fastq2], "MiB")) + 10000 + additional_memory_mb
     Int disk_space = ceil((size([fastq1, fastq2], "GiB") * 4) + ref_size) + 10 + additional_disk_gb
 
@@ -516,7 +516,7 @@ task bwa_se {
         File ref_bwt
         File ref_pac
         File ref_sa
-        File ref_fai
+        File ref_fasta_index
         Int cpu = 16
         Int preemptible = 1
         Int max_retries = 0
@@ -526,7 +526,7 @@ task bwa_se {
     File fastq = fastq_record.fastq
     String readgroup = fastq_record.readgroup
     String outbam = fastq_record.readgroup_id + ".bam"
-    Float ref_size = size([ref_fasta, ref_dict, ref_amb, ref_ann, ref_bwt, ref_pac, ref_sa, ref_fai], "GiB")
+    Float ref_size = size([ref_fasta, ref_dict, ref_amb, ref_ann, ref_bwt, ref_pac, ref_sa, ref_fasta_index], "GiB")
     Int mem = ceil(size(fastq, "MiB")) + 10000 + additional_memory_mb
     Int disk_space = ceil((size(fastq, "GiB") * 4) + ref_size) + 10 + additional_disk_gb
 
@@ -753,7 +753,7 @@ task gatk_baserecalibrator {
         File dbsnp_vcf_index
         File ref_dict
         File ref_fasta
-        File ref_fai
+        File ref_fasta_index
         Int cpu = 2
         Int preemptible = 2
         Int max_retries = 0
@@ -761,7 +761,7 @@ task gatk_baserecalibrator {
         Int additional_disk_gb = 0
     }
     String output_grp = basename(bam, ".bam") + "_bqsr.grp"
-    Float ref_size = size([ref_fasta, ref_fai, ref_dict], "GiB")
+    Float ref_size = size([ref_fasta, ref_fasta_index, ref_dict], "GiB")
     Float dbsnp_size = size([dbsnp_vcf, dbsnp_vcf_index], "GiB")
     Int mem = ceil(size(bam, "MiB")) + 6000 + additional_memory_mb
     Int jvm_mem = mem - 1000
@@ -774,7 +774,7 @@ task gatk_baserecalibrator {
         dbsnp_vcf_index: {localization_optional: true}
         ref_dict: {localization_optional: true}
         ref_fasta: {localization_optional: true}
-        ref_fai: {localization_optional: true}
+        ref_fasta_index: {localization_optional: true}
     }
 
     command {
