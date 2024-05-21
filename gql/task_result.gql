@@ -35,7 +35,10 @@ mutation InsertTaskResults(
   set_username(args: { _username: $username }) {
     username
   }
-  insert_task_result(objects: $objects) {
+  insert_task_result(
+    objects: $objects
+    on_conflict: { constraint: task_result_pkey, update_columns: [] }
+  ) {
     affected_rows
   }
 }

@@ -5,11 +5,8 @@ from click import echo
 
 from gumbo_gql_client import (
     task_entity_insert_input,
-    task_result_arr_rel_insert_input,
     task_result_bool_exp,
-    task_result_constraint,
     task_result_insert_input,
-    task_result_on_conflict,
 )
 from omics_wgs_pipeline.terra import TerraWorkflow, TerraWorkspace
 from omics_wgs_pipeline.types import (
@@ -267,13 +264,7 @@ def put_task_results(
         created_at=datetime.datetime.now(datetime.UTC),
         terra_workspace_namespace=str(outputs[0].terra_workspace_namespace),
         terra_workspace_name=str(outputs[0].terra_workspace_name),
-        task_results=task_result_arr_rel_insert_input(
-            data=outputs,
-            # don't insert if there's already a record with the same UUID primary key
-            on_conflict=task_result_on_conflict(
-                constraint=task_result_constraint("task_result_pkey"), update_columns=[]
-            ),
-        ),
+        task_results=outputs,
     )
 
     sync_id = res.insert_terra_sync.returning[0].id  # pyright: ignore

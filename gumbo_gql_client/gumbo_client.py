@@ -4,7 +4,6 @@ from .base_client import BaseClient
 from .get_task_results import GetTaskResults
 from .input_types import (
     task_entity_insert_input,
-    task_result_arr_rel_insert_input,
     task_result_bool_exp,
     task_result_insert_input,
 )
@@ -146,7 +145,10 @@ class GumboClient(BaseClient):
               set_username(args: {_username: $username}) {
                 username
               }
-              insert_task_result(objects: $objects) {
+              insert_task_result(
+                objects: $objects
+                on_conflict: {constraint: task_result_pkey, update_columns: []}
+              ) {
                 affected_rows
               }
             }
@@ -168,17 +170,17 @@ class GumboClient(BaseClient):
         created_at: Any,
         terra_workspace_namespace: str,
         terra_workspace_name: str,
-        task_results: task_result_arr_rel_insert_input,
+        task_results: List[task_result_insert_input],
         **kwargs: Any
     ) -> InsertTerraSync:
         query = gql(
             """
-            mutation InsertTerraSync($username: String!, $created_at: timestamptz!, $terra_workspace_namespace: String!, $terra_workspace_name: String!, $task_results: task_result_arr_rel_insert_input!) {
+            mutation InsertTerraSync($username: String!, $created_at: timestamptz!, $terra_workspace_namespace: String!, $terra_workspace_name: String!, $task_results: [task_result_insert_input!]!) {
               set_username(args: {_username: $username}) {
                 username
               }
               insert_terra_sync(
-                objects: {created_at: $created_at, terra_workspace_name: $terra_workspace_name, terra_workspace_namespace: $terra_workspace_namespace, task_results: $task_results}
+                objects: {created_at: $created_at, terra_workspace_name: $terra_workspace_name, terra_workspace_namespace: $terra_workspace_namespace, task_results: {data: $task_results, on_conflict: {constraint: task_result_pkey, update_columns: []}}}
               ) {
                 returning {
                   id
