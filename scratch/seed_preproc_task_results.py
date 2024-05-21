@@ -9,17 +9,13 @@ import pathlib
 import pandas as pd
 from firecloud import api as firecloud_api
 
-from gumbo_gql_client import (
-    GumboClient,
-    task_entity_insert_input,
-    task_result_bool_exp,
-    task_result_insert_input,
-)
-from omics_wgs_pipeline.types import CoercedDataFrame
+from gumbo_gql_client import task_entity_insert_input, task_result_insert_input
+from omics_wgs_pipeline.types import CoercedDataFrame, GumboClient, GumboTaskEntity
 from omics_wgs_pipeline.utils import (
-    anti_join,
+    compute_uuidv3,
     df_to_model,
     expand_dict_columns,
+    get_gcs_object_metadata,
     model_to_df,
 )
 
@@ -36,6 +32,7 @@ pd.set_option("mode.chained_assignment", "warn")
 gumbo_client = GumboClient(
     url=os.environ["HASURA_URL"],
     headers={"X-Hasura-Admin-Secret": os.environ["HASURA_ADMIN_SECRET"]},
+    username="dmccabe",
 )
 
 
@@ -68,12 +65,12 @@ def get_gumbo_samples():
         .fillna(gumbo_samples["hg19_bai_filepath"])
     )
 
-    # all samples should be hg38, but this correctly assigns hg19 if necessary
+    # all new samples should be hg38, but this removes hg19 ones if necessary
     gumbo_samples["reference_assembly"] = "hg38"
     gumbo_samples["is_hg19"] = (
         gumbo_samples["cram_bam"].eq(gumbo_samples["hg19_bam_filepath"]).fillna(False)
     )
-    gumbo_samples.loc[gumbo_samples["is_hg19"], "reference_assembly"] = "hg19"
+    gumbo_samples = gumbo_samples.loc[~gumbo_samples["is_hg19"]]
 
     return gumbo_samples.loc[
         ~gumbo_samples["is_hg19"], ["sequencing_id", "cram_bam", "crai_bai"]
@@ -86,7 +83,7 @@ def get_wgs_cn_samples():
             namespace="broad-firecloud-ccle", workspace="DepMap_WGS_CN", etype="sample"
         ).json()
     )
-    wgs_cn_samples = expand_dict_columns(wgs_cn_samples)
+    wgs_cn_samples = expand_dict_columns(wgs_cn_samples, name_columns_with_parent=False)
     wgs_cn_samples = wgs_cn_samples.convert_dtypes()
 
     wgs_cn_samples = wgs_cn_samples.rename(
@@ -115,9 +112,7 @@ def populate_task_entities(task_entities, task_results):
         )
 
         task_entities = model_to_df(
-            gumbo_client.sequencing_task_entities(),
-            CoercedDataFrame,
-            remove_unknown_cols=False,
+            gumbo_client.sequencing_task_entities(), GumboTaskEntity
         )
 
     return task_entities
@@ -132,10 +127,9 @@ def make_task_results(task_results):
     task_results = task_results.loc[:, ["task_entity_id", "bam", "bai"]]
 
     task_results["workflow_name"] = "preprocess_wgs_sample"
-    task_results["created_at"] = pd.Timestamp.now(tz="UTC").isoformat()
 
     task_results = task_results.melt(
-        id_vars=["task_entity_id", "workflow_name", "created_at"],
+        id_vars=["task_entity_id", "workflow_name"],
         value_vars=["bam", "bai"],
         var_name="label",
         value_name="url",
@@ -148,6 +142,50 @@ def make_task_results(task_results):
     return task_results
 
 
+def make_task_result_input(x):
+    o = task_result_insert_input(
+        task_entity_id=x["task_entity_id"],
+        workflow_name=x["workflow_name"],
+        label=x["label"],
+        url=x["url"],
+        format=x["format"],
+        size=x["size"],
+        crc_32_c_hash=x["crc32c_hash"],
+        created_at=x["created_at"],
+    )
+
+    o.id = compute_uuidv3(
+        o.model_dump(mode="json", by_alias=True),
+        "00000000-0000-0000-0000-000000000000",
+        # use all fields with known values
+        keys={
+            "crc32c_hash",
+            "created_at",
+            "format",
+            "label",
+            "size",
+            "task_entity_id",
+            "terra_entity_name",
+            "terra_entity_type",
+            "terra_method_config_name",
+            "terra_method_config_namespace",
+            "terra_submission_id",
+            "terra_workflow_id",
+            "terra_workflow_inputs",
+            "terra_workflow_root_dir",
+            "terra_workspace_id",
+            "terra_workspace_name",
+            "terra_workspace_namespace",
+            "url",
+            "workflow_name",
+            "workflow_source_url",
+            "workflow_version",
+        },
+    )
+
+    return o
+
+
 gumbo_samples = get_gumbo_samples()
 wgs_cn_samples = get_wgs_cn_samples()
 
@@ -155,33 +193,16 @@ task_results = wgs_cn_samples.loc[
     wgs_cn_samples["sequencing_id"].isin(gumbo_samples["sequencing_id"])
 ]
 
-task_entities = model_to_df(
-    gumbo_client.sequencing_task_entities(), CoercedDataFrame, remove_unknown_cols=False
-)
+task_entities = model_to_df(gumbo_client.sequencing_task_entities(), GumboTaskEntity)
 task_entities = populate_task_entities(task_entities, task_results)
 
 task_results = make_task_results(task_results)
 
-existing_task_results = model_to_df(
-    gumbo_client.get_task_results(
-        task_result_bool_exp(workflow_name={"eq": "preprocess_wgs_sample"})
-    ),
-    CoercedDataFrame,
-    remove_unknown_cols=False,
-)
+object_metadata = get_gcs_object_metadata(task_results["url"], "depmap-omics")
+task_results = task_results.merge(object_metadata, how="inner", on="url")
 
-existing_task_results = expand_dict_columns(
-    existing_task_results, name_columns_with_parent=False
-)
+task_result_inserts = [make_task_result_input(x) for _, x in task_results.iterrows()]
 
-new_task_results = anti_join(
-    task_results,
-    existing_task_results,
-    on=["workflow_name", "label", "url", "format"],
+gumbo_client.insert_task_results(
+    username=gumbo_client.username, objects=task_result_inserts
 )
-
-if len(new_task_results) > 0:
-    gumbo_client.insert_task_results(
-        username="dmccabe",
-        objects=df_to_model(new_task_results, task_result_insert_input),
-    )
