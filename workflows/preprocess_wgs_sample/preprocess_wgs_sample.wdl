@@ -33,10 +33,10 @@ struct FastqSingleRecord {
 
 workflow preprocess_wgs_sample {
     input {
-        String workflow_version = "1.4"
-        String workflow_url
+        String workflow_version = "1.0" # internal semver not tied to WARP releases
+        String workflow_url # populate this with the persisted GCS URL of this script
 
-        String input_type
+        String input_type # "CRAM" or "BAM"
         File input_cram_bam
         File input_crai_bai
         File? cram_ref_fasta

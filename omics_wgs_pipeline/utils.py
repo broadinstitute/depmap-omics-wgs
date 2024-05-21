@@ -1,3 +1,5 @@
+import json
+import uuid
 from math import ceil
 from typing import Any, Callable, Generator, Iterable, Type, TypeVar
 
@@ -197,6 +199,13 @@ def model_to_df(
     """
 
     records = model.model_dump()[records_key]
+
+    if len(records) == 0:
+        # make an empty data frame that conforms to the Pandera schema
+        return type_data_frame(
+            pd.DataFrame(pandera_schema.example(size=0)), pandera_schema
+        )
+
     df = pd.DataFrame(records)
     df = mutator(df)
     return type_data_frame(df, pandera_schema, remove_unknown_cols)
@@ -305,3 +314,24 @@ def get_gcs_object_metadata(
     df = df.dropna()
 
     return type_data_frame(df, GcsObject)
+
+
+def compute_uuidv3(
+    d: dict[str, Any], uuid_namespace: str, keys: set[str] | None = None
+) -> str:
+    """
+    Compute a consistent UUID-formatted ID for a dictionary.
+
+    :param d: a dictionary
+    :param uuid_namespace: a namespace for generated UUIDv3s
+    :param keys: an optional subset of keys to use for hashing, otherwise use all keys
+    :return: the UUIDv3 as a string
+    """
+
+    if keys is None:
+        d_subset = d
+    else:
+        d_subset = {k: v for k, v in d.items() if k in keys}
+
+    hash_key = json.dumps(d_subset, sort_keys=True)
+    return str(uuid.uuid3(uuid.UUID(uuid_namespace), hash_key))

@@ -75,6 +75,11 @@ class GumboWgsSequencing(CoercedDataFrame):
     bam_filepath: Series[pd.StringDtype] = pa.Field(nullable=True)
 
 
+class GumboTaskEntity(CoercedDataFrame):
+    id: Series[pd.StringDtype]
+    sequencing_id: Series[pd.StringDtype] = pa.Field(nullable=True)
+
+
 class GumboTaskResult(CoercedDataFrame):
     sample_id: Series[pd.StringDtype]
     label: Series[pd.StringDtype]

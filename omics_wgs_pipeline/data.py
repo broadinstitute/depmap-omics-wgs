@@ -7,18 +7,22 @@ from gumbo_gql_client import (
     task_entity_insert_input,
     task_result_arr_rel_insert_input,
     task_result_bool_exp,
+    task_result_constraint,
     task_result_insert_input,
+    task_result_on_conflict,
 )
 from omics_wgs_pipeline.terra import TerraWorkflow, TerraWorkspace
 from omics_wgs_pipeline.types import (
     CoercedDataFrame,
     GumboClient,
+    GumboTaskEntity,
     GumboTaskResult,
     GumboWgsSequencing,
     TerraSample,
     TypedDataFrame,
 )
 from omics_wgs_pipeline.utils import (
+    compute_uuidv3,
     expand_dict_columns,
     get_gcs_object_metadata,
     model_to_df,
@@ -169,12 +173,21 @@ def put_task_results(
     gumbo_client: GumboClient,
     gcp_project_id: str,
     outputs: list[task_result_insert_input],
-):
+    uuid_namespace: str,
+) -> None:
+    """
+    Upsert a list of new `task_result` records to Gumbo and associate them with a new
+    `terra_sync` record.
+
+    :param gumbo_client: a `GumboClient` instance
+    :param gcp_project_id: the ID of a GCP project to use for billing
+    :param outputs: a list of `task_result_insert_input` objects
+    :param uuid_namespace: a namespace for generated a UUIDv3 ID for each record
+    """
+
     echo("Getting existing task entity records for sequencings")
     task_entities = model_to_df(
-        gumbo_client.sequencing_task_entities(),
-        CoercedDataFrame,
-        remove_unknown_cols=False,
+        gumbo_client.sequencing_task_entities(), GumboTaskEntity
     )
 
     # check if any need to be created (a new `task_result` record must belong to one)
@@ -218,13 +231,49 @@ def put_task_results(
         outputs[i].crc_32_c_hash = om["crc32c_hash"]
         outputs[i].created_at = om["created_at"]
 
+        # assign a persistent UUID based on the record's values
+        outputs[i].id = compute_uuidv3(
+            outputs[i].model_dump(mode="json", by_alias=True),
+            uuid_namespace,
+            # use all fields with known values
+            keys={
+                "crc32c_hash",
+                "created_at",
+                "format",
+                "label",
+                "size",
+                "task_entity_id",
+                "terra_entity_name",
+                "terra_entity_type",
+                "terra_method_config_name",
+                "terra_method_config_namespace",
+                "terra_submission_id",
+                "terra_workflow_id",
+                "terra_workflow_inputs",
+                "terra_workflow_root_dir",
+                "terra_workspace_id",
+                "terra_workspace_name",
+                "terra_workspace_namespace",
+                "url",
+                "workflow_name",
+                "workflow_source_url",
+                "workflow_version",
+            },
+        )
+
     echo(f"Inserting {len(outputs)} task results")
     res = gumbo_client.insert_terra_sync(
         username=gumbo_client.username,
         created_at=datetime.datetime.now(datetime.UTC),
         terra_workspace_namespace=str(outputs[0].terra_workspace_namespace),
         terra_workspace_name=str(outputs[0].terra_workspace_name),
-        task_results=task_result_arr_rel_insert_input(data=outputs),
+        task_results=task_result_arr_rel_insert_input(
+            data=outputs,
+            # don't insert if there's already a record with the same UUID primary key
+            on_conflict=task_result_on_conflict(
+                constraint=task_result_constraint("task_result_pkey"), update_columns=[]
+            ),
+        ),
     )
 
     sync_id = res.insert_terra_sync.returning[0].id  # pyright: ignore

@@ -64,18 +64,6 @@ class TerraWorkflow:
                 bucket=bucket, wdl_path=self.workflow_wdl_path, subpath="wdl"
             )
 
-    def comment(self) -> str:
-        self.persist_method_on_gcs()
-        assert self.persisted_wdl_script is not None
-
-        return json.dumps(
-            {
-                "workflow_name": self.repo_method_name,
-                "workflow_source_url": self.persisted_wdl_script["public_url"],
-                "workflow_version": self.persisted_wdl_script["version"],
-            },
-        )
-
     def get_method_snapshots(self) -> list[dict]:
         """
         Get all of the snapshots of the method.
@@ -237,7 +225,6 @@ class TerraWorkspace:
             method=terra_workflow.repo_method_name,
             synopsis=terra_workflow.method_synopsis,
             wdl=terra_workflow.workflow_wdl_path,
-            comment=terra_workflow.comment(),
         )
 
         # set permissions
@@ -272,7 +259,6 @@ class TerraWorkspace:
                 method=terra_workflow.repo_method_name,
                 synopsis=terra_workflow.method_synopsis,
                 wdl=f.name,
-                comment=terra_workflow.comment(),
             )
 
         # set permissions again
@@ -401,6 +387,13 @@ class TerraWorkspace:
     def collect_workflow_outputs(
         self, since: datetime.datetime | None = None
     ) -> list[task_result_insert_input]:
+        """
+        Collect workflow outputs and metadata about the jobs that ran them.
+
+        :param since: don't collect outputs for job submissions before this `datetime`
+        :return: a list of Gumbo `task_result` objects to insert
+        """
+
         # get all job submissions
         submissions = pd.DataFrame(
             call_firecloud_api(

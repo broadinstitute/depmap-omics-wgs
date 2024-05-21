@@ -238,6 +238,7 @@ from .input_types import (
     terra_sync_stream_cursor_value_input,
     terra_sync_updates,
     timestamptz_comparison_exp,
+    uuid_comparison_exp,
 )
 from .insert_task_entities import (
     InsertTaskEntities,
@@ -512,4 +513,5 @@ __all__ = [
     "terra_sync_update_column",
     "terra_sync_updates",
     "timestamptz_comparison_exp",
+    "uuid_comparison_exp",
 ]

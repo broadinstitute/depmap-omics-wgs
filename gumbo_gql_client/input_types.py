@@ -2478,7 +2478,6 @@ class task_result_arr_rel_insert_input(BaseModel):
 
 
 class task_result_avg_order_by(BaseModel):
-    id: Optional[order_by] = None
     size: Optional[order_by] = None
     task_entity_id: Optional[order_by] = None
     terra_sync_id: Optional[order_by] = None
@@ -2493,7 +2492,7 @@ class task_result_bool_exp(BaseModel):
     )
     created_at: Optional["timestamptz_comparison_exp"] = None
     format: Optional["String_comparison_exp"] = None
-    id: Optional["bigint_comparison_exp"] = None
+    id: Optional["uuid_comparison_exp"] = None
     label: Optional["String_comparison_exp"] = None
     size: Optional["bigint_comparison_exp"] = None
     task_entity: Optional["task_entity_bool_exp"] = None
@@ -2530,7 +2529,6 @@ class task_result_delete_key_input(BaseModel):
 
 
 class task_result_inc_input(BaseModel):
-    id: Optional[int] = None
     size: Optional[int] = None
     task_entity_id: Optional[int] = None
     terra_sync_id: Optional[int] = None
@@ -2540,7 +2538,7 @@ class task_result_insert_input(BaseModel):
     crc_32_c_hash: Optional[str] = Field(alias="crc32c_hash", default=None)
     created_at: Optional[Any] = None
     format: Optional[str] = None
-    id: Optional[int] = None
+    id: Optional[str] = None
     label: Optional[str] = None
     size: Optional[int] = None
     task_entity: Optional["task_entity_obj_rel_insert_input"] = None
@@ -2649,7 +2647,7 @@ class task_result_order_by(BaseModel):
 
 
 class task_result_pk_columns_input(BaseModel):
-    id: int
+    id: str
 
 
 class task_result_prepend_input(BaseModel):
@@ -2660,7 +2658,7 @@ class task_result_set_input(BaseModel):
     crc_32_c_hash: Optional[str] = Field(alias="crc32c_hash", default=None)
     created_at: Optional[Any] = None
     format: Optional[str] = None
-    id: Optional[int] = None
+    id: Optional[str] = None
     label: Optional[str] = None
     size: Optional[int] = None
     task_entity_id: Optional[int] = None
@@ -2683,21 +2681,18 @@ class task_result_set_input(BaseModel):
 
 
 class task_result_stddev_order_by(BaseModel):
-    id: Optional[order_by] = None
     size: Optional[order_by] = None
     task_entity_id: Optional[order_by] = None
     terra_sync_id: Optional[order_by] = None
 
 
 class task_result_stddev_pop_order_by(BaseModel):
-    id: Optional[order_by] = None
     size: Optional[order_by] = None
     task_entity_id: Optional[order_by] = None
     terra_sync_id: Optional[order_by] = None
 
 
 class task_result_stddev_samp_order_by(BaseModel):
-    id: Optional[order_by] = None
     size: Optional[order_by] = None
     task_entity_id: Optional[order_by] = None
     terra_sync_id: Optional[order_by] = None
@@ -2712,7 +2707,7 @@ class task_result_stream_cursor_value_input(BaseModel):
     crc_32_c_hash: Optional[str] = Field(alias="crc32c_hash", default=None)
     created_at: Optional[Any] = None
     format: Optional[str] = None
-    id: Optional[int] = None
+    id: Optional[str] = None
     label: Optional[str] = None
     size: Optional[int] = None
     task_entity_id: Optional[int] = None
@@ -2735,7 +2730,6 @@ class task_result_stream_cursor_value_input(BaseModel):
 
 
 class task_result_sum_order_by(BaseModel):
-    id: Optional[order_by] = None
     size: Optional[order_by] = None
     task_entity_id: Optional[order_by] = None
     terra_sync_id: Optional[order_by] = None
@@ -2761,21 +2755,18 @@ class task_result_updates(BaseModel):
 
 
 class task_result_var_pop_order_by(BaseModel):
-    id: Optional[order_by] = None
     size: Optional[order_by] = None
     task_entity_id: Optional[order_by] = None
     terra_sync_id: Optional[order_by] = None
 
 
 class task_result_var_samp_order_by(BaseModel):
-    id: Optional[order_by] = None
     size: Optional[order_by] = None
     task_entity_id: Optional[order_by] = None
     terra_sync_id: Optional[order_by] = None
 
 
 class task_result_variance_order_by(BaseModel):
-    id: Optional[order_by] = None
     size: Optional[order_by] = None
     task_entity_id: Optional[order_by] = None
     terra_sync_id: Optional[order_by] = None
@@ -2863,3 +2854,15 @@ class timestamptz_comparison_exp(BaseModel):
     lte: Optional[Any] = Field(alias="_lte", default=None)
     neq: Optional[Any] = Field(alias="_neq", default=None)
     nin: Optional[List[Any]] = Field(alias="_nin", default=None)
+
+
+class uuid_comparison_exp(BaseModel):
+    eq: Optional[str] = Field(alias="_eq", default=None)
+    gt: Optional[str] = Field(alias="_gt", default=None)
+    gte: Optional[str] = Field(alias="_gte", default=None)
+    in_: Optional[List[str]] = Field(alias="_in", default=None)
+    is_null: Optional[bool] = Field(alias="_is_null", default=None)
+    lt: Optional[str] = Field(alias="_lt", default=None)
+    lte: Optional[str] = Field(alias="_lte", default=None)
+    neq: Optional[str] = Field(alias="_neq", default=None)
+    nin: Optional[List[str]] = Field(alias="_nin", default=None)

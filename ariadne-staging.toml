@@ -10,3 +10,6 @@ include_comments = false
 
 [tool.ariadne-codegen.scalars.bigint]
 type = "int"
+
+[tool.ariadne-codegen.scalars.uuid]
+type = "str"

@@ -1,6 +1,7 @@
 title = "omics-wgs-pipeline config"
 
 gcp_project_id = "depmap-omics"
+uuid_namespace = "00000000-0000-0000-0000-000000000000"
 
 [terra]
 pipelines_bucket_name = "cds-pipelines"

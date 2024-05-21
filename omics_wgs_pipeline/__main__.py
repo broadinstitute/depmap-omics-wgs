@@ -75,13 +75,13 @@ def update_workflow(
         ).resolve(),
     )
 
-    ctx.obj["terra_workspace"].update_workflow(terra_workflow)
+    ctx.obj["terra_workspace"].update_workflow(terra_workflow=terra_workflow)
 
 
 @app.command()
 def refresh_terra_samples(ctx: typer.Context) -> None:
-    samples = make_terra_samples(ctx.obj["gumbo_client"])
-    ctx.obj["terra_workspace"].upload_entities(samples)
+    samples = make_terra_samples(gumbo_client=ctx.obj["gumbo_client"])
+    ctx.obj["terra_workspace"].upload_entities(df=samples)
 
 
 @app.command()
@@ -104,7 +104,9 @@ def run_workflow(
     )
 
     if workflow_name == "preprocess_wgs_sample":
-        delta_preprocess_wgs_samples(ctx.obj["terra_workspace"], terra_workflow)
+        delta_preprocess_wgs_samples(
+            terra_workspace=ctx.obj["terra_workspace"], terra_workflow=terra_workflow
+        )
     else:
         raise NotImplementedError(f"Workflow {workflow_name} not implemented")
 
@@ -112,7 +114,12 @@ def run_workflow(
 @app.command()
 def persist_outputs_in_gumbo(ctx: typer.Context) -> None:
     outputs = ctx.obj["terra_workspace"].collect_workflow_outputs()
-    put_task_results(ctx.obj["gumbo_client"], config["gcp_project_id"], outputs)
+    put_task_results(
+        gumbo_client=ctx.obj["gumbo_client"],
+        gcp_project_id=config["gcp_project_id"],
+        outputs=outputs,
+        uuid_namespace=config["uuid_namespace"],
+    )
 
 
 if __name__ == "__main__":
