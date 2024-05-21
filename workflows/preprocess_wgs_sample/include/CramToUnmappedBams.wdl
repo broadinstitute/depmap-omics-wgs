@@ -1,6 +1,18 @@
 version 1.0
 
-# https://github.com/broadinstitute/warp/blob/GDCWholeGenomeSomaticSingleSample_v1.3.1/pipelines/broad/reprocessing/cram_to_unmapped_bams/CramToUnmappedBams.wdl
+# Adapted from https://github.com/broadinstitute/warp/blob/GDCWholeGenomeSomaticSingleSample_v1.3.1/pipelines/broad/reprocessing/cram_to_unmapped_bams/CramToUnmappedBams.wdl
+#
+# Modifications:
+#   - Separate CRAM/CRAI vs. BAM/BAI workflow inputs consolidated into singular
+#     `input_cram_bam` and `input_crai_bai` ones, with necessary logic to handle either
+#     file type.
+#   - Use SSDs instead of HDDs for faster (de)localization and higher compute instance
+#     availability.
+#   - Run `RevertSam` with `--RESTORE_HARDCLIPS false` to deal with invalid data
+#     appearing in the `XQ` header from DRAGEN-produced CRAM files.
+#
+# Use this file as a base and manually implement changes in the upstream GDC code in
+# order to retain these modifications.
 
 # If the output_map file is provided, it is expected to be a tab-separated file containing a list of all the read group ids
 # found in the input_cram / input_bam and the desired name of the unmapped bams generated for each.

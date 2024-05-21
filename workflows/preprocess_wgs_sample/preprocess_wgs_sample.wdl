@@ -1,6 +1,19 @@
 version 1.0
 
-# https://github.com/broadinstitute/warp/blob/GDCWholeGenomeSomaticSingleSample_v1.3.1/pipelines/broad/dna_seq/somatic/single_sample/wgs/gdc_genome/GDCWholeGenomeSomaticSingleSample.wdl
+# Adapted from https://github.com/broadinstitute/warp/blob/GDCWholeGenomeSomaticSingleSample_v1.3.1/pipelines/broad/dna_seq/somatic/single_sample/wgs/gdc_genome/GDCWholeGenomeSomaticSingleSample.wdl
+#
+# Modifications:
+#   - Separate CRAM/CRAI vs. BAM/BAI workflow inputs consolidated into singular
+#     `input_cram_bam` and `input_crai_bai` ones, with necessary logic to handle either
+#     file type.
+#   - Use SSDs instead of HDDs for faster (de)localization and higher compute instance
+#     availability.
+#   - No `ubam` input option.
+#   - `CheckContamination` task copied into this file.
+#   - Remove `validation_report` and `unmapped_bams` workflow outputs.
+#
+# Use this file as a base and manually implement changes in the upstream GDC code in
+# order to retain these modifications.
 
 import "https://gist.githubusercontent.com/dpmccabe/579f0c3f0ba714a161f99bcbc2bd494e/raw/107ed4fae2e18f7d24bef7181a221f817c0c8a5c/CramToUnmappedBams.wdl" as ToUbams
 #import "./include/CramToUnmappedBams.wdl" as ToUbams
