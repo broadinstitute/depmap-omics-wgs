@@ -3,9 +3,10 @@ import json
 import pathlib
 import tempfile
 from pathlib import Path
-from typing import Iterable, Type, Unpack
+from typing import Any, Callable, Iterable, Type, Unpack
 
 import pandas as pd
+import requests
 from click import echo
 from firecloud import api as firecloud_api
 from google.cloud import storage
@@ -17,11 +18,7 @@ from omics_wgs_pipeline.types import (
     TerraJobSubmissionKwargs,
     TypedDataFrame,
 )
-from omics_wgs_pipeline.utils import (
-    batch_evenly,
-    call_firecloud_api,
-    expand_dict_columns,
-)
+from omics_wgs_pipeline.utils import batch_evenly, expand_dict_columns
 from omics_wgs_pipeline.wdl import persist_wdl_script
 
 
@@ -60,6 +57,7 @@ class TerraWorkflow:
                 self.pipelines_bucket_name, user_project=self.gcp_project_id
             )
 
+            echo(f"Persisting {self.workflow_wdl_path} on GCS")
             self.persisted_wdl_script = persist_wdl_script(
                 bucket=bucket, wdl_path=self.workflow_wdl_path, subpath="wdl"
             )
@@ -71,6 +69,7 @@ class TerraWorkflow:
         :return: list of snapshot information, most recent first
         """
 
+        echo(f"Getting {self.repo_method_name} method snapshots...")
         snapshots = call_firecloud_api(
             firecloud_api.list_repository_methods,
             namespace=self.repo_namespace,
@@ -123,6 +122,7 @@ class TerraWorkspace:
         :param pandera_schema: a Pandera schema for the output data frame
         """
 
+        echo(f"Getting {entity_type} entities")
         j = call_firecloud_api(
             firecloud_api.get_entities,
             namespace=self.workspace_namespace,
@@ -146,7 +146,6 @@ class TerraWorkspace:
                 batch.to_csv(f, sep="\t", index=False)  # pyright: ignore
 
                 echo(f"Upserting {len(batch)} entities to Terra")
-
                 call_firecloud_api(
                     firecloud_api.upload_entities_tsv,
                     namespace=self.workspace_namespace,
@@ -162,6 +161,7 @@ class TerraWorkspace:
         :param config_body: a dictionary containing the method config
         """
 
+        echo("Creating workspace config")
         call_firecloud_api(
             firecloud_api.create_workspace_config,
             namespace=self.workspace_namespace,
@@ -169,7 +169,7 @@ class TerraWorkspace:
             body=config_body,
         )
 
-        # set permissions
+        echo("Setting workspace config ACL")
         call_firecloud_api(
             firecloud_api.update_workspace_acl,
             namespace=self.workspace_namespace,
@@ -189,6 +189,7 @@ class TerraWorkspace:
         :param config_body: a dictionary containing the method config
         """
 
+        echo("Update workspace config")
         call_firecloud_api(
             firecloud_api.update_workspace_config,
             namespace=self.workspace_namespace,
@@ -198,7 +199,7 @@ class TerraWorkspace:
             body=config_body,
         )
 
-        # set permissions again
+        echo("Setting workspace config ACL")
         call_firecloud_api(
             firecloud_api.update_workspace_acl,
             namespace=self.workspace_namespace,
@@ -219,6 +220,7 @@ class TerraWorkspace:
         terra_workflow.persist_method_on_gcs()
         assert terra_workflow.persisted_wdl_script is not None
 
+        echo("Creating method")
         snapshot = call_firecloud_api(
             firecloud_api.update_repository_method,
             namespace=terra_workflow.repo_namespace,
@@ -227,7 +229,7 @@ class TerraWorkspace:
             wdl=terra_workflow.workflow_wdl_path,
         )
 
-        # set permissions
+        echo("Setting method ACL")
         call_firecloud_api(
             firecloud_api.update_repository_method_acl,
             namespace=terra_workflow.repo_namespace,
@@ -253,6 +255,7 @@ class TerraWorkspace:
         with tempfile.NamedTemporaryFile("w") as f:
             f.write(terra_workflow.persisted_wdl_script["wdl"])
 
+            echo("Updating method")
             snapshot = call_firecloud_api(
                 firecloud_api.update_repository_method,
                 namespace=terra_workflow.repo_namespace,
@@ -261,7 +264,7 @@ class TerraWorkspace:
                 wdl=f.name,
             )
 
-        # set permissions again
+        echo("Setting method ACL")
         call_firecloud_api(
             firecloud_api.update_repository_method_acl,
             namespace=terra_workflow.repo_namespace,
@@ -302,7 +305,7 @@ class TerraWorkspace:
             f"{terra_workflow.repo_method_name}.workflow_url"
         ] = f'"{terra_workflow.persisted_wdl_script["public_url"]}"'
 
-        # check if there is already a workspace config
+        echo("Checking for existing workspace config")
         res = firecloud_api.get_workspace_config(
             namespace=self.workspace_namespace,
             workspace=self.workspace_name,
@@ -328,7 +331,7 @@ class TerraWorkspace:
         :param terra_workflow: a `TerraWorkflow` instance
         """
 
-        echo(f"Starting {terra_workflow.repo_method_name} workflow")
+        echo(f"Submitting {terra_workflow.repo_method_name} job")
         call_firecloud_api(
             firecloud_api.create_submission,
             wnamespace=self.workspace_namespace,
@@ -394,7 +397,7 @@ class TerraWorkspace:
         :return: a list of Gumbo `task_result` objects to insert
         """
 
-        # get all job submissions
+        echo("Getting previous job submissions")
         submissions = pd.DataFrame(
             call_firecloud_api(
                 firecloud_api.list_submissions,
@@ -427,6 +430,7 @@ class TerraWorkspace:
             )
 
             # get the workflows for this job submission (often there is only 1)
+            echo(f"Getting workflows for job submission {s["submissionId"]}")
             submission = call_firecloud_api(
                 firecloud_api.get_submission,
                 namespace=self.workspace_namespace,
@@ -439,13 +443,21 @@ class TerraWorkspace:
                 base_o.terra_entity_name = w["workflowEntity"]["entityName"]
                 base_o.terra_entity_type = w["workflowEntity"]["entityType"]
 
-                # get the call-level metadata for this workflow run
+                echo(f"Getting workflow {w["workflowId"]} metadata")
                 wmd = call_firecloud_api(
                     firecloud_api.get_workflow_metadata,
                     namespace=self.workspace_namespace,
                     workspace=self.workspace_name,
                     submission_id=s["submissionId"],
                     workflow_id=w["workflowId"],
+                    include_key=[
+                        "inputs",
+                        "labels",
+                        "outputs",
+                        "status",
+                        "workflowName",
+                        "workflowRoot",
+                    ],
                 )
 
                 if wmd["status"] != "Succeeded":
@@ -488,3 +500,32 @@ class TerraWorkspace:
                     outputs.append(o)
 
         return outputs
+
+
+def call_firecloud_api(func: Callable, *args: object, **kwargs: object) -> Any:
+    """
+    Call a Firecloud API endpoint and check the response for a valid HTTP status code.
+
+    :param func: a `firecloud.api` method
+    :param args: arguments to `func`
+    :param kwargs: keyword arguments to `func`
+    :return: the API response, if any
+    """
+
+    res = func(*args, **kwargs)
+
+    if 200 <= res.status_code <= 299:
+        try:
+            return res.json()
+        except requests.exceptions.JSONDecodeError:
+            return res.text
+
+    try:
+        raise requests.exceptions.RequestException(
+            f"HTTP {res.status_code} error: {res.json()}"
+        )
+    except Exception as e:
+        # it's returning HTML or something is preventing us from parsing the JSON
+        echo(f"Error getting response as JSON: {e}", err=True)
+        echo(f"Response text: {res.text}", err=True)
+        raise requests.exceptions.RequestException(f"HTTP {res.status_code} error")

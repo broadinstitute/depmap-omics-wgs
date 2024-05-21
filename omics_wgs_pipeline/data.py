@@ -129,7 +129,7 @@ def join_existing_results_to_samples(
 
     samples = samples.merge(task_result_urls, how="left", on="sample_id")
 
-    return type_data_frame(samples, TerraSample)
+    return type_data_frame(samples, TerraSample, remove_unknown_cols=False)
 
 
 def delta_preprocess_wgs_samples(
@@ -258,7 +258,7 @@ def put_task_results(
             },
         )
 
-    echo(f"Inserting {len(outputs)} task results")
+    echo(f"Upserting {len(outputs)} task results into Gumbo")
     res = gumbo_client.insert_terra_sync(
         username=gumbo_client.username,
         created_at=datetime.datetime.now(datetime.UTC),

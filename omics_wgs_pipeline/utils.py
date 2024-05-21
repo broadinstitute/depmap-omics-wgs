@@ -4,7 +4,6 @@ from math import ceil
 from typing import Any, Callable, Generator, Iterable, Type, TypeVar
 
 import pandas as pd
-import requests
 from click import echo
 from google.cloud import storage
 
@@ -91,9 +90,12 @@ def type_data_frame(
     :return: a data frame validated with the provided Pandera schema
     """
 
-    if remove_unknown_cols:
+    if len(df) == 0:
+        # make an empty data frame that conforms to the Pandera schema
+        df = pd.DataFrame(pandera_schema.example(size=0))
+    elif remove_unknown_cols:
         df_cols = pandera_schema.to_schema().columns.keys()
-        df = df.loc[:, df_cols].drop_duplicates()
+        df = df.loc[:, df_cols]
 
     return TypedDataFrame[pandera_schema](df)
 
@@ -113,7 +115,7 @@ def expand_dict_columns(
     :param name_columns_with_parent: whether to "namespace" nested column names using
     their parents' column names
     :param parent_key: the name of the parent column, applicable only if
-    `name_columns_with_parent` is `True`
+    `name_columns_with_parent` is `True` (for recursion)
     :return: a widened data frame
     """
 
@@ -195,7 +197,7 @@ def model_to_df(
     :param records_key: the key/method name in `model` containing the records
     :param remove_unknown_cols: remove columns not specified in the schema
     :param mutator: an optional function to call on the data frame before typing (e.g.
-    to rename columns)
+    to rename columns to expected Pydantic field names)
     """
 
     records = model.model_dump()[records_key]
@@ -242,35 +244,6 @@ def anti_join(
     return merged.loc[merged["dummy_col"].isna(), x.columns.tolist()]
 
 
-def call_firecloud_api(func: Callable, *args: object, **kwargs: object) -> Any:
-    """
-    Call a Firecloud API endpoint and check the response for a valid HTTP status code.
-
-    :param func: a `firecloud.api` method
-    :param args: arguments to `func`
-    :param kwargs: keyword arguments to `func`
-    :return: the API response, if any
-    """
-
-    res = func(*args, **kwargs)
-
-    if 200 <= res.status_code <= 299:
-        try:
-            return res.json()
-        except requests.exceptions.JSONDecodeError:
-            return res.text
-
-    try:
-        raise requests.exceptions.RequestException(
-            f"HTTP {res.status_code} error: {res.json()}"
-        )
-    except Exception as e:
-        # it's returning HTML or something is preventing us from parsing the JSON
-        echo(f"Error getting response as JSON: {e}", err=True)
-        echo(f"Response text: {res.text}", err=True)
-        raise requests.exceptions.RequestException(f"HTTP {res.status_code} error")
-
-
 def get_gcs_object_metadata(
     urls: Iterable[str], gcp_project_id: str
 ) -> TypedDataFrame[GcsObject]:
@@ -282,7 +255,7 @@ def get_gcs_object_metadata(
     :return: data frame of object URLs and metadata
     """
 
-    echo("Getting metadata about GCS objects")
+    echo(f"Getting metadata about {len(list(urls))} GCS objects")
     storage_client = storage.Client(project=gcp_project_id)
     blobs = {}
 
