@@ -1,7 +1,9 @@
 import json
 import uuid
-from math import ceil
-from typing import Any, Callable, Generator, Iterable, Type, TypeVar
+from functools import partial
+from math import ceil, sqrt
+from time import sleep
+from typing import Any, Callable, Generator, Iterable, ParamSpec, Type, TypeVar
 
 import pandas as pd
 from click import echo
@@ -308,3 +310,68 @@ def compute_uuidv3(
 
     hash_key = json.dumps(d_subset, sort_keys=True)
     return str(uuid.uuid3(uuid.UUID(uuid_namespace), hash_key))
+
+
+def fibonacci(n: int, *, u0: float = 1.0, u1: float = 1.0) -> float:
+    """
+    Return the nth Fibonacci number given the two initial values.
+
+    :param n: the nth Fibonacci number to compute
+    :param u0: the first initial value for the sequence
+    :param u1: the second initial value for the sequence
+    :return: the nth Fibonacci number
+    """
+
+    # compute constants for closed-form of Fibonacci sequence recurrence relation
+    sqrt5 = sqrt(5)
+    phi = (1 + sqrt5) / 2
+    psi = 1 - phi
+    a = (u1 - u0 * psi) / sqrt5
+    b = (u0 * phi - u1) / sqrt5
+
+    return a * phi**n + b * psi**n
+
+
+P = ParamSpec("P")
+R = TypeVar("R")
+E = TypeVar("E", bound=Exception)
+
+
+def maybe_retry(
+    func: Callable[P, R],
+    retryable_exceptions: tuple[Type[Exception], ...] = tuple([Exception]),
+    max_retries: int = 0,
+    waiter: Callable[..., float] = partial(fibonacci, u0=1.0, u1=1.0),
+    *args: P.args,
+    **kwargs: P.kwargs,
+) -> R:
+    """
+    Call a function and optionally retry (at most `max_retries` times) if raises certain
+    exceptions.
+
+    :param func: a function
+    :param retryable_exceptions: a tuple of retryable exceptions
+    :param max_retries: the maximum number of times to retry
+    :param waiter: a function that returns the number of seconds to wait given how many
+    tries have already happened
+    :param kwargs: keyword arguments to `func`
+    :return: the return value from `func`
+    """
+
+    if max_retries == 0:
+        return func(*args, **kwargs)
+
+    n_retries = 0
+
+    while True:
+        try:
+            return func(*args, **kwargs)
+
+        except retryable_exceptions as e:
+            if n_retries == max_retries:
+                raise e
+
+            wait_seconds = round(waiter(n_retries + 1), 1)
+            echo(f"{e} (retrying in {wait_seconds}s)", err=True)
+            sleep(wait_seconds)
+            n_retries += 1

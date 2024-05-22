@@ -18,7 +18,7 @@ from omics_wgs_pipeline.types import (
     TerraJobSubmissionKwargs,
     TypedDataFrame,
 )
-from omics_wgs_pipeline.utils import batch_evenly, expand_dict_columns
+from omics_wgs_pipeline.utils import batch_evenly, expand_dict_columns, maybe_retry
 from omics_wgs_pipeline.wdl import persist_wdl_script
 
 
@@ -502,7 +502,7 @@ class TerraWorkspace:
         return outputs
 
 
-def call_firecloud_api(func: Callable, *args: object, **kwargs: object) -> Any:
+def call_firecloud_api(func: Callable, *args: Any, **kwargs: Any) -> Any:
     """
     Call a Firecloud API endpoint and check the response for a valid HTTP status code.
 
@@ -512,20 +512,24 @@ def call_firecloud_api(func: Callable, *args: object, **kwargs: object) -> Any:
     :return: the API response, if any
     """
 
-    res = func(*args, **kwargs)
+    res = maybe_retry(
+        func,
+        retryable_exceptions=(requests.ConnectionError, requests.ConnectTimeout),
+        max_retries=4,
+        *args,
+        **kwargs,
+    )
 
     if 200 <= res.status_code <= 299:
         try:
             return res.json()
-        except requests.exceptions.JSONDecodeError:
+        except requests.JSONDecodeError:
             return res.text
 
     try:
-        raise requests.exceptions.RequestException(
-            f"HTTP {res.status_code} error: {res.json()}"
-        )
+        raise requests.RequestException(f"HTTP {res.status_code} error: {res.json()}")
     except Exception as e:
-        # it's returning HTML or something is preventing us from parsing the JSON
+        # it's returning HTML or we can't parse the JSON
         echo(f"Error getting response as JSON: {e}", err=True)
         echo(f"Response text: {res.text}", err=True)
-        raise requests.exceptions.RequestException(f"HTTP {res.status_code} error")
+        raise requests.RequestException(f"HTTP {res.status_code} error")
