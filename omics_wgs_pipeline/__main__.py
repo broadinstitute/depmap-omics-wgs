@@ -113,11 +113,10 @@ def run_workflow(
 
 @app.command()
 def persist_outputs_in_gumbo(ctx: typer.Context) -> None:
-    outputs = ctx.obj["terra_workspace"].collect_workflow_outputs()
     put_task_results(
         gumbo_client=ctx.obj["gumbo_client"],
+        terra_workspace=ctx.obj["terra_workspace"],
         gcp_project_id=config["gcp_project_id"],
-        outputs=outputs,
         uuid_namespace=config["uuid_namespace"],
     )
 

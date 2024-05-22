@@ -3,11 +3,7 @@ import pathlib
 
 from click import echo
 
-from gumbo_gql_client import (
-    task_entity_insert_input,
-    task_result_bool_exp,
-    task_result_insert_input,
-)
+from gumbo_gql_client import task_entity_insert_input, task_result_bool_exp
 from omics_wgs_pipeline.terra import TerraWorkflow, TerraWorkspace
 from omics_wgs_pipeline.types import (
     CoercedDataFrame,
@@ -168,19 +164,24 @@ def delta_preprocess_wgs_samples(
 
 def put_task_results(
     gumbo_client: GumboClient,
+    terra_workspace: TerraWorkspace,
     gcp_project_id: str,
-    outputs: list[task_result_insert_input],
     uuid_namespace: str,
+    since: datetime.datetime | None = None,
 ) -> None:
     """
     Upsert a list of new `task_result` records to Gumbo and associate them with a new
     `terra_sync` record.
 
+    :param terra_workspace: a `TerraWorkspace` instance
     :param gumbo_client: a `GumboClient` instance
     :param gcp_project_id: the ID of a GCP project to use for billing
-    :param outputs: a list of `task_result_insert_input` objects
     :param uuid_namespace: a namespace for generated a UUIDv3 ID for each record
+    :param since: don't collect outputs for job submissions before this `datetime`
     """
+
+    # get the outputs from the workspace's completed jobs
+    outputs = terra_workspace.collect_workflow_outputs(since)
 
     echo("Getting existing task entity records for sequencings")
     task_entities = model_to_df(
