@@ -144,6 +144,7 @@ class TerraWorkspace:
         for batch in batch_evenly(df, max_batch_size=500):
             with tempfile.NamedTemporaryFile(suffix="tsv") as f:
                 batch.to_csv(f, sep="\t", index=False)  # pyright: ignore
+                f.flush()
 
                 echo(f"Upserting {len(batch)} entities to Terra")
                 call_firecloud_api(
@@ -254,6 +255,7 @@ class TerraWorkspace:
 
         with tempfile.NamedTemporaryFile("w") as f:
             f.write(terra_workflow.persisted_wdl_script["wdl"])
+            f.flush()
 
             echo("Updating method")
             snapshot = call_firecloud_api(

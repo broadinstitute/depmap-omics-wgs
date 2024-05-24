@@ -34,12 +34,11 @@ task msisensor2 {
         Int preemptible = 10
         Int max_retries = 0
         Int cpu = 1
-        Int mem_gb = 2
-        Int additional_disk_gb = 0
+        Int mem_gb = 6
     }
 
     String bam_path = basename(bam)
-    Int disk_space = ceil(size(bam, "GiB")) + 1
+    Int disk_space = ceil(size(bam, "GiB")) + 10
 
     command {
         set -euo pipefail
