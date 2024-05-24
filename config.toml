@@ -16,3 +16,10 @@ method_config_name = "preprocess_wgs_sample"
 method_synopsis = "Run WARP GDC single-sample preprocessing workflow"
 workflow_wdl_path = "./workflows/preprocess_wgs_sample/preprocess_wgs_sample.wdl"
 method_config_json_path = "./workflows/preprocess_wgs_sample/preprocess_wgs_sample.json"
+
+[terra.infer_msi_status]
+repo_method_name = "infer_msi_status"
+method_config_name = "infer_msi_status"
+method_synopsis = "Infer MSI status of WGS sample"
+workflow_wdl_path = "./workflows/infer_msi_status/infer_msi_status.wdl"
+method_config_json_path = "./workflows/infer_msi_status/infer_msi_status.json"

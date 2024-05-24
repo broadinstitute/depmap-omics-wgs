@@ -1,0 +1,23 @@
+{
+  "deleted": false,
+  "inputs": {
+    "infer_msi_status.sample_id": "this.sample_id",
+    "infer_msi_status.bam": "this.bam",
+    "infer_msi_status.bai": "this.bai"
+  },
+  "methodConfigVersion": 1,
+  "methodRepoMethod": {
+    "methodNamespace": "cds-pipelines",
+    "methodName": "infer_msi_status",
+    "methodVersion": 1
+  },
+  "namespace": "cds-pipelines",
+  "name": "infer_msi_status",
+  "outputs": {
+    "infer_msi_status.msisensor2_score": "this.msisensor2_score",
+    "infer_msi_status.msisensor2_output": "this.msisensor2_output",
+    "infer_msi_status.msisensor2_output_dis": "this.preprocess_msisensor2_output_dis",
+    "infer_msi_status.msisensor2_output_somatic": "this.preprocess_msisensor2_output_somatic"
+  },
+  "rootEntityType": "sample"
+}
