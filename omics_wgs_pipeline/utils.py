@@ -312,42 +312,47 @@ def compute_uuidv3(
     return str(uuid.uuid3(uuid.UUID(uuid_namespace), hash_key))
 
 
-def fibonacci(n: int, *, u0: float = 1.0, u1: float = 1.0) -> float:
+def generalized_fibonacci(n: int, *, f0: float = 1.0, f1: float = 1.0) -> float:
     """
-    Return the nth Fibonacci number given the two initial values.
+    Calculate the nth number in a generalized Fibonacci sequence given two starting
+    nonnegative real numbers. This generates a gradually increasing sequence that
+    provides a good balance between linear and exponential functions for use as a
+    backoff.
 
     :param n: the nth Fibonacci number to compute
-    :param u0: the first initial value for the sequence
-    :param u1: the second initial value for the sequence
+    :param f0: the first starting value for the sequence
+    :param f1: the second starting value for the sequence
     :return: the nth Fibonacci number
     """
+
+    assert f0 >= 0, "f0 must be greater than 0"
+    assert f1 >= 0, "f1 must be greater than 0"
 
     # compute constants for closed-form of Fibonacci sequence recurrence relation
     sqrt5 = sqrt(5)
     phi = (1 + sqrt5) / 2
     psi = 1 - phi
-    a = (u1 - u0 * psi) / sqrt5
-    b = (u0 * phi - u1) / sqrt5
+    a = (f1 - f0 * psi) / sqrt5
+    b = (f0 * phi - f1) / sqrt5
 
-    return a * phi**n + b * psi**n
+    return max([0, a * phi**n + b * psi**n])
 
 
 P = ParamSpec("P")
 R = TypeVar("R")
-E = TypeVar("E", bound=Exception)
 
 
 def maybe_retry(
     func: Callable[P, R],
     retryable_exceptions: tuple[Type[Exception], ...] = tuple([Exception]),
     max_retries: int = 0,
-    waiter: Callable[..., float] = partial(fibonacci, u0=1.0, u1=1.0),
+    waiter: Callable[..., float] = partial(generalized_fibonacci, f0=1.0, f1=1.0),
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> R:
     """
-    Call a function and optionally retry (at most `max_retries` times) if raises certain
-    exceptions.
+    Call a function and optionally retry (at most `max_retries` times) if it raises
+    certain exceptions.
 
     :param func: a function
     :param retryable_exceptions: a tuple of retryable exceptions
