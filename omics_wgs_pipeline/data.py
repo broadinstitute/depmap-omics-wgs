@@ -218,6 +218,10 @@ def put_task_results(
         [str(x.url) for x in outputs if x.url is not None], gcp_project_id
     ).set_index("url")
 
+    # instead of the object's creation date, we'll use the date from the workflow so
+    # that it's consistent among all output files and values from that run
+    object_metadata = object_metadata.drop(columns="created_at")
+
     for i in range(len(outputs)):
         # assign final missing task result values
         outputs[i].task_entity_id = task_entities.loc[
@@ -228,7 +232,6 @@ def put_task_results(
             om = object_metadata.loc[outputs[i].url]
             outputs[i].size = om["size"]
             outputs[i].crc_32_c_hash = om["crc32c_hash"]
-            outputs[i].created_at = om["created_at"]
 
         # assign a persistent UUID based on the record's values
         outputs[i].id = compute_uuidv3(

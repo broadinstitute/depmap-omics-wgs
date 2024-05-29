@@ -250,7 +250,7 @@ def get_gcs_object_metadata(
     urls: Iterable[str], gcp_project_id: str
 ) -> TypedDataFrame[GcsObject]:
     """
-    Check existence and get sizes of GCS objects.
+    Check existence and get metadata (size, hash, etc.) of GCS objects.
 
     :param urls: iterable of GCS URLs
     :param gcp_project_id: the ID of a GCP project to use for billing
