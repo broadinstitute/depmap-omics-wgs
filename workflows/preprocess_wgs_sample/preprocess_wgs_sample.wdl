@@ -210,7 +210,7 @@ task bam_readgroup_to_contents {
     input {
         File bam
         Int preemptible = 10
-        Int max_retries = 0
+        Int max_retries = 1
         Int cpu = 1
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
@@ -284,7 +284,7 @@ task biobambam_bamtofastq {
         String T = "tempfq"
         Int cpu = 1
         Int preemptible = 2
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
     }
@@ -336,7 +336,7 @@ task emit_pe_records {
         Array[Object]+ readgroups
         String fastq1_suffix = "_1.fq.gz"
         Int preemptible = 10
-        Int max_retries = 0
+        Int max_retries = 1
         Int cpu = 1
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
@@ -401,7 +401,7 @@ task emit_se_records {
         String fastq_o2_suffix = "_o2.fq.gz"
         String fastq_s_suffix = "_s.fq.gz"
         Int preemptible = 10
-        Int max_retries = 0
+        Int max_retries = 1
         Int cpu = 1
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
@@ -478,7 +478,7 @@ task bwa_pe {
         File ref_sa
         Int cpu = 16
         Int preemptible = 1
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
     }
@@ -532,7 +532,7 @@ task bwa_se {
         File ref_fasta_index
         Int cpu = 16
         Int preemptible = 1
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
     }
@@ -578,7 +578,7 @@ task picard_markduplicates {
 
     Int compression_level = 2
     Int preemptible_tries = 1
-    Int max_retries = 0
+    Int max_retries = 1
     String validation_stringency = "SILENT"
     String assume_sort_order = "queryname"
 
@@ -635,7 +635,7 @@ task sort_and_index_markdup_bam {
         String tmp_prefix = "tmp_srt"
         Int cpu = 8
         Int preemptible = 2
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
     }
@@ -769,7 +769,7 @@ task gatk_baserecalibrator {
         File ref_fasta_index
         Int cpu = 2
         Int preemptible = 2
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
     }
@@ -821,7 +821,7 @@ task gatk_applybqsr {
         Boolean emit_original_quals = true
         Int cpu = 2
         Int preemptible = 2
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
     }
