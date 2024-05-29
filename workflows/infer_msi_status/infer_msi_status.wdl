@@ -31,8 +31,8 @@ task msisensor2 {
         File bam
         File bai
 
-        Int preemptible = 10
-        Int max_retries = 0
+        Int preemptible = 2
+        Int max_retries = 1
         Int cpu = 1
         Int mem_gb = 6
     }

@@ -490,17 +490,20 @@ class TerraWorkspace:
                     o.label = label.rsplit(".", maxsplit=1)[-1]
 
                     if isinstance(output, list):
-                        continue
+                        # we shouldn't be writing any workflows that output lists
+                        raise ValueError(
+                            f"Workflow {w['workflowId']} outputs a list: {output}"
+                        )
                     elif isinstance(output, str):
                         if output.startswith("gs://"):
                             o.url = output
                             o.format = pathlib.Path(o.url).suffix[1:].upper()
                         else:
                             # it's a plain string
-                            raise NotImplementedError  # TODO
+                            o.value = json.dumps({"value": output})
                     else:
-                        # it's a number, bool, or what else?
-                        raise NotImplementedError  # TODO
+                        # it's a number, bool, or something else
+                        o.value = json.dumps({"value": output})
 
                     outputs.append(o)
 

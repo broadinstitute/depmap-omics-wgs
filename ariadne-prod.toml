@@ -13,3 +13,6 @@ type = "int"
 
 [tool.ariadne-codegen.scalars.uuid]
 type = "str"
+
+[tool.ariadne-codegen.scalars.jsonb]
+type = "str"

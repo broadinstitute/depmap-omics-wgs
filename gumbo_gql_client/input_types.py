@@ -324,20 +324,20 @@ class jsonb_cast_exp(BaseModel):
 
 class jsonb_comparison_exp(BaseModel):
     cast: Optional["jsonb_cast_exp"] = Field(alias="_cast", default=None)
-    contained_in: Optional[Any] = Field(alias="_contained_in", default=None)
-    contains: Optional[Any] = Field(alias="_contains", default=None)
-    eq: Optional[Any] = Field(alias="_eq", default=None)
-    gt: Optional[Any] = Field(alias="_gt", default=None)
-    gte: Optional[Any] = Field(alias="_gte", default=None)
+    contained_in: Optional[str] = Field(alias="_contained_in", default=None)
+    contains: Optional[str] = Field(alias="_contains", default=None)
+    eq: Optional[str] = Field(alias="_eq", default=None)
+    gt: Optional[str] = Field(alias="_gt", default=None)
+    gte: Optional[str] = Field(alias="_gte", default=None)
     has_key: Optional[str] = Field(alias="_has_key", default=None)
     has_keys_all: Optional[List[str]] = Field(alias="_has_keys_all", default=None)
     has_keys_any: Optional[List[str]] = Field(alias="_has_keys_any", default=None)
-    in_: Optional[List[Any]] = Field(alias="_in", default=None)
+    in_: Optional[List[str]] = Field(alias="_in", default=None)
     is_null: Optional[bool] = Field(alias="_is_null", default=None)
-    lt: Optional[Any] = Field(alias="_lt", default=None)
-    lte: Optional[Any] = Field(alias="_lte", default=None)
-    neq: Optional[Any] = Field(alias="_neq", default=None)
-    nin: Optional[List[Any]] = Field(alias="_nin", default=None)
+    lt: Optional[str] = Field(alias="_lt", default=None)
+    lte: Optional[str] = Field(alias="_lte", default=None)
+    neq: Optional[str] = Field(alias="_neq", default=None)
+    nin: Optional[List[str]] = Field(alias="_nin", default=None)
 
 
 class media_bool_exp(BaseModel):
@@ -2469,7 +2469,8 @@ class task_result_aggregate_order_by(BaseModel):
 
 
 class task_result_append_input(BaseModel):
-    terra_workflow_inputs: Optional[Any] = None
+    terra_workflow_inputs: Optional[str] = None
+    value: Optional[str] = None
 
 
 class task_result_arr_rel_insert_input(BaseModel):
@@ -2511,6 +2512,7 @@ class task_result_bool_exp(BaseModel):
     terra_workspace_name: Optional["String_comparison_exp"] = None
     terra_workspace_namespace: Optional["String_comparison_exp"] = None
     url: Optional["String_comparison_exp"] = None
+    value: Optional["jsonb_comparison_exp"] = None
     workflow_name: Optional["String_comparison_exp"] = None
     workflow_source_url: Optional["String_comparison_exp"] = None
     workflow_version: Optional["String_comparison_exp"] = None
@@ -2518,14 +2520,17 @@ class task_result_bool_exp(BaseModel):
 
 class task_result_delete_at_path_input(BaseModel):
     terra_workflow_inputs: Optional[List[str]] = None
+    value: Optional[List[str]] = None
 
 
 class task_result_delete_elem_input(BaseModel):
     terra_workflow_inputs: Optional[int] = None
+    value: Optional[int] = None
 
 
 class task_result_delete_key_input(BaseModel):
     terra_workflow_inputs: Optional[str] = None
+    value: Optional[str] = None
 
 
 class task_result_inc_input(BaseModel):
@@ -2551,12 +2556,13 @@ class task_result_insert_input(BaseModel):
     terra_sync: Optional["terra_sync_obj_rel_insert_input"] = None
     terra_sync_id: Optional[int] = None
     terra_workflow_id: Optional[str] = None
-    terra_workflow_inputs: Optional[Any] = None
+    terra_workflow_inputs: Optional[str] = None
     terra_workflow_root_dir: Optional[str] = None
     terra_workspace_id: Optional[str] = None
     terra_workspace_name: Optional[str] = None
     terra_workspace_namespace: Optional[str] = None
     url: Optional[str] = None
+    value: Optional[str] = None
     workflow_name: Optional[str] = None
     workflow_source_url: Optional[str] = None
     workflow_version: Optional[str] = None
@@ -2641,6 +2647,7 @@ class task_result_order_by(BaseModel):
     terra_workspace_name: Optional[order_by] = None
     terra_workspace_namespace: Optional[order_by] = None
     url: Optional[order_by] = None
+    value: Optional[order_by] = None
     workflow_name: Optional[order_by] = None
     workflow_source_url: Optional[order_by] = None
     workflow_version: Optional[order_by] = None
@@ -2651,7 +2658,8 @@ class task_result_pk_columns_input(BaseModel):
 
 
 class task_result_prepend_input(BaseModel):
-    terra_workflow_inputs: Optional[Any] = None
+    terra_workflow_inputs: Optional[str] = None
+    value: Optional[str] = None
 
 
 class task_result_set_input(BaseModel):
@@ -2669,12 +2677,13 @@ class task_result_set_input(BaseModel):
     terra_submission_id: Optional[str] = None
     terra_sync_id: Optional[int] = None
     terra_workflow_id: Optional[str] = None
-    terra_workflow_inputs: Optional[Any] = None
+    terra_workflow_inputs: Optional[str] = None
     terra_workflow_root_dir: Optional[str] = None
     terra_workspace_id: Optional[str] = None
     terra_workspace_name: Optional[str] = None
     terra_workspace_namespace: Optional[str] = None
     url: Optional[str] = None
+    value: Optional[str] = None
     workflow_name: Optional[str] = None
     workflow_source_url: Optional[str] = None
     workflow_version: Optional[str] = None
@@ -2718,12 +2727,13 @@ class task_result_stream_cursor_value_input(BaseModel):
     terra_submission_id: Optional[str] = None
     terra_sync_id: Optional[int] = None
     terra_workflow_id: Optional[str] = None
-    terra_workflow_inputs: Optional[Any] = None
+    terra_workflow_inputs: Optional[str] = None
     terra_workflow_root_dir: Optional[str] = None
     terra_workspace_id: Optional[str] = None
     terra_workspace_name: Optional[str] = None
     terra_workspace_namespace: Optional[str] = None
     url: Optional[str] = None
+    value: Optional[str] = None
     workflow_name: Optional[str] = None
     workflow_source_url: Optional[str] = None
     workflow_version: Optional[str] = None

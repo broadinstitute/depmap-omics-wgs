@@ -122,6 +122,7 @@ class GumboClient(BaseClient):
                 terra_workspace_name
                 terra_workspace_namespace
                 url
+                value
                 workflow_name
                 workflow_source_url
                 workflow_version

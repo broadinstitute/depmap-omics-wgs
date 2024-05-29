@@ -215,7 +215,7 @@ def put_task_results(
 
     # get GCS object metadata for this set of output URLs
     object_metadata = get_gcs_object_metadata(
-        [str(x.url) for x in outputs], gcp_project_id
+        [str(x.url) for x in outputs if x.url is not None], gcp_project_id
     ).set_index("url")
 
     for i in range(len(outputs)):
@@ -224,10 +224,11 @@ def put_task_results(
             outputs[i].terra_entity_name, "task_entity_id"
         ]
 
-        om = object_metadata.loc[outputs[i].url]
-        outputs[i].size = om["size"]
-        outputs[i].crc_32_c_hash = om["crc32c_hash"]
-        outputs[i].created_at = om["created_at"]
+        if outputs[i].url in object_metadata.index:
+            om = object_metadata.loc[outputs[i].url]
+            outputs[i].size = om["size"]
+            outputs[i].crc_32_c_hash = om["crc32c_hash"]
+            outputs[i].created_at = om["created_at"]
 
         # assign a persistent UUID based on the record's values
         outputs[i].id = compute_uuidv3(
@@ -253,6 +254,7 @@ def put_task_results(
                 "terra_workspace_name",
                 "terra_workspace_namespace",
                 "url",
+                "value",
                 "workflow_name",
                 "workflow_source_url",
                 "workflow_version",
