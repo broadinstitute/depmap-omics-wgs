@@ -325,8 +325,8 @@ def generalized_fibonacci(n: int, *, f0: float = 1.0, f1: float = 1.0) -> float:
     :return: the nth Fibonacci number
     """
 
-    assert f0 >= 0, "f0 must be greater than 0"
-    assert f1 >= 0, "f1 must be greater than 0"
+    assert f0 >= 0, "f0 must be at least 0.0"
+    assert f1 >= 0, "f1 must be at least 0.0"
 
     # compute constants for closed-form of Fibonacci sequence recurrence relation
     sqrt5 = sqrt(5)

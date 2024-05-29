@@ -158,7 +158,7 @@ def delta_preprocess_wgs_samples(
         expression="this.samples",
         use_callcache=True,
         use_reference_disks=False,
-        memory_retry_multiplier=1.2,  # pyright: ignore
+        memory_retry_multiplier=1.2,
     )
 
 

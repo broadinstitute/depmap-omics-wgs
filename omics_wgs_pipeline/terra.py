@@ -300,9 +300,12 @@ class TerraWorkspace:
         # inject the workflow version and URL into inputs so it gets stored in job
         # submissions
         assert terra_workflow.persisted_wdl_script is not None
-        terra_workflow.method_config["inputs"][
-            f"{terra_workflow.repo_method_name}.workflow_version"
-        ] = f'"{terra_workflow.persisted_wdl_script["version"]}"'
+
+        if "version" in terra_workflow.persisted_wdl_script:
+            terra_workflow.method_config["inputs"][
+                f"{terra_workflow.repo_method_name}.workflow_version"
+            ] = f'"{terra_workflow.persisted_wdl_script["version"]}"'
+
         terra_workflow.method_config["inputs"][
             f"{terra_workflow.repo_method_name}.workflow_url"
         ] = f'"{terra_workflow.persisted_wdl_script["public_url"]}"'

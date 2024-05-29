@@ -1,4 +1,4 @@
-from typing import Optional, TypedDict, TypeVar
+from typing import NotRequired, Optional, TypedDict, TypeVar
 
 import httpx
 import pandas as pd
@@ -26,19 +26,19 @@ class GumboClient(AriadneGumboClient):
 class PersistedWdl(TypedDict):
     wdl: str
     public_url: str
-    version: str | None
+    version: NotRequired[str | None]
 
 
 class TerraJobSubmissionKwargs(TypedDict):
-    entity: str | None
-    etype: str | None
-    expression: str | None
-    use_callcache: bool | None
-    delete_intermediate_output_files: bool | None
-    use_reference_disks: bool | None
-    memory_retry_multiplier: float | None
-    workflow_failure_mode: str | None
-    user_comment: str | None
+    entity: NotRequired[str | None]
+    etype: NotRequired[str | None]
+    expression: NotRequired[str | None]
+    use_callcache: NotRequired[bool | None]
+    delete_intermediate_output_files: NotRequired[bool | None]
+    use_reference_disks: NotRequired[bool | None]
+    memory_retry_multiplier: NotRequired[float | None]
+    workflow_failure_mode: NotRequired[str | None]
+    user_comment: NotRequired[str | None]
 
 
 class CoercedDataFrame(pa.DataFrameModel):
