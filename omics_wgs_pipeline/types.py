@@ -1,4 +1,4 @@
-from typing import NotRequired, Optional, TypedDict, TypeVar
+from typing import Any, NotRequired, Optional, TypedDict, TypeVar
 
 import httpx
 import pandas as pd
@@ -84,6 +84,7 @@ class GumboTaskResult(CoercedDataFrame):
     sample_id: Series[pd.StringDtype]
     label: Series[pd.StringDtype]
     url: Series[pd.StringDtype] = pa.Field(nullable=True)
+    value: Series[dict[str, Any]] = pa.Field(nullable=True)
 
 
 class GcsObject(CoercedDataFrame):

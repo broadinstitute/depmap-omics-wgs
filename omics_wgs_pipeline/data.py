@@ -48,7 +48,9 @@ def make_terra_samples(gumbo_client: GumboClient) -> TypedDataFrame[TerraSample]
         gumbo_client.get_task_results(
             # TODO: other output files
             task_result_bool_exp(
-                workflow_name={"eq": "preprocess_wgs_sample"},  # pyright: ignore
+                workflow_name={
+                    "in_": ["preprocess_wgs_sample", "infer_msi_status"],
+                },  # pyright: ignore
             )
         ),
         GumboTaskResult,

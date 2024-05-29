@@ -451,7 +451,9 @@ class TerraWorkspace:
                 base_o.terra_workflow_id = w["workflowId"]
                 base_o.terra_entity_name = w["workflowEntity"]["entityName"]
                 base_o.terra_entity_type = w["workflowEntity"]["entityType"]
-                base_o.created_at = pd.Timestamp(w["statusLastChangedDate"]).isoformat()
+                base_o.created_at = pd.Timestamp(
+                    ts_input=w["statusLastChangedDate"]
+                ).isoformat()  # pyright: ignore
 
                 echo(f"Getting workflow {w["workflowId"]} metadata")
                 wmd = call_firecloud_api(
