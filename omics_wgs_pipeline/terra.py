@@ -444,6 +444,10 @@ class TerraWorkspace:
             )
 
             for w in submission["workflows"]:
+                if "workflowId" not in w:
+                    # this workflow didn't manage to start
+                    continue
+
                 base_o.terra_workflow_id = w["workflowId"]
                 base_o.terra_entity_name = w["workflowEntity"]["entityName"]
                 base_o.terra_entity_type = w["workflowEntity"]["entityType"]
@@ -491,10 +495,9 @@ class TerraWorkspace:
                     o.label = label.rsplit(".", maxsplit=1)[-1]
 
                     if isinstance(output, list):
-                        # we shouldn't be writing any workflows that output lists
-                        raise ValueError(
-                            f"Workflow {w['workflowId']} outputs a list: {output}"
-                        )
+                        # we shouldn't be writing any workflows that output lists, so
+                        # these would just be intermediate or legacy outputs
+                        continue
                     elif isinstance(output, str):
                         if output.startswith("gs://"):
                             o.url = output
