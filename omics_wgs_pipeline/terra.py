@@ -500,10 +500,10 @@ class TerraWorkspace:
                             o.format = pathlib.Path(o.url).suffix[1:].upper()
                         else:
                             # it's a plain string
-                            o.value = json.dumps({"value": output})
+                            o.value = {"value": output}
                     else:
                         # it's a number, bool, or something else
-                        o.value = json.dumps({"value": output})
+                        o.value = {"value": output}
 
                     outputs.append(o)
 

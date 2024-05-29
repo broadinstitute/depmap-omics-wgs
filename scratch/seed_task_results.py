@@ -3,7 +3,6 @@ Get already-preprocessed outputs from DepMap_WGS_CN and populate the Gumbo `task
 table.
 """
 
-import json
 import os
 import pathlib
 
@@ -13,6 +12,7 @@ from firecloud import api as firecloud_api
 from gumbo_gql_client import task_entity_insert_input, task_result_insert_input
 from omics_wgs_pipeline.types import CoercedDataFrame, GumboClient, GumboTaskEntity
 from omics_wgs_pipeline.utils import (
+    batch_evenly,
     compute_uuidv3,
     df_to_model,
     expand_dict_columns,
@@ -185,7 +185,7 @@ def make_task_results(task_results):
         value_name="value",
     )
     task_results_msi_values["value"] = task_results_msi_values["value"].apply(
-        lambda x: json.dumps({"value": x})
+        lambda x: {"value": x}
     )
 
     all_task_results = pd.concat(
@@ -250,8 +250,11 @@ task_results = make_task_results(task_results)
 object_metadata = get_gcs_object_metadata(task_results["url"].dropna(), "depmap-omics")
 task_results = task_results.merge(object_metadata, how="left", on="url")
 
+# set `created_at` to beginnning of UNIX epoch for values since we don't have them from
+# GCS
+task_results["created_at"] = task_results["created_at"].fillna(pd.Timestamp(0))
+
 task_result_inserts = [make_task_result_input(x) for _, x in task_results.iterrows()]
 
-gumbo_client.insert_task_results(
-    username=gumbo_client.username, objects=task_result_inserts
-)
+for batch in batch_evenly(task_result_inserts, 500):
+    gumbo_client.insert_task_results(username=gumbo_client.username, objects=batch)

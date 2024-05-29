@@ -15,4 +15,4 @@ type = "int"
 type = "str"
 
 [tool.ariadne-codegen.scalars.jsonb]
-type = "str"
+type = "dict"
