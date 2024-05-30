@@ -58,20 +58,22 @@ def get_terra_outputs(namespace, workspace):
 def save_msi_outputs(storage_client, df, old_or_new):
     local_dir = os.path.join(root_dir, "data", old_or_new)
 
-    for _, r in df.iterrows():
+    for i in range(len(df)):
         for c in [
             "msisensor2_output",
             "msisensor2_output_dis",
             "msisensor2_output_somatic",
         ]:
-            sample_dir = os.path.join(local_dir, r["sample_id"])
+            sample_dir = os.path.join(local_dir, df["sample_id"].iloc[i])
             os.makedirs(sample_dir, exist_ok=True)
-            local_file = os.path.join(sample_dir, ".".join([r["sample_id"], c]))
+            local_file = os.path.join(
+                sample_dir, ".".join([df["sample_id"].iloc[i], c])
+            )
 
-            blob = storage.Blob.from_string(r[c], client=storage_client)
+            blob = storage.Blob.from_string(df[c].iloc[i], client=storage_client)
             blob.download_to_filename(local_file)
 
-            df[c] = local_file
+            df.iloc[i, df.columns.get_loc(c)] = local_file
 
     return df
 
@@ -148,8 +150,34 @@ def compare_repeats(old_samples, new_samples):
         new_repeats, how="outer", lsuffix="_old", rsuffix="_new"
     )
 
-    # make sure the outer join was effectively an inner one
+    # make sure the outer join was effectively an inner one (i.e. indexes match
     assert len(repeats_comp) == len(old_repeats) == len(new_repeats)
+
+    id_vars = ["chr", "loc", "left_flank", "repeat", "right_flank"]
+
+    old_repeats_long = old_repeats.reset_index().melt(
+        id_vars=id_vars,
+        var_name="sample_id",
+        value_name="wavg",
+    )
+
+    new_repeats_long = new_repeats.reset_index().melt(
+        id_vars=id_vars,
+        var_name="sample_id",
+        value_name="wavg",
+    )
+    long_comp = old_repeats_long.merge(
+        new_repeats_long,
+        on=[*id_vars, "sample_id"],
+        how="inner",
+        suffixes=("_old", "_new"),
+    )
+
+    long_comp["abs_dev"] = np.abs(long_comp["wavg_old"] - long_comp["wavg_new"])
+    overall_med_abs_dev = long_comp["abs_dev"].median()
+    print(f"Overall median absolute deviation: {round(overall_med_abs_dev, 2)}")
+
+    long_comp["abs_dev_rank"] = long_comp["abs_dev"].rank(ascending=False, method="min")
 
 
 old_samples = get_terra_outputs(
@@ -164,7 +192,7 @@ old_samples = old_samples.loc[old_samples["sample_id"].isin(sample_ids)]
 new_samples = new_samples.loc[new_samples["sample_id"].isin(sample_ids)]
 
 storage_client = storage.Client(project="depmap-omics")
-old_samples = save_msi_outputs(storage_client, old_samples, "old")
-new_samples = save_msi_outputs(storage_client, new_samples, "new")
+old_samples = save_msi_outputs(storage_client, old_samples, old_or_new="old")
+new_samples = save_msi_outputs(storage_client, new_samples, old_or_new="new")
 
 compare_scores(old_samples, new_samples)
