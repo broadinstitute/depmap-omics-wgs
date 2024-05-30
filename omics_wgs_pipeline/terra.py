@@ -9,7 +9,6 @@ import pandas as pd
 import requests
 from click import echo
 from firecloud import api as firecloud_api
-from google.cloud import storage
 
 from gumbo_gql_client import task_result_insert_input
 from omics_wgs_pipeline.types import (
@@ -19,13 +18,13 @@ from omics_wgs_pipeline.types import (
     TypedDataFrame,
 )
 from omics_wgs_pipeline.utils import batch_evenly, expand_dict_columns, maybe_retry
-from omics_wgs_pipeline.wdl import persist_wdl_script
+from omics_wgs_pipeline.wdl import GistedWdl
 
 
 class TerraWorkflow:
     def __init__(
         self,
-        gcp_project_id: str,
+        github_pat: str,
         pipelines_bucket_name: str,
         repo_namespace: str,
         repo_method_name: str,
@@ -34,7 +33,7 @@ class TerraWorkflow:
         workflow_wdl_path: Path,
         method_config_json_path: Path,
     ) -> None:
-        self.gcp_project_id = gcp_project_id
+        self.github_pat = github_pat
         self.pipelines_bucket_name = pipelines_bucket_name
         self.repo_namespace = repo_namespace
         self.repo_method_name = repo_method_name
@@ -47,19 +46,17 @@ class TerraWorkflow:
 
     def persist_method_on_gcs(self) -> None:
         """
-        Upload the method's WDL script to GCS, rewriting import statements for dependent
-        WDL scripts as needed.
+        Upload the method's WDL script to GitHub, rewriting import statements for
+        dependent WDL scripts as needed.
         """
 
         if self.persisted_wdl_script is None:
-            storage_client = storage.Client(project=self.gcp_project_id)
-            bucket = storage_client.bucket(
-                self.pipelines_bucket_name, user_project=self.gcp_project_id
+            echo(f"Persisting {self.workflow_wdl_path} on GitHub")
+            gisted_wdl = GistedWdl(
+                method_name=self.repo_method_name, github_pat=self.github_pat
             )
-
-            echo(f"Persisting {self.workflow_wdl_path} on GCS")
-            self.persisted_wdl_script = persist_wdl_script(
-                bucket=bucket, wdl_path=self.workflow_wdl_path, subpath="wdl"
+            self.persisted_wdl_script = gisted_wdl.persist_wdl_script(
+                wdl_path=self.workflow_wdl_path, subpath="wdl"
             )
 
     def get_method_snapshots(self) -> list[dict]:

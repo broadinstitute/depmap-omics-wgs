@@ -15,8 +15,7 @@ version 1.0
 # Use this file as a base and manually implement changes in the upstream GDC code in
 # order to retain these modifications.
 
-import "https://gist.githubusercontent.com/dpmccabe/579f0c3f0ba714a161f99bcbc2bd494e/raw/107ed4fae2e18f7d24bef7181a221f817c0c8a5c/CramToUnmappedBams.wdl" as ToUbams
-#import "./include/CramToUnmappedBams.wdl" as ToUbams
+import "./include/CramToUnmappedBams.wdl" as ToUbams
 
 struct FastqPairRecord {
     File forward_fastq

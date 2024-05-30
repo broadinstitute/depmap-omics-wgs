@@ -61,7 +61,7 @@ def update_workflow(
     ctx: typer.Context, workflow_name: Annotated[str, typer.Option()]
 ) -> None:
     terra_workflow = TerraWorkflow(
-        gcp_project_id=config["gcp_project_id"],
+        github_pat=os.environ["GITHUB_PAT"],
         pipelines_bucket_name=config["terra"]["pipelines_bucket_name"],
         repo_namespace=config["terra"]["repo_namespace"],
         repo_method_name=config["terra"][workflow_name]["repo_method_name"],
@@ -89,7 +89,7 @@ def run_workflow(
     ctx: typer.Context, workflow_name: Annotated[str, typer.Option()]
 ) -> None:
     terra_workflow = TerraWorkflow(
-        gcp_project_id=config["gcp_project_id"],
+        github_pat=os.environ["GITHUB_PAT"],
         pipelines_bucket_name=config["terra"]["pipelines_bucket_name"],
         repo_namespace=config["terra"]["repo_namespace"],
         repo_method_name=config["terra"][workflow_name]["repo_method_name"],
