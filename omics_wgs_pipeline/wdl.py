@@ -6,9 +6,9 @@ import github
 
 from omics_wgs_pipeline.types import PersistedWdl
 
-IMPORT_PATTERN = re.compile(r"^import\s+\"(?!http)([^\"]+)\"\s+as\s+(\S+)$")
+IMPORT_PATTERN = re.compile(r"^import\s+\"(?!http)([^\"]+)\"\s+as\s+(\S+)")
 WORKFLOW_VERSION_PATTERN = re.compile(
-    r"^\s*String\s+workflow_version\s*=\s*\"([a-zA-Z0-9.]+)\"\s*$"
+    r"^\s*String\s+workflow_version\s*=\s*\"([a-zA-Z0-9.]+)\""
 )
 
 
