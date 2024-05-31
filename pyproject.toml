@@ -41,6 +41,7 @@ build-backend = "poetry.core.masonry.api"
 select = [
     "I",  # isort formatting
 ]
+extend-include = ["*.ipynb"]
 
 [tool.pyright]
 venvPath = "."

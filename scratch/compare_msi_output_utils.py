@@ -70,8 +70,9 @@ def save_msi_outputs(storage_client, df, old_or_new):
                 sample_dir, ".".join([df["sample_id"].iloc[i], c])
             )
 
-            blob = storage.Blob.from_string(df[c].iloc[i], client=storage_client)
-            blob.download_to_filename(local_file)
+            if not os.path.exists(local_file):
+                blob = storage.Blob.from_string(df[c].iloc[i], client=storage_client)
+                blob.download_to_filename(local_file)
 
             df.iloc[i, df.columns.get_loc(c)] = local_file
 
@@ -166,6 +167,7 @@ def compare_repeats(old_samples, new_samples):
         var_name="sample_id",
         value_name="wavg",
     )
+
     long_comp = old_repeats_long.merge(
         new_repeats_long,
         on=[*id_vars, "sample_id"],
@@ -179,20 +181,7 @@ def compare_repeats(old_samples, new_samples):
 
     long_comp["abs_dev_rank"] = long_comp["abs_dev"].rank(ascending=False, method="min")
 
-
-old_samples = get_terra_outputs(
-    namespace="broad-firecloud-ccle", workspace="DepMap_WGS_CN"
-)
-new_samples = get_terra_outputs(
-    namespace="broad-firecloud-ccle", workspace="omics_wgs_pipeline"
-)
-
-sample_ids = set(old_samples["sample_id"]).intersection(set(new_samples["sample_id"]))
-old_samples = old_samples.loc[old_samples["sample_id"].isin(sample_ids)]
-new_samples = new_samples.loc[new_samples["sample_id"].isin(sample_ids)]
-
-storage_client = storage.Client(project="depmap-omics")
-old_samples = save_msi_outputs(storage_client, old_samples, old_or_new="old")
-new_samples = save_msi_outputs(storage_client, new_samples, old_or_new="new")
-
-compare_scores(old_samples, new_samples)
+    highest_abs_dev_r = long_comp.loc[long_comp["abs_dev_rank"].lt(10)].sort_values(
+        "abs_dev_rank"
+    )
+    print(f"Highest overall max absolute deviation:\r{highest_abs_dev_r}")
