@@ -8,7 +8,7 @@ pipelines_bucket_name = "cds-pipelines"
 repo_namespace = "cds-pipelines"
 workspace_namespace = "broad-firecloud-ccle"
 workspace_name = "omics_wgs_pipeline"
-firecloud_owners = ["dmccabe@broadinstitute.org", "omics-pipeline-runner@depmap-omics.iam.gserviceaccount.com"]
+firecloud_owners = ["dmccabe@broadinstitute.org", "omics-pipeline-runner@depmap-omics.iam.gserviceaccount.com", "cds@broadinstitute.org", "siyer@broadinstitute.org"]
 
 [terra.preprocess_wgs_sample]
 repo_method_name = "preprocess_wgs_sample"
