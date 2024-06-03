@@ -3,7 +3,7 @@ version 1.0
 workflow infer_msi_status {
     input {
         String workflow_version = "1.0"
-        String workflow_url # populate this with the persisted GCS URL of this script
+        String workflow_url # populate this with the public URL of this script
 
         String sample_id
         File bam
@@ -35,10 +35,11 @@ task msisensor2 {
         Int max_retries = 1
         Int cpu = 1
         Int mem_gb = 6
+        Int additional_disk_gb = 0
     }
 
     String bam_path = basename(bam)
-    Int disk_space = ceil(size(bam, "GiB")) + 10
+    Int disk_space = ceil(size(bam, "GiB")) + 10 + additional_disk_gb
 
     command {
         set -euo pipefail

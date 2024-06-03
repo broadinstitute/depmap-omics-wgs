@@ -56,7 +56,7 @@ def get_terra_outputs(namespace, workspace):
 
 
 def save_msi_outputs(storage_client, df, old_or_new):
-    local_dir = os.path.join(root_dir, "data", old_or_new)
+    local_dir = os.path.join(root_dir, "data", "msi", old_or_new)
 
     for i in range(len(df)):
         for c in [
