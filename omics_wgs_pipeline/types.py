@@ -85,6 +85,9 @@ class GumboTaskResult(CoercedDataFrame):
     label: Series[pd.StringDtype]
     url: Series[pd.StringDtype] = pa.Field(nullable=True)
     value: Series[dict[str, Any]] = pa.Field(nullable=True)
+    workflow_name: Series[pd.StringDtype] = pa.Field(nullable=True)
+    workflow_version: Series[pd.StringDtype] = pa.Field(nullable=True)
+    created_at: Series[pd.Timestamp]
 
 
 class GcsObject(CoercedDataFrame):

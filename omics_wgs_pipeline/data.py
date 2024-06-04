@@ -1,6 +1,8 @@
 import datetime
+import json
 import pathlib
 
+import pandas as pd
 from click import echo
 
 from gumbo_gql_client import task_entity_insert_input, task_result_bool_exp
@@ -46,7 +48,6 @@ def make_terra_samples(gumbo_client: GumboClient) -> TypedDataFrame[TerraSample]
 
     task_results = model_to_df(
         gumbo_client.get_task_results(
-            # TODO: other output files
             task_result_bool_exp(
                 workflow_name={
                     "in_": ["preprocess_wgs_sample", "infer_msi_status"],
@@ -120,14 +121,96 @@ def join_existing_results_to_samples(
     for k, v in ref_exts.items():
         samples[k] = ".".join([ref_base_url, v])
 
-    # join already processed output files to canonical set of WGS samples
-    task_result_urls = task_results.pivot(
-        index="sample_id", columns="label", values="url"
-    ).reset_index()
+    # collect file and value outputs and pick most recent version of each
+    best_task_results = pick_best_task_results(task_results)
 
-    samples = samples.merge(task_result_urls, how="left", on="sample_id")
+    samples = samples.merge(best_task_results, how="left", on="sample_id")
 
     return type_data_frame(samples, TerraSample, remove_unknown_cols=False)
+
+
+def pick_best_task_results(
+    task_results: TypedDataFrame[GumboTaskResult],
+) -> pd.DataFrame:
+    """
+    Pick the most recent task result (files and values) for each sample+label
+    combination and make a wide data frame for use in a Terra `sample` data table.
+
+    :param task_results: a data frame of Gumbo task results
+    :return: a wide data frame of samples and their outputs
+    """
+
+    # check that output labels don't come from different workflows
+    workflow_label_counts = (
+        task_results[["workflow_name", "label"]].drop_duplicates().value_counts()
+    )
+
+    if not workflow_label_counts.eq(1).all():
+        raise ValueError(
+            "\n".join(
+                [
+                    "Cannot sync task results back to Terra. "
+                    "Inconsistent workflow name and label combinations:",
+                    str(workflow_label_counts.to_frame().reset_index()),
+                ]
+            )
+        )
+
+    # get unique file outputs for each sample+label
+    task_result_files = (
+        task_results[["sample_id", "label", "url", "workflow_version", "created_at"]]
+        .dropna(subset=["sample_id", "label", "url"])
+        .drop_duplicates(subset=["sample_id", "label", "url"])
+    )
+
+    # pick the most recent file based on workflow version and date
+    best_task_result_files = (
+        task_result_files.sort_values(
+            ["workflow_version", "created_at"], ascending=False
+        )
+        .groupby(["sample_id", "label"])
+        .nth(0)
+        .pivot(index="sample_id", columns="label", values="url")
+        .reset_index()
+    )
+
+    # get unique value outputs for each sample+label
+    task_result_values = task_results[
+        ["sample_id", "label", "value", "workflow_version", "created_at"]
+    ].dropna(subset=["sample_id", "label", "value"])
+
+    # need to temporarily convert values to JSON strings so that they can be de-deduped
+    task_result_values["value"] = task_result_values["value"].apply(json.dumps)
+
+    task_result_values = task_result_values.drop_duplicates(
+        subset=["sample_id", "label", "value"]
+    )
+
+    task_result_values["value"] = task_result_values["value"].apply(json.loads)
+
+    # pick the most recent value based on workflow version and date
+    best_task_result_values = (
+        task_result_values.sort_values(
+            ["workflow_version", "created_at"], ascending=False
+        )
+        .groupby(["sample_id", "label"])
+        .nth(0)
+        .pivot(index="sample_id", columns="label", values="value")
+        .reset_index()
+        .set_index("sample_id")
+    )
+
+    # extract the values from the dictionaries
+    best_task_result_values = best_task_result_values.map(
+        lambda x: x["value"]
+    ).reset_index()
+
+    # join files and values and guess their dtypes
+    best_task_results = best_task_result_files.merge(
+        best_task_result_values, how="outer", on="sample_id"
+    ).convert_dtypes()
+
+    return best_task_results
 
 
 def delta_preprocess_wgs_samples(
