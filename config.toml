@@ -23,3 +23,10 @@ method_config_name = "infer_msi_status"
 method_synopsis = "Infer MSI status of WGS sample"
 workflow_wdl_path = "./workflows/infer_msi_status/infer_msi_status.wdl"
 method_config_json_path = "./workflows/infer_msi_status/infer_msi_status.json"
+
+[terra.call_structural_variants]
+repo_method_name = "call_structural_variants"
+method_config_name = "call_structural_variants"
+method_synopsis = "Call structural variants"
+workflow_wdl_path = "./workflows/call_structural_variants/call_structural_variants.wdl"
+method_config_json_path = "./workflows/call_structural_variants/call_structural_variants.json"

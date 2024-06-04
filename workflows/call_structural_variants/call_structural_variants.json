@@ -1,23 +1,23 @@
 {
   "deleted": false,
   "inputs": {
-    "infer_msi_status.sample_id": "this.sample_id",
-    "infer_msi_status.bam": "this.bam",
-    "infer_msi_status.bai": "this.bai"
+    "call_structural_variants.sample_id": "this.sample_id",
+    "call_structural_variants.bam": "this.bam",
+    "call_structural_variants.bai": "this.bai",
+    "call_structural_variants.ref_fasta": "this.ref_fasta",
+    "call_structural_variants.ref_fasta_index": "this.ref_fasta_index"
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
     "methodNamespace": "cds-pipelines",
-    "methodName": "infer_msi_status",
+    "methodName": "call_structural_variants",
     "methodVersion": 1
   },
   "namespace": "cds-pipelines",
-  "name": "infer_msi_status",
+  "name": "call_structural_variants",
   "outputs": {
-    "infer_msi_status.msisensor2_score": "this.msisensor2_score",
-    "infer_msi_status.msisensor2_output": "this.msisensor2_output",
-    "infer_msi_status.msisensor2_output_dis": "this.msisensor2_output_dis",
-    "infer_msi_status.msisensor2_output_somatic": "this.msisensor2_output_somatic"
+    "call_structural_variants.somatic_sv_vcf": "this.somatic_sv_vcf",
+    "call_structural_variants.somatic_sv_vcf_index": "this.somatic_sv_vcf_index"
   },
   "rootEntityType": "sample"
 }
