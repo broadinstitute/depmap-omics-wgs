@@ -66,7 +66,7 @@ class TerraWorkflow:
         :return: list of snapshot information, most recent first
         """
 
-        echo(f"Getting {self.repo_method_name} method snapshots...")
+        echo(f"Getting {self.repo_method_name} method snapshots")
         snapshots = call_firecloud_api(
             firecloud_api.list_repository_methods,
             namespace=self.repo_namespace,

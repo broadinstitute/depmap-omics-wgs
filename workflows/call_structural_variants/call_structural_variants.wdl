@@ -35,15 +35,15 @@ task run_manta {
         File ref_fasta_index
 
         Int preemptible = 2
-        Int max_retries = 1
+        Int max_retries = 0
         Int cpu = 8
-        Int mem_per_job_gb = 0.4
+        Float mem_per_job_gb = 0.4
         Int additional_disk_gb = 0
     }
 
     Float jobs_per_cpu = 1.3
     Int num_jobs = round(cpu * jobs_per_cpu)
-    Float mem_gb = num_jobs * mem_per_job_gb
+    Int mem_gb = ceil(num_jobs * mem_per_job_gb)
     Int disk_space = ceil(size(bam, "GiB")) + 10 + additional_disk_gb
 
     command {
@@ -62,16 +62,17 @@ task run_manta {
         # requested number of jobs, even if they won't need that much memory
         ./runWorkflow.py \
             --mode="local" \
-            --jobs=~{cpu}
-            --memGb=$((~{num_jobs} * 2))
+            --jobs=~{cpu} \
+            --memGb=$((~{num_jobs} * 2)) \
+            --quiet
 
         mv results/variants/tumorSV.vcf.gz ~{sample_id}.somaticSV.vcf.gz
         mv results/variants/tumorSV.vcf.gz.tbi ~{sample_id}.somaticSV.vcf.gz.tbi
     }
 
     output {
-        File somatic_sv_vcf = "${sample_id}.somaticSV.vcf.gz"
-        File somatic_sv_vcf_index = "${sample_id}.somaticSV.vcf.gz.tbi"
+        File somatic_sv_vcf = "~{sample_id}.somaticSV.vcf.gz"
+        File somatic_sv_vcf_index = "~{sample_id}.somaticSV.vcf.gz.tbi"
     }
 
     runtime {
