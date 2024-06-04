@@ -138,6 +138,8 @@ class TerraWorkspace:
         :param df: a data frame of entities
         """
 
+        echo(f"{len(df)} entities to upload to Terra")
+
         for batch in batch_evenly(df, max_batch_size=500):
             with tempfile.NamedTemporaryFile(suffix="tsv") as f:
                 batch.to_csv(f, sep="\t", index=False)  # pyright: ignore

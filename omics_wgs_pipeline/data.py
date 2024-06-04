@@ -25,11 +25,15 @@ from omics_wgs_pipeline.utils import (
 )
 
 
-def make_terra_samples(gumbo_client: GumboClient) -> TypedDataFrame[TerraSample]:
+def make_terra_samples(
+    gumbo_client: GumboClient, ref_base_url: str
+) -> TypedDataFrame[TerraSample]:
     """
     Make a data frame to use as a Terra `sample` data table using ground truth data from
     Gumbo.
 
+    :param gumbo_client: a `GumboClient` instance
+    :param ref_base_url: the `gs://` URL basename for the reference genome files
     :return: a data frame to use as a Terra `sample` data table
     """
 
@@ -60,18 +64,20 @@ def make_terra_samples(gumbo_client: GumboClient) -> TypedDataFrame[TerraSample]
         ),
     )
 
-    return join_existing_results_to_samples(wgs_sequencings, task_results)
+    return join_existing_results_to_samples(wgs_sequencings, task_results, ref_base_url)
 
 
 def join_existing_results_to_samples(
     wgs_sequencings: TypedDataFrame[GumboWgsSequencing],
     task_results: TypedDataFrame[GumboTaskResult],
+    ref_base_url: str,
 ) -> TypedDataFrame[TerraSample]:
     """
     Make a data frame to upload to Terra as the `sample` data table.
 
     :param wgs_sequencings: data frame of Gumbo `omics_sequencing` records
     :param task_results: data frame of Gumbo `task_result` records
+    :param ref_base_url: the `gs://` URL basename for the reference genome files
     :return: a data frame for the `sample` data table in Terra
     """
 
@@ -97,15 +103,28 @@ def join_existing_results_to_samples(
     )
 
     # all new samples should be hg38, but this removes hg19 ones if necessary
-    samples["is_hg19"] = (
-        samples["delivery_cram_bam"].eq(samples["hg19_bam_filepath"]).fillna(False)
-    )
-    samples = samples.loc[~samples["is_hg19"]]
+    samples = samples.loc[
+        ~(samples["delivery_cram_bam"].eq(samples["hg19_bam_filepath"]).fillna(False))
+    ]
 
-    # specify reference genome files at the sample-level
-    ref_base_url = (
-        "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38"
-    )
+    # assign URLs for reference genome files
+    samples = assign_ref_urls(samples, ref_base_url)
+
+    # collect file and value outputs and pick most recent version of each
+    best_task_results = pick_best_task_results(task_results)
+    samples = samples.merge(best_task_results, how="left", on="sample_id")
+
+    return type_data_frame(samples, TerraSample, remove_unknown_cols=False)
+
+
+def assign_ref_urls(samples: pd.DataFrame, ref_base_url: str) -> pd.DataFrame:
+    """
+    Assign URLs for the reference genome files.
+
+    :param ref_base_url: the `gs://` URL basename for the reference genome files
+    :param samples: a data frame of Terra samples
+    :return: a data frame of Terra samples with URLs for the reference genome files
+    """
 
     ref_exts = {
         "ref_amb": "fasta.amb",
@@ -121,12 +140,7 @@ def join_existing_results_to_samples(
     for k, v in ref_exts.items():
         samples[k] = ".".join([ref_base_url, v])
 
-    # collect file and value outputs and pick most recent version of each
-    best_task_results = pick_best_task_results(task_results)
-
-    samples = samples.merge(best_task_results, how="left", on="sample_id")
-
-    return type_data_frame(samples, TerraSample, remove_unknown_cols=False)
+    return samples
 
 
 def pick_best_task_results(
