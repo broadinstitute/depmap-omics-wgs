@@ -31,3 +31,10 @@ method_config_name = "call_structural_variants"
 method_synopsis = "Call structural variants"
 workflow_wdl_path = "./workflows/call_structural_variants/call_structural_variants.wdl"
 method_config_json_path = "./workflows/call_structural_variants/call_structural_variants.json"
+
+[terra.call_cnvs]
+repo_method_name = "call_cnvs"
+method_config_name = "call_cnvs"
+method_synopsis = "Call CNVs"
+workflow_wdl_path = "./workflows/call_cnvs/call_cnvs.wdl"
+method_config_json_path = "./workflows/call_cnvs/call_cnvs.json"

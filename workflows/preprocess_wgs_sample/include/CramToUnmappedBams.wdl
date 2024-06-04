@@ -11,8 +11,8 @@ version 1.0
 #   - Run `RevertSam` with `--RESTORE_HARDCLIPS false` to deal with invalid data
 #     appearing in the `XQ` header from DRAGEN-produced CRAM files.
 #
-# Use this file as a base and manually implement changes in the upstream GDC code in
-# order to retain these modifications.
+# Use this file as a base and manually implement changes in the upstream code in order
+# to retain these modifications.
 
 # If the output_map file is provided, it is expected to be a tab-separated file containing a list of all the read group ids
 # found in the input_cram / input_bam and the desired name of the unmapped bams generated for each.

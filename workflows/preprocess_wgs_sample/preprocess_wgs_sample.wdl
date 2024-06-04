@@ -12,8 +12,8 @@ version 1.0
 #   - `CheckContamination` task copied into this file.
 #   - Remove `validation_report` and `unmapped_bams` workflow outputs.
 #
-# Use this file as a base and manually implement changes in the upstream GDC code in
-# order to retain these modifications.
+# Use this file as a base and manually implement changes in the upstream code in order
+# to retain these modifications.
 
 import "./include/CramToUnmappedBams.wdl" as ToUbams
 

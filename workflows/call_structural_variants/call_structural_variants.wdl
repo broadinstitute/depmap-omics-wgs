@@ -2,7 +2,7 @@ version 1.0
 
 workflow call_structural_variants {
     input {
-        String workflow_version = "1.0"
+        String workflow_version = "1.1"
         String workflow_url # populate this with the public URL of this script
 
         String sample_id
@@ -46,16 +46,16 @@ task run_manta {
     Int mem_gb = ceil(num_jobs * mem_per_job_gb)
     Int disk_space = ceil(size(bam, "GiB")) + 10 + additional_disk_gb
 
-    command {
+    command <<<
         # link localized files to working dir
-        ln -vs ~{bam} tumor.bam
-        ln -vs ~{bai} tumor.bai
-        ln -vs ~{ref_fasta} reference.fasta
-        ln -vs ~{ref_fasta_index} reference.fasta.fai
+        ln -vs "~{bam}" "~{basename(bam)}"
+        ln -vs "~{bai}" "~{basename(bai)}"
+        ln -vs "~{ref_fasta}" "~{basename(ref_fasta)}"
+        ln -vs "~{ref_fasta_index}" "~{basename(ref_fasta_index)}"
 
         configManta.py \
-            --tumorBam="tumor.bam" \
-            --referenceFasta="reference.fasta" \
+            --tumorBam="~{basename(bam)}" \
+            --referenceFasta="~{basename(ref_fasta)}" \
             --runDir="."
 
         # always tell manta there are 2 GiB per job, otherwise it will scale back the
@@ -66,9 +66,9 @@ task run_manta {
             --memGb=$((~{num_jobs} * 2)) \
             --quiet
 
-        mv results/variants/tumorSV.vcf.gz ~{sample_id}.somaticSV.vcf.gz
-        mv results/variants/tumorSV.vcf.gz.tbi ~{sample_id}.somaticSV.vcf.gz.tbi
-    }
+        mv results/variants/tumorSV.vcf.gz "~{sample_id}.somaticSV.vcf.gz"
+        mv results/variants/tumorSV.vcf.gz.tbi "~{sample_id}.somaticSV.vcf.gz.tbi"
+    >>>
 
     output {
         File somatic_sv_vcf = "~{sample_id}.somaticSV.vcf.gz"
