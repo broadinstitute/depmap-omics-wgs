@@ -220,14 +220,18 @@ class TerraWorkspace:
         terra_workflow.persist_method_on_gcs()
         assert terra_workflow.persisted_wdl_script is not None
 
-        echo("Creating method")
-        snapshot = call_firecloud_api(
-            firecloud_api.update_repository_method,
-            namespace=terra_workflow.repo_namespace,
-            method=terra_workflow.repo_method_name,
-            synopsis=terra_workflow.method_synopsis,
-            wdl=terra_workflow.workflow_wdl_path,
-        )
+        with tempfile.NamedTemporaryFile("w") as f:
+            f.write(terra_workflow.persisted_wdl_script["wdl"])
+            f.flush()
+
+            echo("Creating method")
+            snapshot = call_firecloud_api(
+                firecloud_api.update_repository_method,
+                namespace=terra_workflow.repo_namespace,
+                method=terra_workflow.repo_method_name,
+                synopsis=terra_workflow.method_synopsis,
+                wdl=f.name,
+            )
 
         echo("Setting method ACL")
         call_firecloud_api(
