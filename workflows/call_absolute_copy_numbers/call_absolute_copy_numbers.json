@@ -1,0 +1,30 @@
+{
+  "deleted": false,
+  "inputs": {
+    "call_absolute_copy_numbers.sample_id": "this.sample_id",
+    "call_absolute_copy_numbers.called_segments": "this.modeled_segments_tumor",
+    "call_absolute_copy_numbers.called_mutations": "this.mutect2_filtered_vcf",
+    "call_absolute_copy_numbers.intervals": "\"gs://ccleparams/references/PureCN_intervals/wgs_hg38_2_percent_intervals.txt\""
+  },
+  "methodConfigVersion": 1,
+  "methodRepoMethod": {
+    "methodNamespace": "cds-pipelines",
+    "methodName": "call_absolute_copy_numbers",
+    "methodVersion": 1
+  },
+  "namespace": "cds-pipelines",
+  "name": "call_absolute_copy_numbers",
+  "outputs": {
+    "call_absolute_copy_numbers.purecn_solutions_pdf": "this.purecn_solutions_pdf",
+    "call_absolute_copy_numbers.purecn_chromosomes_pdf": "this.purecn_chromosomes_pdf",
+    "call_absolute_copy_numbers.purecn_rds": "this.purecn_rds",
+    "call_absolute_copy_numbers.purecn_dnacopy": "this.purecn_dnacopy",
+    "call_absolute_copy_numbers.purecn_variants": "this.purecn_variants",
+    "call_absolute_copy_numbers.purecn_loh": "this.purecn_loh",
+    "call_absolute_copy_numbers.purecn_genes": "this.purecn_genes",
+    "call_absolute_copy_numbers.purecn_segmentation": "this.purecn_segmentation",
+    "call_absolute_copy_numbers.purecn_local_optima_pdf": "this.purecn_local_optima_pdf",
+    "call_absolute_copy_numbers.purecn_solution": "this.purecn_solution"
+  },
+  "rootEntityType": "sample"
+}

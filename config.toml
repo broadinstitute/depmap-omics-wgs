@@ -38,3 +38,10 @@ method_config_name = "call_cnvs"
 method_synopsis = "Call CNVs"
 workflow_wdl_path = "./workflows/call_cnvs/call_cnvs.wdl"
 method_config_json_path = "./workflows/call_cnvs/call_cnvs.json"
+
+[terra.call_absolute_copy_numbers]
+repo_method_name = "call_absolute_copy_numbers"
+method_config_name = "call_absolute_copy_numbers"
+method_synopsis = "Call absolute copy numbers"
+workflow_wdl_path = "./workflows/call_absolute_copy_numbers/call_absolute_copy_numbers.wdl"
+method_config_json_path = "./workflows/call_absolute_copy_numbers/call_absolute_copy_numbers.json"

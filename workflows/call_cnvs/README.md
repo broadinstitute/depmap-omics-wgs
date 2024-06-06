@@ -1,3 +1,3 @@
 # Call CNVs
 
-TODO
+Call relative copy numbers using GATK.

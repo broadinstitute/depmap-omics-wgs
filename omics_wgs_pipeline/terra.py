@@ -117,6 +117,7 @@ class TerraWorkspace:
 
         :param entity_type: the kind of entity (e.g. "sample")
         :param pandera_schema: a Pandera schema for the output data frame
+        :return: a data frame of entities
         """
 
         echo(f"Getting {entity_type} entities")
