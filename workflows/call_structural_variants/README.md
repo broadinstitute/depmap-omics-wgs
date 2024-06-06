@@ -1,3 +1,3 @@
 # Call structural variants
 
-TODO
+Call structural variants using Manta.

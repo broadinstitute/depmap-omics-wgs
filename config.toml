@@ -45,3 +45,10 @@ method_config_name = "call_absolute_copy_numbers"
 method_synopsis = "Call absolute copy numbers"
 workflow_wdl_path = "./workflows/call_absolute_copy_numbers/call_absolute_copy_numbers.wdl"
 method_config_json_path = "./workflows/call_absolute_copy_numbers/call_absolute_copy_numbers.json"
+
+[terra.call_mutations]
+repo_method_name = "call_mutations"
+method_config_name = "call_mutations"
+method_synopsis = "Call mutations"
+workflow_wdl_path = "./workflows/call_mutations/call_mutations.wdl"
+method_config_json_path = "./workflows/call_mutations/call_mutations.json"
