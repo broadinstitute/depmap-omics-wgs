@@ -72,7 +72,7 @@ task run_purecn {
         Int preemptible = 2
         Int max_retries = 1
         Int cpu = 1
-        Int mem_gb = 6
+        Int mem_gb = 32
         Int additional_disk_gb = 0
     }
 

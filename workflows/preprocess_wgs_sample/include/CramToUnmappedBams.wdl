@@ -6,6 +6,7 @@ version 1.0
 #   - Separate CRAM/CRAI vs. BAM/BAI workflow inputs consolidated into singular
 #     `input_cram_bam` and `input_crai_bai` ones, with necessary logic to handle either
 #     file type.
+#   - Pass through CRAI file to `CramToBam` task
 #   - Use SSDs instead of HDDs for faster (de)localization and higher compute instance
 #     availability.
 #   - Run `RevertSam` with `--RESTORE_HARDCLIPS false` to deal with invalid data
@@ -37,6 +38,7 @@ workflow CramToUnmappedBams {
                 ref_fasta = select_first([ref_fasta]),
                 ref_fasta_index = select_first([ref_fasta_index]),
                 cram_file = input_cram_bam,
+                crai_file = input_crai_bai,
                 output_basename = basename(input_cram_bam, ".cram"),
                 disk_size = ceil(cram_size * 6) + additional_disk
         }
@@ -148,6 +150,7 @@ task CramToBam {
         File ref_fasta
         File ref_fasta_index
         File cram_file
+        File crai_file
         String output_basename
         Int disk_size
         Int memory_in_MiB = 7000
@@ -240,7 +243,6 @@ task SplitUpOutputMapFile {
 }
 
 task SplitOutUbamByReadGroup {
-
     input {
         File input_bam
         File rg_to_ubam_file
