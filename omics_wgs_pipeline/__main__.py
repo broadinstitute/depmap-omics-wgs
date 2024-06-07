@@ -81,7 +81,9 @@ def update_workflow(
 @app.command()
 def refresh_terra_samples(ctx: typer.Context) -> None:
     samples = make_terra_samples(
-        gumbo_client=ctx.obj["gumbo_client"], ref_base_url=config["ref_base_url"]
+        gumbo_client=ctx.obj["gumbo_client"],
+        ref_base_url=config["ref_base_url"],
+        delivery_ref_base_url=config["delivery_ref_base_url"],
     )
     ctx.obj["terra_workspace"].upload_entities(df=samples)
 

@@ -26,7 +26,7 @@ from omics_wgs_pipeline.utils import (
 
 
 def make_terra_samples(
-    gumbo_client: GumboClient, ref_base_url: str
+    gumbo_client: GumboClient, ref_base_url: str, delivery_ref_base_url: str
 ) -> TypedDataFrame[TerraSample]:
     """
     Make a data frame to use as a Terra `sample` data table using ground truth data from
@@ -34,6 +34,8 @@ def make_terra_samples(
 
     :param gumbo_client: a `GumboClient` instance
     :param ref_base_url: the `gs://` URL basename for the reference genome files
+    :param delivery_ref_base_url: the `gs://` URL basename for the reference genome
+    files used to generate the delivery CRAM/BAM files
     :return: a data frame to use as a Terra `sample` data table
     """
 
@@ -64,13 +66,16 @@ def make_terra_samples(
         ),
     )
 
-    return join_existing_results_to_samples(wgs_sequencings, task_results, ref_base_url)
+    return join_existing_results_to_samples(
+        wgs_sequencings, task_results, ref_base_url, delivery_ref_base_url
+    )
 
 
 def join_existing_results_to_samples(
     wgs_sequencings: TypedDataFrame[GumboWgsSequencing],
     task_results: TypedDataFrame[GumboTaskResult],
     ref_base_url: str,
+    delivery_ref_base_url: str,
 ) -> TypedDataFrame[TerraSample]:
     """
     Make a data frame to upload to Terra as the `sample` data table.
@@ -78,6 +83,8 @@ def join_existing_results_to_samples(
     :param wgs_sequencings: data frame of Gumbo `omics_sequencing` records
     :param task_results: data frame of Gumbo `task_result` records
     :param ref_base_url: the `gs://` URL basename for the reference genome files
+    :param delivery_ref_base_url: the `gs://` URL basename for the reference genome
+    files used to generate the delivery CRAM/BAM files
     :return: a data frame for the `sample` data table in Terra
     """
 
@@ -109,6 +116,7 @@ def join_existing_results_to_samples(
 
     # assign URLs for reference genome files
     samples = assign_ref_urls(samples, ref_base_url)
+    samples = assign_ref_urls(samples, delivery_ref_base_url, prefix="delivery_")
 
     # collect file and value outputs and pick most recent version of each
     best_task_results = pick_best_task_results(task_results)
@@ -117,12 +125,15 @@ def join_existing_results_to_samples(
     return type_data_frame(samples, TerraSample, remove_unknown_cols=False)
 
 
-def assign_ref_urls(samples: pd.DataFrame, ref_base_url: str) -> pd.DataFrame:
+def assign_ref_urls(
+    samples: pd.DataFrame, ref_base_url: str, prefix: str = ""
+) -> pd.DataFrame:
     """
     Assign URLs for the reference genome files.
 
-    :param ref_base_url: the `gs://` URL basename for the reference genome files
     :param samples: a data frame of Terra samples
+    :param ref_base_url: the `gs://` URL basename for the reference genome files
+    :param prefix: an optional prefix to use for the new column names
     :return: a data frame of Terra samples with URLs for the reference genome files
     """
 
@@ -138,7 +149,7 @@ def assign_ref_urls(samples: pd.DataFrame, ref_base_url: str) -> pd.DataFrame:
     }
 
     for k, v in ref_exts.items():
-        samples[k] = ".".join([ref_base_url, v])
+        samples[f"{prefix}{k}"] = ".".join([ref_base_url, v])
 
     return samples
 
