@@ -115,18 +115,17 @@ task RevertSam {
 
     command <<<
         java -Xms~{java_mem}m -Xmx~{max_heap}m -jar /usr/picard/picard.jar \
-        RevertSam \
-        --INPUT ~{input_bam} \
-        --OUTPUT ~{output_bam_filename} \
-        --VALIDATION_STRINGENCY LENIENT \
-        --ATTRIBUTE_TO_CLEAR FT \
-        --ATTRIBUTE_TO_CLEAR CO \
-        --ATTRIBUTE_TO_CLEAR PA \
-        --ATTRIBUTE_TO_CLEAR OA \
-        --ATTRIBUTE_TO_CLEAR XA \
-        --RESTORE_HARDCLIPS false \
-        --SORT_ORDER coordinate
-
+            RevertSam \
+            --INPUT ~{input_bam} \
+            --OUTPUT ~{output_bam_filename} \
+            --VALIDATION_STRINGENCY LENIENT \
+            --ATTRIBUTE_TO_CLEAR FT \
+            --ATTRIBUTE_TO_CLEAR CO \
+            --ATTRIBUTE_TO_CLEAR PA \
+            --ATTRIBUTE_TO_CLEAR OA \
+            --ATTRIBUTE_TO_CLEAR XA \
+            --RESTORE_HARDCLIPS false \
+            --SORT_ORDER coordinate
     >>>
 
     runtime {
@@ -154,7 +153,6 @@ task CramToBam {
     }
 
     command <<<
-
         set -e
         set -o pipefail
 
@@ -162,7 +160,6 @@ task CramToBam {
         samtools view -b -o ~{output_basename}.bam -
         samtools index -b ~{output_basename}.bam
         mv ~{output_basename}.bam.bai ~{output_basename}.bai
-
     >>>
 
     runtime {
@@ -188,7 +185,6 @@ task GenerateOutputMap {
     }
 
     command <<<
-
         set -e
 
         samtools view -H ~{input_bam} | grep '^@RG' | cut -f2 | sed s/ID:// > readgroups.txt
@@ -198,7 +194,6 @@ task GenerateOutputMap {
         for rg in `cat readgroups.txt`; do
         echo -e "$rg\t$rg~{unmapped_bam_suffix}" >> output_map.tsv
         done
-
     >>>
 
     runtime {
@@ -279,14 +274,12 @@ task ValidateSamFile {
     Int max_heap = memory_in_MiB - 500
 
     command <<<
-
         java -Xms~{java_mem}m -Xmx~{max_heap}m -jar /usr/picard/picard.jar \
-        ValidateSamFile \
-        --INPUT ~{input_bam} \
-        --OUTPUT ~{report_filename} \
-        --MODE VERBOSE \
-        --IS_BISULFITE_SEQUENCED false
-
+            ValidateSamFile \
+            --INPUT ~{input_bam} \
+            --OUTPUT ~{report_filename} \
+            --MODE VERBOSE \
+            --IS_BISULFITE_SEQUENCED false
     >>>
 
     runtime {
@@ -316,12 +309,11 @@ task SortSam {
 
     command <<<
         java -Xms~{java_mem}m -Xmx~{max_heap}m -jar /usr/picard/picard.jar \
-        SortSam \
-        --INPUT ~{input_bam} \
-        --OUTPUT ~{output_bam_filename} \
-        --SORT_ORDER queryname \
-        --MAX_RECORDS_IN_RAM 300000
-
+            SortSam \
+            --INPUT ~{input_bam} \
+            --OUTPUT ~{output_bam_filename} \
+            --SORT_ORDER queryname \
+            --MAX_RECORDS_IN_RAM 300000
     >>>
 
     runtime {

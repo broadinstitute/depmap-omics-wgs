@@ -3,6 +3,8 @@
   "inputs": {
     "preprocess_wgs_sample.contamination_vcf": "\"gs://gatk-best-practices/somatic-hg38/small_exac_common_3.hg38.vcf.gz\"",
     "preprocess_wgs_sample.contamination_vcf_index": "\"gs://gatk-best-practices/somatic-hg38/small_exac_common_3.hg38.vcf.gz.tbi\"",
+    "preprocess_wgs_sample.cram_ref_fasta": "this.delivery_ref_fasta",
+    "preprocess_wgs_sample.cram_ref_fasta_index": "this.delivery_ref_fasta_index",
     "preprocess_wgs_sample.dbsnp_vcf": "workspace.referenceData_hg38_dbsnp_vcf",
     "preprocess_wgs_sample.dbsnp_vcf_index": "workspace.referenceData_hg38_dbsnp_vcf_index",
     "preprocess_wgs_sample.ref_amb": "this.ref_amb",
