@@ -114,7 +114,7 @@ task Funcotate {
 
     # Mem is in units of GB but our command and memory runtime values are in MB
     Int default_ram_mb = 1024 * 3
-    Int machine_mem = if defined(mem) then mem *1024 else default_ram_mb
+    Int machine_mem = if defined(mem) then mem * 1024 else default_ram_mb
     Int command_mem = machine_mem - 1024
 
     # Calculate disk size:
@@ -167,6 +167,7 @@ task Funcotate {
             --validate-integrity \
             --hg38 \
             --extract-after-download \
+            --verbosity WARNING \
             ~{"--gcs-project-for-requester-pays " + gcs_project_for_requester_pays}
 
         # find where the datasources were extracted to
