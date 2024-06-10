@@ -20,3 +20,4 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry install --only main --no-root --no-cache
 
 COPY purecn_postprocess ./purecn_postprocess
+RUN poetry install --only-root

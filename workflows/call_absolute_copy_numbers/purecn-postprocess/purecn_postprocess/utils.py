@@ -46,12 +46,7 @@ def collect_outputs(solution_path: Path, loh_path: Path, out_path: Path) -> None
         "is_wgd": is_wgd,
     }
 
-    # create parent directory of out_path if it doesn't exist yet
-    if not os.path.exists(os.path.dirname(out_path)):
-        os.makedirs(os.path.dirname(out_path), exist_ok=True)
-
     # write JSON to file
-    echo(out_path)
     with open(out_path, "w") as f:
         json.dump(res, f)
 

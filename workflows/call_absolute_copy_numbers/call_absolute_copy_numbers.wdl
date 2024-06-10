@@ -125,6 +125,9 @@ task purecn_postprocess {
         File selected_solution
         File loh
 
+        String docker_image
+        String docker_image_hash_or_tag
+
         Int preemptible = 2
         Int max_retries = 1
         Int cpu = 1
@@ -133,7 +136,7 @@ task purecn_postprocess {
     }
 
     command <<<
-        poetry run python -m purecn_postprocess \
+        python -m purecn_postprocess \
             --solution="~{selected_solution}" \
             --loh="~{loh}" \
             --out="out.json"
@@ -144,7 +147,7 @@ task purecn_postprocess {
     }
 
     runtime {
-        docker: "us-docker.pkg.dev/depmap-omics/public/purecn_postprocess:production"
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
         memory: "~{mem_gb} GiB"
         disks: "local-disk ~{disk_space} SSD"
         preemptible: preemptible
