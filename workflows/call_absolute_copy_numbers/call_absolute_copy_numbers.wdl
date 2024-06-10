@@ -84,26 +84,30 @@ task run_purecn {
     ) + 10 + additional_disk_gb
 
     command <<<
-        output=$(
-            Rscript /opt/PureCN/PureCN.R \
-                --out="~{sample_id}" \
-                --sampleid="~{sample_id}" \
-                --seg-file="~{called_segments}" \
-                --vcf="~{called_mutations}" \
-                --intervals="~{intervals}" \
-                --genome="~{genome}" \
-                ~{"--max-purity " + max_purity} \
-                ~{"--min-purity " + min_purity} \
-                ~{"--max-copy-number " + max_copy_number} \
-                ~{"--fun-segmentation " + fun_segmentation} \
-                ~{"--max-segments " + max_segments} \
-                ~{"--min-total-counts " + min_total_counts} \
-                ~{otherArguments} \
-                2>&1
-        )
+        # make a file to store the PureCN log
+        tmpoutput=$(mktemp)
 
-        exit_code=$?
-        echo "$output"
+        Rscript /opt/PureCN/PureCN.R \
+            --out="~{sample_id}" \
+            --sampleid="~{sample_id}" \
+            --seg-file="~{called_segments}" \
+            --vcf="~{called_mutations}" \
+            --intervals="~{intervals}" \
+            --genome="~{genome}" \
+            ~{"--max-purity " + max_purity} \
+            ~{"--min-purity " + min_purity} \
+            ~{"--max-copy-number " + max_copy_number} \
+            ~{"--fun-segmentation " + fun_segmentation} \
+            ~{"--max-segments " + max_segments} \
+            ~{"--min-total-counts " + min_total_counts} \
+            ~{otherArguments} \
+            2>&1 | tee "$tmpoutput"
+
+        # get the PureCN exit code
+        exit_code=${PIPESTATUS[0]}
+
+        # read in the output
+        output=$(<"$tmpoutput")
 
         if [[ $exit_code -eq 0 ]]; then
             # success
