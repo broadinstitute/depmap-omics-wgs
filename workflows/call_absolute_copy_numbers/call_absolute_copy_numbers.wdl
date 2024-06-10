@@ -33,23 +33,26 @@ workflow call_absolute_copy_numbers {
             intervals = intervals
     }
 
-    call purecn_postprocess {
-        input:
-            selected_solution = run_purecn.selected_solution,
-            loh = run_purecn.loh
+    if (run_purecn.found_solution) {
+        call purecn_postprocess {
+            input:
+                selected_solution = select_first([run_purecn.selected_solution]),
+                loh = select_first([run_purecn.loh])
+        }
     }
 
     output {
-        File purecn_solutions_pdf = run_purecn.solutions_pdf
-        File purecn_chromosomes_pdf = run_purecn.chromosomes_pdf
-        File purecn_rds = run_purecn.rds
-        File purecn_dnacopy = run_purecn.dnacopy
-        File purecn_variants = run_purecn.variants
-        File purecn_loh = run_purecn.loh
-        File purecn_genes = run_purecn.genes
-        File purecn_segmentation = run_purecn.segmentation
-        File purecn_local_optima_pdf = run_purecn.local_optima_pdf
-        PureCnSolution purecn_solution = purecn_postprocess.solution
+        Boolean purecn_found_solution = run_purecn.found_solution
+        File? purecn_solutions_pdf = run_purecn.solutions_pdf
+        File? purecn_chromosomes_pdf = run_purecn.chromosomes_pdf
+        File? purecn_rds = run_purecn.rds
+        File? purecn_dnacopy = run_purecn.dnacopy
+        File? purecn_variants = run_purecn.variants
+        File? purecn_loh = run_purecn.loh
+        File? purecn_genes = run_purecn.genes
+        File? purecn_segmentation = run_purecn.segmentation
+        File? purecn_local_optima_pdf = run_purecn.local_optima_pdf
+        PureCnSolution? purecn_solution = purecn_postprocess.solution
     }
 }
 
@@ -81,33 +84,53 @@ task run_purecn {
     ) + 10 + additional_disk_gb
 
     command <<<
-        Rscript /opt/PureCN/PureCN.R \
-            --out="~{sample_id}" \
-            --sampleid="~{sample_id}" \
-            --seg-file="~{called_segments}" \
-            --vcf="~{called_mutations}" \
-            --intervals="~{intervals}" \
-            --genome="~{genome}" \
-            ~{"--max-purity " + max_purity} \
-            ~{"--min-purity " + min_purity} \
-            ~{"--max-copy-number " + max_copy_number} \
-            ~{"--fun-segmentation " + fun_segmentation} \
-            ~{"--max-segments " + max_segments} \
-            ~{"--min-total-counts " + min_total_counts} \
-            ~{otherArguments}
+        output=$(
+            Rscript /opt/PureCN/PureCN.R \
+                --out="~{sample_id}" \
+                --sampleid="~{sample_id}" \
+                --seg-file="~{called_segments}" \
+                --vcf="~{called_mutations}" \
+                --intervals="~{intervals}" \
+                --genome="~{genome}" \
+                ~{"--max-purity " + max_purity} \
+                ~{"--min-purity " + min_purity} \
+                ~{"--max-copy-number " + max_copy_number} \
+                ~{"--fun-segmentation " + fun_segmentation} \
+                ~{"--max-segments " + max_segments} \
+                ~{"--min-total-counts " + min_total_counts} \
+                ~{otherArguments} \
+                2>&1
+        )
+
+        exit_code=$?
+        echo "$output"
+
+        if [[ $exit_code -eq 0 ]]; then
+            # success
+            echo "true" > "expect_solution.txt"
+            exit 0
+        elif [[ $output == *"Could not find valid purity and ploidy solution"* ]]; then
+            # gracefully handle expected error condition
+            echo "false" > "expect_solution.txt"
+            exit 0
+        else
+            # unexpected error
+            exit $exit_code
+        fi
     >>>
 
     output {
-        File solutions_pdf = "~{sample_id}.pdf"
-        File chromosomes_pdf = "~{sample_id}_chromosomes.pdf"
-        File rds = "~{sample_id}.rds"
-        File dnacopy = "~{sample_id}_dnacopy.seg"
-        File variants = "~{sample_id}_variants.csv"
-        File loh = "~{sample_id}_loh.csv"
-        File genes = "~{sample_id}_genes.csv"
-        File segmentation = "~{sample_id}_segmentation.pdf"
-        File selected_solution = "~{sample_id}.csv"
-        File local_optima_pdf = "~{sample_id}_local_optima.pdf"
+        Boolean found_solution = read_boolean("expect_solution.txt")
+        File? solutions_pdf = "~{sample_id}.pdf"
+        File? chromosomes_pdf = "~{sample_id}_chromosomes.pdf"
+        File? rds = "~{sample_id}.rds"
+        File? dnacopy = "~{sample_id}_dnacopy.seg"
+        File? variants = "~{sample_id}_variants.csv"
+        File? loh = "~{sample_id}_loh.csv"
+        File? genes = "~{sample_id}_genes.csv"
+        File? segmentation = "~{sample_id}_segmentation.pdf"
+        File? selected_solution = "~{sample_id}.csv"
+        File? local_optima_pdf = "~{sample_id}_local_optima.pdf"
     }
 
     runtime {

@@ -17,6 +17,7 @@
   "namespace": "cds-pipelines",
   "name": "call_absolute_copy_numbers",
   "outputs": {
+    "call_absolute_copy_numbers.purecn_found_solution": "this.purecn_found_solution",
     "call_absolute_copy_numbers.purecn_solutions_pdf": "this.purecn_solutions_pdf",
     "call_absolute_copy_numbers.purecn_chromosomes_pdf": "this.purecn_chromosomes_pdf",
     "call_absolute_copy_numbers.purecn_rds": "this.purecn_rds",
