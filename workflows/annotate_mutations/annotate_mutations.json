@@ -1,0 +1,29 @@
+{
+  "deleted": false,
+  "inputs": {
+    "annotate_mutations.filter_funcotations": "false",
+    "annotate_mutations.gatk_docker": "\"broadinstitute/gatk:4.5.0.0\"",
+    "annotate_mutations.gcs_project_for_requester_pays": "\"depmap-omics\"",
+    "annotate_mutations.input_vcf": "this.mut_filtered_vcf",
+    "annotate_mutations.input_vcf_idx": "this.mut_filtered_vcf_idx",
+    "annotate_mutations.interval_list": "\"gs://ccleparams/region_file_wgs.list\"",
+    "annotate_mutations.output_file_base_name": "this.sample_id",
+    "annotate_mutations.output_format": "\"VCF\"",
+    "annotate_mutations.ref_dict": "this.ref_dict",
+    "annotate_mutations.ref_fasta": "this.ref_fasta",
+    "annotate_mutations.ref_fasta_index": "this.ref_fasta_index"
+  },
+  "methodConfigVersion": 1,
+  "methodRepoMethod": {
+    "methodNamespace": "cds-pipelines",
+    "methodName": "annotate_mutations",
+    "methodVersion": 1
+  },
+  "namespace": "cds-pipelines",
+  "name": "annotate_mutations",
+  "outputs": {
+    "annotate_mutations.funcotated_file_out": "this.funcotated_vcf",
+    "annotate_mutations.funcotated_file_out_idx": "this.funcotated_vcf_idx"
+  },
+  "rootEntityType": "sample"
+}
