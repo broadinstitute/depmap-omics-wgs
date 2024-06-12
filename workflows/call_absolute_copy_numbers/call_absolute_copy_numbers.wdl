@@ -104,7 +104,7 @@ task run_purecn {
             2>&1 | tee "$tmpoutput"
 
         # get the PureCN exit code
-        exit_code=${PIPESTATUS[0]}
+        exit_code=$(PIPESTATUS[0])
 
         # read in the output
         output=$(<"$tmpoutput")
@@ -154,7 +154,6 @@ task purecn_postprocess {
 
         String docker_image
         String docker_image_hash_or_tag
-
         Int preemptible = 2
         Int max_retries = 1
         Int cpu = 1
