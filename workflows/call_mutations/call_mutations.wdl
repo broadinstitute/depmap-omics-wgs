@@ -693,7 +693,7 @@ task Filter {
 
         gatk --java-options "-Xmx~{runtime_params.command_mem}m" FilterMutectCalls -V ~{unfiltered_vcf} \
             -R ~{ref_fasta} \
-            -O out.vcf \
+            -O "~{output_vcf}" \
             ~{"--contamination-table " + contamination_table} \
             ~{"--tumor-segmentation " + maf_segments} \
             ~{"--ob-priors " + artifact_priors_tar_gz} \
@@ -723,7 +723,7 @@ task Filter {
                 # no match
                 print $0;
             }
-        }' out.vcf > "~{output_vcf}"
+        }' > tmp.vcf && mv tmp.vcf "~{output_vcf}"
     >>>
 
     runtime {
