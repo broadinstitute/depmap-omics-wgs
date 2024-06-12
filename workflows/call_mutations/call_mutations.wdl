@@ -702,7 +702,7 @@ task Filter {
             ~{m2_extra_filtering_args}
 
         # fix for https://github.com/broadinstitute/gatk/issues/6857
-        awk -i '{
+        awk '{
             # find the filter status field
             match($0, /\tAS_FilterStatus=[^;]+;/);
 
