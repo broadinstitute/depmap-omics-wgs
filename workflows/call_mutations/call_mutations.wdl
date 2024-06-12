@@ -723,7 +723,7 @@ task Filter {
                 # no match
                 print $0;
             }
-        }' > tmp.vcf && mv tmp.vcf "~{output_vcf}"
+        }' "~{output_vcf}" > tmp.vcf && mv tmp.vcf "~{output_vcf}"
     >>>
 
     runtime {
