@@ -1,9 +1,9 @@
 FROM bitnami/minideb:bullseye
 
 ENV DEBIAN_FRONTEND noninteractive
+ENV BCFTOOLS_VERSION="1.20"
 
 ADD https://bootstrap.pypa.io/get-pip.py /tmp/get-pip.py
-ADD https://raw.githubusercontent.com/dceoy/print-github-tags/master/print-github-tags /usr/local/bin/print-github-tags
 
 RUN set -e \
   && ln -sf bash /bin/sh
@@ -21,10 +21,8 @@ RUN set -e \
     && rm -rf /var/lib/apt/lists/*
 
 RUN set -eo pipefail \
-    && chmod +x /usr/local/bin/print-github-tags \
-    && print-github-tags --release --latest samtools/bcftools \
-        | xargs -i curl -SL \
-        https://github.com/samtools/bcftools/releases/download/{}/bcftools-{}.tar.bz2 \
+    && curl -SL \
+        https://github.com/samtools/bcftools/releases/download/${BCFTOOLS_VERSION}/bcftools-${BCFTOOLS_VERSION}.tar.bz2 \
         -o /tmp/bcftools.tar.bz2 \
     && tar xvf /tmp/bcftools.tar.bz2 -C /usr/local/src --remove-files \
     && mv /usr/local/src/bcftools-* /usr/local/src/bcftools \
