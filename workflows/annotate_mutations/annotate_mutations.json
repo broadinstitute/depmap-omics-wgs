@@ -1,8 +1,15 @@
 {
   "deleted": false,
   "inputs": {
+    "annotate_mutations.exclude_string": "\"FILTER~\\\"weak_evidence\\\"||FILTER~\\\"map_qual\\\"||FILTER~\\\"strand_bias\\\"||FILTER~\\\"slippage\\\"||FILTER~\\\"clustered_events\\\"||FILTER~\\\"base_qual\\\"\"",
+    "annotate_mutations.filter_and_mask.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/bcftools\"",
+    "annotate_mutations.filter_and_mask.docker_image_hash_or_tag": "\"@sha256:9e9d8644288d8670101b0a57bbb21ca6f56290e1d26543f72920fa2dd188287e\"",
     "annotate_mutations.filter_funcotations": "false",
-    "annotate_mutations.gatk_docker": "\"broadinstitute/gatk:4.5.0.0\"",
+    "annotate_mutations.fix_ploidy.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/bcftools\"",
+    "annotate_mutations.fix_ploidy.docker_image_hash_or_tag": "\"@sha256:9e9d8644288d8670101b0a57bbb21ca6f56290e1d26543f72920fa2dd188287e\"",
+    "annotate_mutations.funcotate.docker_image": "\"broadinstitute/gatk\"",
+    "annotate_mutations.funcotate.docker_image_hash_or_tag": "\":4.5.0.0\"",
+    "annotate_mutations.funcotator_data_sources_url": "\"gs://cds-pipelines/data/funcotator/funcotator_dataSources.v1.8.hg38.20230908s\"",
     "annotate_mutations.gcs_project_for_requester_pays": "\"depmap-omics\"",
     "annotate_mutations.input_vcf": "this.mut_filtered_vcf",
     "annotate_mutations.input_vcf_idx": "this.mut_filtered_vcf_idx",
@@ -11,7 +18,12 @@
     "annotate_mutations.output_format": "\"VCF\"",
     "annotate_mutations.ref_dict": "this.ref_dict",
     "annotate_mutations.ref_fasta": "this.ref_fasta",
-    "annotate_mutations.ref_fasta_index": "this.ref_fasta_index"
+    "annotate_mutations.ref_fasta_index": "this.ref_fasta_index",
+    "annotate_mutations.repeatmasker_bed": "\"gs://ccleparams/repeatMasker_max10_noAlt_merged_forBcftools.bed.gz\"",
+    "annotate_mutations.repeatmasker_bed_index": "\"gs://ccleparams/repeatMasker_max10_noAlt_merged_forBcftools.bed.gz.tbi\"",
+    "annotate_mutations.sample_id": "this.sample_id",
+    "annotate_mutations.segdup_bed": "\"gs://ccleparams/segDup_majorAllele_withAltContigs_98pcFracMatch_merged_forBcftools.bed.gz\"",
+    "annotate_mutations.segdup_bed_index": "\"gs://ccleparams/segDup_majorAllele_withAltContigs_98pcFracMatch_merged_forBcftools.bed.gz.tbi\""
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {

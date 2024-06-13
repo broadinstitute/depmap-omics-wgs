@@ -41,7 +41,7 @@ task msisensor2 {
     String bam_path = basename(bam)
     Int disk_space = ceil(size(bam, "GiB")) + 10 + additional_disk_gb
 
-    command {
+    command <<<
         set -euo pipefail
 
         mv ~{bam} .
@@ -56,7 +56,7 @@ task msisensor2 {
             tail -1 | \
             cut -f3 > \
             ~{sample_id}.msisensor2.score
-    }
+    >>>
 
     output {
         Float msisensor2_score = read_float("~{sample_id}.msisensor2.score")
