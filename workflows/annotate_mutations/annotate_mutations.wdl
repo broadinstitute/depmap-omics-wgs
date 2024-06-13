@@ -144,34 +144,40 @@ task filter_and_mask {
     command <<<
         set -euo pipefail
 
+        echo "Filtering VCF: ~{exclude_string}"
         bcftools view \
+            ~{vcf} \
             --exclude='~{exclude_string}' \
             --threads=~{cpu} \
-            ~{vcf} \
-            -o ~{sample_id}_filtered.vcf.gz
+            -o ~{sample_id}_filtered.vcf.gz && rm ~{vcf}
 
-        bcftools index \
-            --csi \
-            --threads=~{cpu} \
-            ~{sample_id}_filtered.vcf.gz \
-            -o ~{sample_id}_filtered.vcf.gz.csi
-
+        echo "Annotating segmental duplication regions"
         bcftools annotate \
+            ~{sample_id}_filtered.vcf.gz \
             -a ~{segdup_bed} \
             -c CHROM,FROM,TO,SEGDUP \
             -h <(echo '##INFO=<ID=SEGDUP,Number=1,Type=String,Description="If variant is in a segmental duplication region">') \
-            ~{sample_id}_filtered.vcf.gz
+            -o ~{sample_id}_segdup.vcf.gz && rm ~{sample_id}_filtered.vcf.gz
 
+        echo "Annotating repeat masker regions"
         bcftools annotate \
+            ~{sample_id}_segdup.vcf.gz \
             -a ~{repeatmasker_bed} \
             -c CHROM,FROM,TO,RM \
             -h <(echo '##INFO=<ID=RM,Number=1,Type=String,Description="If variant is in a Repeat Masker region">') \
-            ~{sample_id}_filtered.vcf.gz
+            -o ~{sample_id}_masked.vcf.gz && rm ~{sample_id}_segdup.vcf.gz
+
+        echo "Reindexing VCF"
+        bcftools index \
+            ~{sample_id}_masked.vcf.gz \
+            --csi \
+            --threads=~{cpu} \
+            -o ~{sample_id}_masked.vcf.gz.csi
     >>>
 
     output {
-        File vcf_filtered = "~{sample_id}_filtered.vcf.gz"
-        File vcf_filtered_index = "~{sample_id}_filtered.vcf.gz.csi"
+        File vcf_filtered = "~{sample_id}_masked.vcf.gz"
+        File vcf_filtered_index = "~{sample_id}_masked.vcf.gz.csi"
     }
 
     runtime {
