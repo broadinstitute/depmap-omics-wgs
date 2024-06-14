@@ -7,7 +7,6 @@ workflow annotate_mutations {
 
         File ref_fasta
         File ref_fasta_index
-        File ref_dict
         String sample_id
         File input_vcf
         File input_vcf_idx
@@ -43,6 +42,7 @@ workflow annotate_mutations {
 
     call filter_and_mask {
         input:
+            ref_fasta = ref_fasta,
             sample_id = sample_id,
             vcf = fix_ploidy.vcf_fixedploidy,
             exclude_string = exclude_string,
@@ -122,6 +122,8 @@ task fix_ploidy {
 
 task filter_and_mask {
     input {
+        File ref_fasta
+        File ref_fasta_index
         String sample_id
         File vcf
         String exclude_string
@@ -146,33 +148,62 @@ task filter_and_mask {
 
         echo "Filtering VCF: ~{exclude_string}"
         bcftools view \
-            ~{vcf} \
+            "~{vcf}" \
             --exclude='~{exclude_string}' \
-            --threads=~{cpu} \
-            -o ~{sample_id}_filtered.vcf.gz && rm ~{vcf}
+            --output="~{sample_id}_filtered.vcf.gz" && rm "~{vcf}"
 
         echo "Annotating segmental duplication regions"
+        echo '##INFO=<ID=SEGDUP,Number=1,Type=String,Description="If variant is in a segmental duplication region">' > \
+            segdup.hdr.vcf
         bcftools annotate \
-            ~{sample_id}_filtered.vcf.gz \
-            -a ~{segdup_bed} \
-            -c CHROM,FROM,TO,SEGDUP \
-            -h <(echo '##INFO=<ID=SEGDUP,Number=1,Type=String,Description="If variant is in a segmental duplication region">') \
-            -o ~{sample_id}_segdup.vcf.gz && rm ~{sample_id}_filtered.vcf.gz
+            "~{sample_id}_filtered.vcf.gz" \
+            --annotations="~{segdup_bed}" \
+            --columns="CHROM,FROM,TO,SEGDUP" \
+            --header-lines="segdup.hdr.vcf" \
+            --output="~{sample_id}_segdup.vcf.gz" && rm "~{sample_id}_filtered.vcf.gz"
 
         echo "Annotating repeat masker regions"
+        echo '##INFO=<ID=RM,Number=1,Type=String,Description="If variant is in a Repeat Masker region">' > \
+            repeatmasker.hdr.vcf
         bcftools annotate \
-            ~{sample_id}_segdup.vcf.gz \
-            -a ~{repeatmasker_bed} \
-            -c CHROM,FROM,TO,RM \
-            -h <(echo '##INFO=<ID=RM,Number=1,Type=String,Description="If variant is in a Repeat Masker region">') \
-            -o ~{sample_id}_masked.vcf.gz && rm ~{sample_id}_segdup.vcf.gz
+            "~{sample_id}_segdup.vcf.gz" \
+            --annotations="~{repeatmasker_bed}" \
+            --columns="CHROM,FROM,TO,RM" \
+            --header-lines="repeatmasker.hdr.vcf" \
+            --output="~{sample_id}_masked.vcf.gz" && rm "~{sample_id}_segdup.vcf.gz"
+
+        echo "Normalizing indels"
+        bcftools norm "~{sample_id}_masked.vcf.gz" \
+            --multiallelics=- \
+            --site-win=10000 \
+            --fasta-ref="~{ref_fasta}" \
+            --output="~{sample_id}_normalized.vcf.gz" && rm "~{sample_id}_masked.vcf.gz"
 
         echo "Reindexing VCF"
         bcftools index \
-            ~{sample_id}_masked.vcf.gz \
+            "~{sample_id}_normalized.vcf.gz" \
             --csi \
-            --threads=~{cpu} \
-            -o ~{sample_id}_masked.vcf.gz.csi
+            --output="~{sample_id}_normalized.vcf.gz.csi"
+    >>>
+
+    output {
+        File vcf_filtered = "~{sample_id}_normalized.vcf.gz"
+        File vcf_filtered_index = "~{sample_id}_normalized.vcf.gz.csi"
+    }
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+
+    meta {
+        allowNestedInputs: true
+    }
+}
     >>>
 
     output {

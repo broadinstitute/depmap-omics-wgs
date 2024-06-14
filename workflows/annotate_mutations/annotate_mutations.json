@@ -16,7 +16,6 @@
     "annotate_mutations.interval_list": "\"gs://ccleparams/region_file_wgs.list\"",
     "annotate_mutations.output_file_base_name": "this.sample_id",
     "annotate_mutations.output_format": "\"VCF\"",
-    "annotate_mutations.ref_dict": "this.ref_dict",
     "annotate_mutations.ref_fasta": "this.ref_fasta",
     "annotate_mutations.ref_fasta_index": "this.ref_fasta_index",
     "annotate_mutations.repeatmasker_bed": "\"gs://ccleparams/repeatMasker_max10_noAlt_merged_forBcftools.bed.gz\"",
