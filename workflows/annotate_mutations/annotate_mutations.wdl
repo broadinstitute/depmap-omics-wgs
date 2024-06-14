@@ -43,6 +43,7 @@ workflow annotate_mutations {
     call filter_and_mask {
         input:
             ref_fasta = ref_fasta,
+            ref_fasta_index = ref_fasta_index,
             sample_id = sample_id,
             vcf = fix_ploidy.vcf_fixedploidy,
             exclude_string = exclude_string,
@@ -50,6 +51,12 @@ workflow annotate_mutations {
             segdup_bed_index = segdup_bed_index,
             repeatmasker_bed = repeatmasker_bed,
             repeatmasker_bed_index = repeatmasker_bed_index
+    }
+
+    call snpeff_snpsift {
+        input:
+            sample_id = sample_id,
+            vcf = filter_and_mask.vcf_filtered
     }
 
     output {
@@ -204,11 +211,35 @@ task filter_and_mask {
         allowNestedInputs: true
     }
 }
+
+task snpeff_snpsift {
+    input {
+        String sample_id
+        File vcf
+
+        String docker_image
+        String docker_image_hash_or_tag
+        Int mem_gb = 16
+        Int cpu = 1
+        Int preemptible = 3
+        Int max_retries = 0
+        Int additional_disk_gb = 0
+    }
+
+    Int disk_space = 2 * ceil(size(vcf, "GiB")) + 10 + additional_disk_gb
+
+    command <<<
+        java -Xmx14g -jar /app/snpEff.jar \
+            ann \
+            -noStats \
+            -verbose \
+            GRCh38.mane.1.0.ensembl \
+            "~{vcf}" > \
+            "~{sample_id}_annot.vcf.gz"
     >>>
 
     output {
-        File vcf_filtered = "~{sample_id}_masked.vcf.gz"
-        File vcf_filtered_index = "~{sample_id}_masked.vcf.gz.csi"
+        File vcf_annot = "~{sample_id}_annot.vcf.gz"
     }
 
     runtime {

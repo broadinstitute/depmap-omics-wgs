@@ -22,7 +22,9 @@
     "annotate_mutations.repeatmasker_bed_index": "\"gs://ccleparams/repeatMasker_max10_noAlt_merged_forBcftools.bed.gz.tbi\"",
     "annotate_mutations.sample_id": "this.sample_id",
     "annotate_mutations.segdup_bed": "\"gs://ccleparams/segDup_majorAllele_withAltContigs_98pcFracMatch_merged_forBcftools.bed.gz\"",
-    "annotate_mutations.segdup_bed_index": "\"gs://ccleparams/segDup_majorAllele_withAltContigs_98pcFracMatch_merged_forBcftools.bed.gz.tbi\""
+    "annotate_mutations.segdup_bed_index": "\"gs://ccleparams/segDup_majorAllele_withAltContigs_98pcFracMatch_merged_forBcftools.bed.gz.tbi\"",
+    "annotate_mutations.snpeff_snpsift.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/snpeff_snpsift\"",
+    "annotate_mutations.snpeff_snpsift.docker_image_hash_or_tag": "\"@sha256:287111e478cdcd75fc55387af8f947594c5e8929213c59e85dff719fb81e1301\""
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
