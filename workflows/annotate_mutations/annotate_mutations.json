@@ -1,6 +1,8 @@
 {
   "deleted": false,
   "inputs": {
+    "annotate_mutations.clinvar_vcf": "\"gs://cds-pipelines/data/clinvar/clinvar_20240611.vcf.gz\"",
+    "annotate_mutations.clinvar_vcf_index": "\"gs://cds-pipelines/data/clinvar/clinvar_20240611.vcf.gz.tbi\"",
     "annotate_mutations.exclude_string": "\"FILTER~\\\"weak_evidence\\\"||FILTER~\\\"map_qual\\\"||FILTER~\\\"strand_bias\\\"||FILTER~\\\"slippage\\\"||FILTER~\\\"clustered_events\\\"||FILTER~\\\"base_qual\\\"\"",
     "annotate_mutations.filter_and_mask.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/bcftools\"",
     "annotate_mutations.filter_and_mask.docker_image_hash_or_tag": "\"@sha256:9e9d8644288d8670101b0a57bbb21ca6f56290e1d26543f72920fa2dd188287e\"",
@@ -24,7 +26,7 @@
     "annotate_mutations.segdup_bed": "\"gs://ccleparams/segDup_majorAllele_withAltContigs_98pcFracMatch_merged_forBcftools.bed.gz\"",
     "annotate_mutations.segdup_bed_index": "\"gs://ccleparams/segDup_majorAllele_withAltContigs_98pcFracMatch_merged_forBcftools.bed.gz.tbi\"",
     "annotate_mutations.snpeff_snpsift.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/snpeff_snpsift\"",
-    "annotate_mutations.snpeff_snpsift.docker_image_hash_or_tag": "\"@sha256:287111e478cdcd75fc55387af8f947594c5e8929213c59e85dff719fb81e1301\""
+    "annotate_mutations.snpeff_snpsift.docker_image_hash_or_tag": "\"@sha256:3dbd2c668cf598861b075eaca3482cb9554de04cdcc2aac4629b7e13e127fcca\""
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {

@@ -15,6 +15,8 @@ workflow annotate_mutations {
         File segdup_bed_index
         File repeatmasker_bed
         File repeatmasker_bed_index
+        File clinvar_vcf
+        File clinvar_vcf_index
         String output_file_base_name
         String reference_version = "hg38"
         String output_format = "VCF"
@@ -56,7 +58,9 @@ workflow annotate_mutations {
     call snpeff_snpsift {
         input:
             sample_id = sample_id,
-            vcf = filter_and_mask.vcf_filtered
+            vcf = filter_and_mask.vcf_filtered,
+            clinvar_vcf = clinvar_vcf,
+            clinvar_vcf_index = clinvar_vcf_index
     }
 
     output {
@@ -80,7 +84,7 @@ task fix_ploidy {
 
     # we need twice the ungzipped size of the input VCF, plus the gzipped size of the
     # output VCF
-    Int disk_space = 2 * 10 * ceil(size(vcf, "GiB")) + ceil(size(vcf, "GiB")) + 10 + additional_disk_gb
+    Int disk_space = ceil(2 * 10 * size(vcf, "GiB")) + ceil(size(vcf, "GiB")) + 10 + additional_disk_gb
 
     command <<<
         set -euo pipefail
@@ -148,7 +152,7 @@ task filter_and_mask {
         Int additional_disk_gb = 0
     }
 
-    Int disk_space = 2 * ceil(size(vcf, "GiB")) + 10 + additional_disk_gb
+    Int disk_space = ceil(2 * size(vcf, "GiB")) + 10 + additional_disk_gb
 
     command <<<
         set -euo pipefail
@@ -216,6 +220,8 @@ task snpeff_snpsift {
     input {
         String sample_id
         File vcf
+        File clinvar_vcf
+        File clinvar_vcf_index
 
         String docker_image
         String docker_image_hash_or_tag
@@ -226,20 +232,31 @@ task snpeff_snpsift {
         Int additional_disk_gb = 0
     }
 
-    Int disk_space = 2 * ceil(size(vcf, "GiB")) + 10 + additional_disk_gb
+    Int disk_space = ceil(2 * 10 * size(vcf, "GiB")) + 10 + additional_disk_gb
 
     command <<<
+        echo "Annotating with snpEff"
         java -Xmx14g -jar /app/snpEff.jar \
             ann \
             -noStats \
-            -verbose \
-            GRCh38.mane.1.0.ensembl \
+            GRCh38.mane.1.2.ensembl \
             "~{vcf}" > \
-            "~{sample_id}_annot.vcf.gz"
+            "~{sample_id}_snpeff.vcf" && rm "~{vcf}"
+
+        echo "Annotating with SnpSift"
+        java -Xmx14g -jar /app/SnpSift.jar \
+            annotate \
+            -tabix \
+            -noDownload \
+            ~{clinvar_vcf} \
+            "~{sample_id}_snpeff.vcf" > \
+            "~{sample_id}_snpsift.vcf" && rm "~{sample_id}_snpeff.vcf"
+
+        bgzip "~{sample_id}_snpsift.vcf" -o "~{sample_id}_snpsift.vcf.gz"
     >>>
 
     output {
-        File vcf_annot = "~{sample_id}_annot.vcf.gz"
+        File vcf_annot = "~{sample_id}_snpsift.vcf.gz"
     }
 
     runtime {
