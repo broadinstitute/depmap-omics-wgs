@@ -3,6 +3,8 @@
   "inputs": {
     "annotate_mutations.clinvar_vcf": "\"gs://cds-pipelines/data/clinvar/clinvar_20240611.vcf.gz\"",
     "annotate_mutations.clinvar_vcf_index": "\"gs://cds-pipelines/data/clinvar/clinvar_20240611.vcf.gz.tbi\"",
+    "annotate_mutations.ensembl_vep.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/ensembl_vep\"",
+    "annotate_mutations.ensembl_vep.docker_image_hash_or_tag": "\"@sha256:e5556a32aba073ee6da84c02dbd2c30074358233bb4bdf08715375eacb0663c1\"",
     "annotate_mutations.exclude_string": "\"FILTER~\\\"weak_evidence\\\"||FILTER~\\\"map_qual\\\"||FILTER~\\\"strand_bias\\\"||FILTER~\\\"slippage\\\"||FILTER~\\\"clustered_events\\\"||FILTER~\\\"base_qual\\\"\"",
     "annotate_mutations.filter_and_mask.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/bcftools\"",
     "annotate_mutations.filter_and_mask.docker_image_hash_or_tag": "\"@sha256:9e9d8644288d8670101b0a57bbb21ca6f56290e1d26543f72920fa2dd188287e\"",

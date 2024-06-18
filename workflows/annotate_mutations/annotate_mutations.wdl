@@ -63,6 +63,12 @@ workflow annotate_mutations {
             clinvar_vcf_index = clinvar_vcf_index
     }
 
+    call ensembl_vep {
+        input:
+            sample_id = sample_id,
+            vcf = snpeff_snpsift.vcf_annot
+    }
+
     output {
     }
 }
@@ -235,6 +241,8 @@ task snpeff_snpsift {
     Int disk_space = ceil(2 * 10 * size(vcf, "GiB")) + 10 + additional_disk_gb
 
     command <<<
+        set -euo pipefail
+
         echo "Annotating with snpEff"
         java -Xmx14g -jar /app/snpEff.jar \
             ann \
@@ -257,6 +265,83 @@ task snpeff_snpsift {
 
     output {
         File vcf_annot = "~{sample_id}_snpsift.vcf.gz"
+    }
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+
+    meta {
+        allowNestedInputs: true
+    }
+}
+
+task ensembl_vep {
+    input {
+        String sample_id
+        File vcf
+        File ref_fasta_bgz = "gs://cds-pipelines/data/vep/Homo_sapiens.GRCh38.dna.primary_assembly.fa.bgz"
+        File gene_constraint_scores = "gs://gcp-public-data--gnomad/legacy/exac_browser/forweb_cleaned_exac_r03_march16_z_data_pLI_CNV-final.txt.gz"
+        File loftool_scores = "gs://cds-vep-data/LoFtool_scores.txt"
+        File vep_cache = "gs://cds-vep-data/homo_sapiens_vep_112_GRCh38.tar.gz"
+
+        String docker_image
+        String docker_image_hash_or_tag
+        Int mem_gb = 8
+        Int cpu = 2
+        Int preemptible = 3
+        Int max_retries = 0
+        Int additional_disk_gb = 0
+    }
+
+    Int disk_space = (
+        ceil(10 * size(vcf, "GiB") +
+             size(ref_fasta_bgz, "GiB") +
+             size(gene_constraint_scores, "GiB") +
+             size(loftool_scores, "GiB") +
+             3 * size(vep_cache, "GiB")
+        ) + 10 + additional_disk_gb
+    )
+
+    command <<<
+        set -euo pipefail
+        
+        gunzip -c "~{gene_constraint_scores}" | \
+            awk '{ print $2, $20 }' > \
+            "pLI.tsv"
+
+        echo "Populating VEP cache data"
+        mkdir -p "vep_cache"
+        tar -C "vep_cache" -xzf "~{vep_cache}"
+
+        echo "Running VEP"
+        /opt/vep/src/ensembl-vep/vep \
+            --species="homo_sapiens" \
+            --assembly="GRCh38" \
+            --dir_cache="vep_cache" \
+            --dir_plugins="/plugins" \
+            --input_file="~{vcf}" \
+            --output_file="~{sample_id}_vep.vcf" \
+            --plugin="pLI,pLI.tsv" \
+            --plugin="LoFtool,~{loftool_scores}" \
+            --fasta="~{ref_fasta_bgz}" \
+            --fork=~{cpu} \
+            --buffer_size=5000 \
+            --offline \
+            --cache \
+            --vcf \
+            --no_stats \
+            --everything \
+            --pick
+    >>>
+
+    output {
+        File vcf_annot = "~{sample_id}_vep.vcf"
     }
 
     runtime {
