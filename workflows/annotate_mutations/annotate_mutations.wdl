@@ -7,297 +7,163 @@ workflow annotate_mutations {
 
         File ref_fasta
         File ref_fasta_index
+        File ref_dict
         String sample_id
         File input_vcf
         File input_vcf_idx
-        String exclude_string
-        File segdup_bed
-        File segdup_bed_index
-        File repeatmasker_bed
-        File repeatmasker_bed_index
-        File clinvar_vcf
-        File clinvar_vcf_index
-        String output_file_base_name
-        String vep_chrom_cache_url_prefix
-        String vep_chrom_cache_url_suffix
-        String reference_version = "hg38"
-        String output_format = "VCF"
-        Boolean compress = true
-        Boolean use_gnomad = true
 
+        # scatter/gather VCF by chromosome
+        File? xy_intervals
+
+        # misc. bcftools-based annotation
+        Boolean fix_ploidy = true
+        Boolean filter_vcf = true
+        Boolean annot_seg_dups = true
+        Boolean annot_repeat_masker = true
+        Boolean normalize_indels = true
+        String? exclude_string
+        File? segdup_bed
+        File? segdup_bed_index
+        File? repeatmasker_bed
+        File? repeatmasker_bed_index
+
+        # snpEff and SnpSift annotation
+        Boolean annot_snpeff = true
+        Boolean annot_snpsift = true
+        File? clinvar_vcf
+        File? clinvar_vcf_index
+
+        # Ensembl VEP annotation
+        Boolean annot_ensembl_vep = true
+        File? ref_fasta_bgz
+        File? gene_constraint_scores
+        File? loftool_scores
+        File? alpha_missense
+        File? alpha_missense_index
+        String? vep_chrom_cache_url_prefix
+        String? vep_chrom_cache_url_suffix
+
+        # Funcotator annotation
+        Boolean annot_funcotator = true
+        String? reference_version = "hg38"
+        Boolean? use_gnomad = true
+        Boolean? filter_funcotations = false
         File? interval_list
         String? transcript_selection_mode
         Array[String]? transcript_selection_list
-        Array[String]? annotation_defaults
-        Array[String]? annotation_overrides
-        String funcotator_data_sources_url
+        Array[String]? funcotator_annotation_defaults
+        Array[String]? funcotator_annotation_overrides
+        String? funcotator_data_sources_url
         String? funcotator_extra_args
         String? gcs_project_for_requester_pays
-
-        File? gatk_override
     }
 
-    call fix_ploidy {
-        input:
-            sample_id = sample_id,
-            vcf = input_vcf,
-            vcf_idx = input_vcf_idx
-    }
-
-    call filter_and_mask {
-        input:
-            ref_fasta = ref_fasta,
-            ref_fasta_index = ref_fasta_index,
-            sample_id = sample_id,
-            vcf = fix_ploidy.vcf_fixedploidy,
-            exclude_string = exclude_string,
-            segdup_bed = segdup_bed,
-            segdup_bed_index = segdup_bed_index,
-            repeatmasker_bed = repeatmasker_bed,
-            repeatmasker_bed_index = repeatmasker_bed_index
-    }
-
-    call snpeff_snpsift {
-        input:
-            sample_id = sample_id,
-            vcf = filter_and_mask.vcf_filtered,
-            clinvar_vcf = clinvar_vcf,
-            clinvar_vcf_index = clinvar_vcf_index
-    }
-
-    call split_vcf_by_chrom {
-        input:
-            sample_id = sample_id,
-            vcf = snpeff_snpsift.vcf_annot
-    }
-
-    scatter (vcf in split_vcf_by_chrom.vcfs) {
-        String chrom_num = sub(sub(basename(vcf), "^chr", ""), ".vcf.gz$", "")
-        File vep_cache = vep_chrom_cache_url_prefix + chrom_num + vep_chrom_cache_url_suffix
-
-        call ensembl_vep {
+    if (fix_ploidy || filter_vcf || annot_seg_dups || annot_repeat_masker || normalize_indels) {
+        call annot_with_bcftools {
             input:
-                sample_id = sample_id + '_chr' + chrom_num,
-                vcf = vcf,
-                vep_cache = vep_cache
+                sample_id = sample_id,
+                vcf = input_vcf,
+                vcf_idx = input_vcf_idx,
+                fix_ploidy = fix_ploidy,
+                filter_vcf = filter_vcf,
+                annot_seg_dups = annot_seg_dups,
+                annot_repeat_masker = annot_repeat_masker,
+                normalize_indels = normalize_indels,
+                ref_fasta = ref_fasta,
+                ref_fasta_index = ref_fasta_index,
+                exclude_string = exclude_string,
+                segdup_bed = segdup_bed,
+                segdup_bed_index = segdup_bed_index,
+                repeatmasker_bed = repeatmasker_bed,
+                repeatmasker_bed_index = repeatmasker_bed_index
         }
     }
 
-    call gather_vcfs {
-        input:
-            sample_id = sample_id,
-            vcfs = ensembl_vep.vcf_annot
+    if (annot_snpeff || annot_snpsift) {
+        call snpeff_snpsift {
+            input:
+                sample_id = sample_id,
+                vcf = select_first([annot_with_bcftools.vcf_annot, input_vcf]),
+                annot_snpeff = annot_snpeff,
+                annot_snpsift = annot_snpsift,
+                clinvar_vcf = clinvar_vcf,
+                clinvar_vcf_index = clinvar_vcf_index
+        }
+    }
+
+    if (annot_ensembl_vep) {
+        call split_vcf_by_chrom {
+            input:
+                sample_id = sample_id,
+                vcf = select_first([
+                    snpeff_snpsift.vcf_annot,
+                    annot_with_bcftools.vcf_annot,
+                    input_vcf
+                ]),
+                xy_intervals = select_first([xy_intervals])
+        }
+
+        scatter (vcf in split_vcf_by_chrom.vcfs) {
+            String chrom_num = sub(sub(basename(vcf), "^chr", ""), ".vcf.gz$", "")
+            File vep_cache = vep_chrom_cache_url_prefix + chrom_num + vep_chrom_cache_url_suffix
+
+            call ensembl_vep {
+                input:
+                    sample_id = sample_id + '_chr' + chrom_num,
+                    vcf = vcf,
+                    vep_cache = vep_cache,
+                    ref_fasta_bgz = select_first([ref_fasta_bgz]),
+                    gene_constraint_scores = select_first([gene_constraint_scores]),
+                    loftool_scores = select_first([loftool_scores]),
+                    alpha_missense = select_first([alpha_missense]),
+                    alpha_missense_index = select_first([alpha_missense_index])
+            }
+        }
+
+        call gather_vcfs {
+            input:
+                sample_id = sample_id,
+                vcfs = ensembl_vep.vcf_annot
+        }
+    }
+
+    if (annot_funcotator) {
+        call funcotate {
+            input:
+                ref_fasta = ref_fasta,
+                ref_fasta_index = ref_fasta_index,
+                ref_dict = ref_dict,
+                input_vcf = select_first([
+                    gather_vcfs.output_vcf,
+                    snpeff_snpsift.vcf_annot,
+                    annot_with_bcftools.vcf_annot,
+                    input_vcf
+                ]),
+                reference_version = select_first([reference_version]),
+                output_file_base_name = sample_id,
+                output_format = "VCF",
+                compress = true,
+                use_gnomad = select_first([use_gnomad]),
+                filter_funcotations = select_first([filter_funcotations]),
+                funcotator_data_sources_url = select_first([funcotator_data_sources_url]),
+                interval_list = select_first([interval_list]),
+                transcript_selection_mode = transcript_selection_mode,
+                transcript_selection_list = transcript_selection_list,
+                funcotator_annotation_defaults = funcotator_annotation_defaults,
+                funcotator_annotation_overrides = funcotator_annotation_overrides,
+                extra_args = funcotator_extra_args,
+                gcs_project_for_requester_pays = gcs_project_for_requester_pays
+        }
     }
 
     output {
-    }
-}
-
-task fix_ploidy {
-    input {
-        String sample_id
-        File vcf
-        File vcf_idx
-
-        String docker_image
-        String docker_image_hash_or_tag
-        Int mem_gb = 4
-        Int cpu = 1
-        Int preemptible = 3
-        Int max_retries = 0
-        Int additional_disk_gb = 0
-    }
-
-    # we need twice the ungzipped size of the input VCF, plus the gzipped size of the
-    # output VCF
-    Int disk_space = ceil(2 * 10 * size(vcf, "GiB")) + ceil(size(vcf, "GiB")) + 10 + additional_disk_gb
-
-    command <<<
-        set -euo pipefail
-
-        # set the genotype annotation to be homozygous when we have no ref reads and at
-        # least 3 alt reads, e.g., 0/1/2 --> 1/2, 0/1/2/3 --> 1/2/3, etc.
-        bcftools +setGT "~{vcf}" -- \
-            -t q -i'INFO/DP>8 & AF>0.9' -n c:'m|m' > \
-            "~{vcf}.2"
-        bcftools +setGT "~{vcf}.2" -- \
-            -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2"' -n c:'1/2' > \
-            "~{vcf}"
-        bcftools +setGT "~{vcf}" -- \
-            -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3"' -n c:'1/2/3' > \
-            "~{vcf}.2"
-        bcftools +setGT "~{vcf}.2" -- \
-            -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3/4"' -n c:'1/2/3/4' > \
-            "~{vcf}"
-        bcftools +setGT "~{vcf}" -- \
-            -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3/4/5"' -n c:'1/2/3/4/5' > \
-            "~{vcf}.2"
-        bcftools +setGT "~{vcf}.2" -- \
-            -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3/4/5/6"' -n c:'1/2/3/4/5/6' > \
-            "~{vcf}"
-
-        bcftools view "~{vcf}" -o "~{sample_id}_fixedploidy.vcf.gz"
-    >>>
-
-    output {
-        File vcf_fixedploidy = "~{sample_id}_fixedploidy.vcf.gz"
-    }
-
-    runtime {
-        docker: "~{docker_image}~{docker_image_hash_or_tag}"
-        memory: "~{mem_gb} GB"
-        disks: "local-disk ~{disk_space} SSD"
-        preemptible: preemptible
-        maxRetries: max_retries
-        cpu: cpu
-    }
-
-    meta {
-        allowNestedInputs: true
-    }
-}
-
-task filter_and_mask {
-    input {
-        File ref_fasta
-        File ref_fasta_index
-        String sample_id
-        File vcf
-        String exclude_string
-        File segdup_bed
-        File segdup_bed_index
-        File repeatmasker_bed
-        File repeatmasker_bed_index
-
-        String docker_image
-        String docker_image_hash_or_tag
-        Int mem_gb = 4
-        Int cpu = 1
-        Int preemptible = 3
-        Int max_retries = 0
-        Int additional_disk_gb = 0
-    }
-
-    Int disk_space = ceil(2 * size(vcf, "GiB")) + 10 + additional_disk_gb
-
-    command <<<
-        set -euo pipefail
-
-        echo "Filtering VCF: ~{exclude_string}"
-        bcftools view \
-            "~{vcf}" \
-            --exclude='~{exclude_string}' \
-            --output="~{sample_id}_filtered.vcf.gz" && rm "~{vcf}"
-
-        echo "Annotating segmental duplication regions"
-        echo '##INFO=<ID=SEGDUP,Number=1,Type=String,Description="If variant is in a segmental duplication region">' > \
-            segdup.hdr.vcf
-        bcftools annotate \
-            "~{sample_id}_filtered.vcf.gz" \
-            --annotations="~{segdup_bed}" \
-            --columns="CHROM,FROM,TO,SEGDUP" \
-            --header-lines="segdup.hdr.vcf" \
-            --output="~{sample_id}_segdup.vcf.gz" && rm "~{sample_id}_filtered.vcf.gz"
-
-        echo "Annotating repeat masker regions"
-        echo '##INFO=<ID=RM,Number=1,Type=String,Description="If variant is in a Repeat Masker region">' > \
-            repeatmasker.hdr.vcf
-        bcftools annotate \
-            "~{sample_id}_segdup.vcf.gz" \
-            --annotations="~{repeatmasker_bed}" \
-            --columns="CHROM,FROM,TO,RM" \
-            --header-lines="repeatmasker.hdr.vcf" \
-            --output="~{sample_id}_masked.vcf.gz" && rm "~{sample_id}_segdup.vcf.gz"
-
-        echo "Normalizing indels"
-        bcftools norm "~{sample_id}_masked.vcf.gz" \
-            --multiallelics=- \
-            --site-win=10000 \
-            --fasta-ref="~{ref_fasta}" \
-            --output="~{sample_id}_normalized.vcf.gz" && rm "~{sample_id}_masked.vcf.gz"
-
-        echo "Reindexing VCF"
-        bcftools index \
-            "~{sample_id}_normalized.vcf.gz" \
-            --csi \
-            --output="~{sample_id}_normalized.vcf.gz.csi"
-    >>>
-
-    output {
-        File vcf_filtered = "~{sample_id}_normalized.vcf.gz"
-        File vcf_filtered_index = "~{sample_id}_normalized.vcf.gz.csi"
-    }
-
-    runtime {
-        docker: "~{docker_image}~{docker_image_hash_or_tag}"
-        memory: "~{mem_gb} GB"
-        disks: "local-disk ~{disk_space} SSD"
-        preemptible: preemptible
-        maxRetries: max_retries
-        cpu: cpu
-    }
-
-    meta {
-        allowNestedInputs: true
-    }
-}
-
-task snpeff_snpsift {
-    input {
-        String sample_id
-        File vcf
-        File clinvar_vcf
-        File clinvar_vcf_index
-
-        String docker_image
-        String docker_image_hash_or_tag
-        Int mem_gb = 16
-        Int cpu = 1
-        Int preemptible = 3
-        Int max_retries = 0
-        Int additional_disk_gb = 0
-    }
-
-    Int disk_space = ceil(2 * 10 * size(vcf, "GiB")) + 10 + additional_disk_gb
-
-    command <<<
-        set -euo pipefail
-
-        echo "Annotating with snpEff"
-        java -Xmx14g -jar /app/snpEff.jar \
-            ann \
-            -noStats \
-            GRCh38.mane.1.2.ensembl \
-            "~{vcf}" > \
-            "~{sample_id}_snpeff.vcf" && rm "~{vcf}"
-
-        echo "Annotating with SnpSift"
-        java -Xmx14g -jar /app/SnpSift.jar \
-            annotate \
-            -tabix \
-            -noDownload \
-            ~{clinvar_vcf} \
-            "~{sample_id}_snpeff.vcf" > \
-            "~{sample_id}_snpsift.vcf" && rm "~{sample_id}_snpeff.vcf"
-
-        bgzip "~{sample_id}_snpsift.vcf" -o "~{sample_id}_snpsift.vcf.gz"
-    >>>
-
-    output {
-        File vcf_annot = "~{sample_id}_snpsift.vcf.gz"
-    }
-
-    runtime {
-        docker: "~{docker_image}~{docker_image_hash_or_tag}"
-        memory: "~{mem_gb} GB"
-        disks: "local-disk ~{disk_space} SSD"
-        preemptible: preemptible
-        maxRetries: max_retries
-        cpu: cpu
-    }
-
-    meta {
-        allowNestedInputs: true
+        File mut_annot_vcf = select_first([
+            funcotate.funcotated_output_file,
+            gather_vcfs.output_vcf,
+            snpeff_snpsift.vcf_annot,
+            annot_with_bcftools.vcf_annot,
+            input_vcf
+        ])
     }
 }
 
@@ -353,16 +219,264 @@ task split_vcf_by_chrom {
     }
 }
 
+task gather_vcfs {
+    input {
+        String sample_id
+        Array[File] vcfs
+
+        String docker_image
+        String docker_image_hash_or_tag
+        Int mem_gb = 4
+        Int cpu = 1
+        Int preemptible = 3
+        Int max_retries = 0
+        Int additional_disk_gb = 0
+    }
+
+    Int command_mem_mb = 1000 * mem_gb - 500
+    Int disk_space = ceil(3 * size(vcfs, "GiB")) + 10 + additional_disk_gb
+
+    parameter_meta {
+        vcfs: { localization_optional: true }
+    }
+
+    command <<<
+        set -euo pipefail
+
+        gatk --java-options "-Xmx~{command_mem_mb}m" \
+        GatherVcfsCloud \
+            --input ~{sep=" --input " vcfs} \
+            --output "~{sample_id}_combined.vcf.gz" \
+            --gather-type "BLOCK" \
+            --disable-contig-ordering-check
+
+        gatk --java-options "-Xmx~{command_mem_mb}m" \
+            SortVcf \
+            --INPUT "~{sample_id}_combined.vcf.gz" \
+            --OUTPUT "~{sample_id}.vcf.gz" \
+            --CREATE_INDEX
+    >>>
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+
+    output {
+        File output_vcf = "~{sample_id}.vcf.gz"
+        File output_vcf_index = "~{sample_id}.vcf.gz.tbi"
+    }
+
+    meta {
+        allowNestedInputs: true
+    }
+}
+
+task annot_with_bcftools {
+    input {
+        String sample_id
+        File vcf
+        File vcf_idx
+        Boolean fix_ploidy
+        Boolean filter_vcf
+        Boolean annot_seg_dups
+        Boolean annot_repeat_masker
+        Boolean normalize_indels
+        File? ref_fasta
+        File? ref_fasta_index
+        String? exclude_string
+        File? segdup_bed
+        File? segdup_bed_index
+        File? repeatmasker_bed
+        File? repeatmasker_bed_index
+
+        String docker_image
+        String docker_image_hash_or_tag
+        Int mem_gb = 4
+        Int cpu = 1
+        Int preemptible = 3
+        Int max_retries = 0
+        Int additional_disk_gb = 0
+    }
+
+    Int disk_space = (
+        ceil(size(vcf, "GiB") + 2 * 10 * size(vcf, "GiB")) + 10 + additional_disk_gb
+    )
+
+    command <<<
+        set -euo pipefail
+
+        if ~{fix_ploidy}; then
+            echo "Fixing ploidy"
+            # set the genotype annotation to be homozygous when we have no ref reads and at
+            # least 3 alt reads, e.g., 0/1/2 --> 1/2, 0/1/2/3 --> 1/2/3, etc.
+            bcftools +setGT "~{vcf}" -- \
+                -t q -i'INFO/DP>8 & AF>0.9' -n c:'m|m' > \
+                "~{vcf}.2"
+            bcftools +setGT "~{vcf}.2" -- \
+                -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2"' -n c:'1/2' > \
+                "~{vcf}"
+            bcftools +setGT "~{vcf}" -- \
+                -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3"' -n c:'1/2/3' > \
+                "~{vcf}.2"
+            bcftools +setGT "~{vcf}.2" -- \
+                -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3/4"' -n c:'1/2/3/4' > \
+                "~{vcf}"
+            bcftools +setGT "~{vcf}" -- \
+                -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3/4/5"' -n c:'1/2/3/4/5' > \
+                "~{vcf}.2"
+            bcftools +setGT "~{vcf}.2" -- \
+                -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3/4/5/6"' -n c:'1/2/3/4/5/6' > \
+                "~{vcf}"
+        fi
+
+        if ~{filter_vcf}; then
+            echo "Filtering VCF: ~{exclude_string}"
+            bcftools view \
+                "~{vcf}" \
+                --exclude='~{exclude_string}' \
+                --output="~{vcf}.2"
+            rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
+        fi
+
+        if ~{annot_seg_dups}; then
+            echo "Annotating segmental duplication regions"
+            echo '##INFO=<ID=SEGDUP,Number=1,Type=String,Description="If variant is in a segmental duplication region">' > \
+                segdup.hdr.vcf
+            bcftools annotate \
+                "~{vcf}" \
+                --annotations="~{segdup_bed}" \
+                --columns="CHROM,FROM,TO,SEGDUP" \
+                --header-lines="segdup.hdr.vcf" \
+                --output="~{vcf}.2"
+            rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
+        fi
+
+        if ~{annot_repeat_masker}; then
+            echo "Annotating repeat masker regions"
+            echo '##INFO=<ID=RM,Number=1,Type=String,Description="If variant is in a Repeat Masker region">' > \
+                repeatmasker.hdr.vcf
+            bcftools annotate \
+                "~{vcf}" \
+                --annotations="~{repeatmasker_bed}" \
+                --columns="CHROM,FROM,TO,RM" \
+                --header-lines="repeatmasker.hdr.vcf" \
+                --output="~{vcf}.2"
+            rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
+        fi
+
+        if ~{normalize_indels}; then
+            echo "Normalizing indels"
+            bcftools norm "~{vcf}" \
+                --multiallelics=- \
+                --site-win=10000 \
+                --fasta-ref="~{ref_fasta}" \
+                --output="~{vcf}.2"
+            rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
+        fi
+
+        mv "~{vcf}" "~{sample_id}_bcftools_annot.vcf.gz"
+    >>>
+
+    output {
+        File vcf_annot = "~{sample_id}_bcftools_annot.vcf.gz"
+    }
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+
+    meta {
+        allowNestedInputs: true
+    }
+}
+
+task snpeff_snpsift {
+    input {
+        String sample_id
+        File vcf
+        Boolean annot_snpeff
+        Boolean annot_snpsift
+        File? clinvar_vcf
+        File? clinvar_vcf_index
+
+        String docker_image
+        String docker_image_hash_or_tag
+        Int mem_gb = 16
+        Int cpu = 1
+        Int preemptible = 3
+        Int max_retries = 0
+        Int additional_disk_gb = 0
+    }
+
+    Int disk_space = ceil(2 * 10 * size(vcf, "GiB")) + 10 + additional_disk_gb
+
+    command <<<
+        set -euo pipefail
+
+        if ~{annot_snpeff}; then
+            echo "Annotating with snpEff"
+            java -Xmx14g -jar /app/snpEff.jar \
+                ann \
+                -noStats \
+                GRCh38.mane.1.2.ensembl \
+                "~{vcf}" > \
+                "~{vcf}.2"
+            rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
+        fi
+
+        if ~{annot_snpsift}; then
+            echo "Annotating with SnpSift"
+            java -Xmx14g -jar /app/SnpSift.jar \
+                annotate \
+                -tabix \
+                -noDownload \
+                ~{clinvar_vcf} \
+                "~{sample_id}_snpeff.vcf" > \
+                "~{vcf}.2"
+            rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
+        fi
+
+        bgzip "~{vcf}" -o "~{sample_id}_snpeffsift_annot.vcf.gz"
+    >>>
+
+    output {
+        File vcf_annot = "~{sample_id}_snpeffsift_annot.vcf.gz"
+    }
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+
+    meta {
+        allowNestedInputs: true
+    }
+}
+
 task ensembl_vep {
     input {
         String sample_id
         File vcf
         File vep_cache
-        File ref_fasta_bgz = "gs://cds-pipelines/data/vep/Homo_sapiens.GRCh38.dna.primary_assembly.fa.bgz"
-        File gene_constraint_scores = "gs://gcp-public-data--gnomad/legacy/exac_browser/forweb_cleaned_exac_r03_march16_z_data_pLI_CNV-final.txt.gz"
-        File loftool_scores = "gs://cds-vep-data/LoFtool_scores.txt"
-        File alpha_missense = "gs://cds-vep-data/AlphaMissense_hg38.tsv.gz"
-        File alpha_missense_index = "gs://cds-vep-data/AlphaMissense_hg38.tsv.gz.tbi"
+        File ref_fasta_bgz
+        File gene_constraint_scores
+        File loftool_scores
+        File alpha_missense
+        File alpha_missense_index
 
         String docker_image
         String docker_image_hash_or_tag
@@ -401,7 +515,7 @@ task ensembl_vep {
             --dir_cache="vep_cache" \
             --dir_plugins="/plugins" \
             --input_file="~{vcf}" \
-            --output_file="~{sample_id}_vep.vcf" \
+            --output_file="~{sample_id}_vep_annot.vcf" \
             --plugin="pLI,pLI.tsv" \
             --plugin="LoFtool,~{loftool_scores}" \
             --plugin="AlphaMissense,file=~{alpha_missense}" \
@@ -414,10 +528,12 @@ task ensembl_vep {
             --no_stats \
             --everything \
             --pick
+
+        bgzip "~{sample_id}_vep_annot.vcf" --threads=~{cpu}
     >>>
 
     output {
-        File vcf_annot = "~{sample_id}_vep.vcf"
+        File vcf_annot = "~{sample_id}_vep_annot.vcf.gz"
     }
 
     runtime {
@@ -434,40 +550,142 @@ task ensembl_vep {
     }
 }
 
-task gather_vcfs {
+# Adapted from https://github.com/broadinstitute/gatk/blob/master/scripts/funcotator_wdl/funcotator.wdl
+#
+# Modifications:
+#   - Localize pre-extracted Funcotator datasource from GCS
+#   - Use SSD instead of HDD by default
+#
+# Use this file as a base and manually implement changes in the upstream code in order
+# to retain these modifications.
+task funcotate {
     input {
-        String sample_id
-        Array[File] vcfs
+        File ref_fasta
+        File ref_fasta_index
+        File ref_dict
+        String funcotator_data_sources_url
+
+        File input_vcf
+
+        String reference_version
+
+        String output_file_base_name
+        String output_format
+
+        Boolean compress
+        Boolean use_gnomad
+
+        String? control_id
+        String? case_id
+        String? sequencing_center
+        String? sequence_source
+        String? transcript_selection_mode
+        Array[String]? transcript_selection_list
+        Array[String]? funcotator_annotation_defaults
+        Array[String]? funcotator_annotation_overrides
+        Array[String]? funcotator_excluded_fields
+        Boolean? filter_funcotations
+        File? interval_list
+
+        String? extra_args
+        String? gcs_project_for_requester_pays
 
         String docker_image
         String docker_image_hash_or_tag
-        Int mem_gb = 4
+        Int mem_gb = 3
         Int cpu = 1
         Int preemptible = 3
         Int max_retries = 0
         Int additional_disk_gb = 0
     }
 
-    Int command_mem_mb = 1000 * mem_gb - 500
-    Int disk_space = ceil(2 * size(vcfs, "GiB")) + 10 + additional_disk_gb
+    # Mem is in units of GB but our command and memory runtime values are in MB
+    Int machine_mem = mem_gb * 1000
+    Int command_mem = machine_mem - 1000
+
+    # Calculate disk size:
+    Float ref_size_gb = size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + size(ref_dict, "GiB")
+    Float vcf_size_gb = size(input_vcf, "GiB")
+    Float datasources_size_gb = 25
+    Int disk_space = ceil(ref_size_gb + datasources_size_gb + vcf_size_gb) + 20
+
+    # Process input args:
+    String output_maf = output_file_base_name + ".maf"
+    String output_maf_index = output_maf + ".idx"
+    String output_vcf = output_file_base_name + if compress then ".vcf.gz" else ".vcf"
+    String output_vcf_idx = output_vcf +  if compress then ".tbi" else ".idx"
+    String output_file = if output_format == "MAF" then output_maf else output_vcf
+    String output_file_index = if output_format == "MAF" then output_maf_index else output_vcf_idx
+    String transcript_selection_arg = if defined(transcript_selection_list) then " --transcript-list " else ""
+    String annotation_def_arg = if defined(funcotator_annotation_defaults) then " --annotation-default " else ""
+    String annotation_over_arg = if defined(funcotator_annotation_overrides) then " --annotation-override " else ""
+    String filter_funcotations_args = if defined(filter_funcotations) && (filter_funcotations) then " --remove-filtered-variants " else ""
+    String excluded_fields_args = if defined(funcotator_excluded_fields) then " --exclude-field " else ""
+    String interval_list_arg = if defined(interval_list) then " -L " else ""
+    String extra_args_arg = select_first([extra_args, ""])
 
     parameter_meta {
-        vcfs: { localization_optional: true }
+        ref_fasta: { localization_optional: true }
+        ref_fasta_index: { localization_optional: true }
+        ref_dict: { localization_optional: true }
+        input_vcf: { localization_optional: true }
     }
 
     command <<<
-        set -euo pipefail
+        set -e
+        export GATK_LOCAL_JAR="/root/gatk.jar"
 
-        # --ignore-safety-checks makes a big performance difference so we include it in our invocation.
-        # This argument disables expensive checks that the file headers contain the same set of
-        # genotyped samples and that files are in order by position of first record.
-        gatk --java-options "-Xmx~{command_mem_mb}m" \
-            GatherVcfsCloud \
-            --gather-type="BLOCK" \
-            --input ~{sep=" --input " vcfs} \
-            --output="~{sample_id}.vcf.gz"
+        # Hack to validate our WDL inputs:
+        #
+        # NOTE: This happens here so that we don't waste time copying down the data sources if there's an error.
+        if [[ "~{output_format}" != "MAF" ]] && [[ "~{output_format}" != "VCF" ]] ; then
+            echo "ERROR: Output format must be MAF or VCF."
+        fi
 
-        tabix "~{sample_id}.vcf.gz"
+        # download and extract Funcotator data sources
+        DATA_SOURCES_FOLDER="./funcotator_data_sources"
+        gcloud storage rsync --recursive ~{funcotator_data_sources_url} $DATA_SOURCES_FOLDER
+
+        if ~{use_gnomad} ; then
+            echo "Enabling gnomAD..."
+            for potential_gnomad_gz in gnomAD_exome.tar.gz gnomAD_genome.tar.gz ; do
+                if [[ -f $DATA_SOURCES_FOLDER/$potential_gnomad_gz ]] ; then
+                    cd $DATA_SOURCES_FOLDER
+                    tar -zvxf $potential_gnomad_gz
+                    cd -
+                else
+                    echo "ERROR: Cannot find gnomAD folder: $potential_gnomad_gz" 1>&2
+                    false
+                fi
+            done
+        fi
+
+        # Run Funcotator:
+        gatk --java-options "-Xmx~{command_mem}m" Funcotator \
+            --data-sources-path $DATA_SOURCES_FOLDER \
+            --ref-version ~{reference_version} \
+            --output-file-format ~{output_format} \
+            -R ~{ref_fasta} \
+            -V ~{input_vcf} \
+            -O ~{output_file} \
+            ~{interval_list_arg} ~{default="" interval_list} \
+            --annotation-default normal_barcode:~{default="Unknown" control_id} \
+            --annotation-default tumor_barcode:~{default="Unknown" case_id} \
+            --annotation-default Center:~{default="Unknown" sequencing_center} \
+            --annotation-default source:~{default="Unknown" sequence_source} \
+            ~{"--transcript-selection-mode " + transcript_selection_mode} \
+            ~{transcript_selection_arg}~{default="" sep=" --transcript-list " transcript_selection_list} \
+            ~{annotation_def_arg}~{default="" sep=" --annotation-default " funcotator_annotation_defaults} \
+            ~{annotation_over_arg}~{default="" sep=" --annotation-override " funcotator_annotation_overrides} \
+            ~{excluded_fields_args}~{default="" sep=" --exclude-field " funcotator_excluded_fields} \
+            ~{filter_funcotations_args} \
+            ~{extra_args_arg} \
+            ~{"--gcs-project-for-requester-pays " + gcs_project_for_requester_pays}
+
+        # Make sure we have a placeholder index for MAF files so this workflow doesn't fail:
+        if [[ "~{output_format}" == "MAF" ]] ; then
+            touch ~{output_maf_index}
+        fi
     >>>
 
     runtime {
@@ -480,11 +698,7 @@ task gather_vcfs {
     }
 
     output {
-        File output_vcf = "~{sample_id}.vcf.gz"
-        File output_vcf_index = "~{sample_id}.vcf.gz.tbi"
-    }
-
-    meta {
-        allowNestedInputs: true
+        File funcotated_output_file = "~{output_file}"
+        File funcotated_output_file_index = "~{output_file_index}"
     }
 }
