@@ -192,7 +192,7 @@ task GenerateOutputMap {
         echo -e "#READ_GROUP_ID\tOUTPUT" > output_map.tsv
 
         for rg in `cat readgroups.txt`; do
-        echo -e "$rg\t$rg~{unmapped_bam_suffix}" >> output_map.tsv
+            echo -e "$rg\t$rg~{unmapped_bam_suffix}" >> output_map.tsv
         done
     >>>
 

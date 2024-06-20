@@ -14,6 +14,8 @@
     "annotate_mutations.funcotate.docker_image": "\"broadinstitute/gatk\"",
     "annotate_mutations.funcotate.docker_image_hash_or_tag": "\":4.5.0.0\"",
     "annotate_mutations.funcotator_data_sources_url": "\"gs://cds-pipelines/data/funcotator/funcotator_dataSources.v1.8.hg38.20230908s\"",
+    "annotate_mutations.gather_vcfs.docker_image": "\"broadinstitute/gatk\"",
+    "annotate_mutations.gather_vcfs.docker_image_hash_or_tag": "\":4.5.0.0\"",
     "annotate_mutations.gcs_project_for_requester_pays": "\"depmap-omics\"",
     "annotate_mutations.input_vcf": "this.mut_filtered_vcf",
     "annotate_mutations.input_vcf_idx": "this.mut_filtered_vcf_idx",
@@ -28,7 +30,12 @@
     "annotate_mutations.segdup_bed": "\"gs://ccleparams/segDup_majorAllele_withAltContigs_98pcFracMatch_merged_forBcftools.bed.gz\"",
     "annotate_mutations.segdup_bed_index": "\"gs://ccleparams/segDup_majorAllele_withAltContigs_98pcFracMatch_merged_forBcftools.bed.gz.tbi\"",
     "annotate_mutations.snpeff_snpsift.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/snpeff_snpsift\"",
-    "annotate_mutations.snpeff_snpsift.docker_image_hash_or_tag": "\"@sha256:3dbd2c668cf598861b075eaca3482cb9554de04cdcc2aac4629b7e13e127fcca\""
+    "annotate_mutations.snpeff_snpsift.docker_image_hash_or_tag": "\"@sha256:3dbd2c668cf598861b075eaca3482cb9554de04cdcc2aac4629b7e13e127fcca\"",
+    "annotate_mutations.split_vcf_by_chrom.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/bcftools\"",
+    "annotate_mutations.split_vcf_by_chrom.docker_image_hash_or_tag": "\"@sha256:9e9d8644288d8670101b0a57bbb21ca6f56290e1d26543f72920fa2dd188287e\"",
+    "annotate_mutations.split_vcf_by_chrom.xy_intervals": "\"gs://ccleparams/references/references_wgs_xy.intervals\"",
+    "annotate_mutations.vep_chrom_cache_url_prefix": "\"gs://cds-pipelines/data/vep/cache/112_GRCh38/\"",
+    "annotate_mutations.vep_chrom_cache_url_suffix": "\".tar.gz\""
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {

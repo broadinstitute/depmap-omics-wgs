@@ -1,3 +1,5 @@
+# based on https://github.com/Ensembl/ensembl-vep/blob/release/112/docker/Dockerfile
+# but with everything installed as root (to make it easier to run on files in /cromwell_root)
 ARG BRANCH=release/112
 
 ###################################################
