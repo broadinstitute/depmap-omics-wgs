@@ -19,12 +19,15 @@ workflow annotate_mutations {
         Boolean filter_vcf = true
         Boolean annot_seg_dups = true
         Boolean annot_repeat_masker = true
+        Boolean annot_hess_drivers = true
         Boolean normalize_indels = true
         String? exclude_string
         File? segdup_bed
         File? segdup_bed_index
         File? repeatmasker_bed
         File? repeatmasker_bed_index
+        File? hess_drivers
+        File? hess_drivers_index
 
         # snpEff and SnpSift annotation
         Boolean annot_snpeff = true
@@ -63,7 +66,7 @@ workflow annotate_mutations {
             output_file_base_name = sample_id
     }
 
-    if (fix_ploidy || filter_vcf || annot_seg_dups || annot_repeat_masker || normalize_indels) {
+    if (fix_ploidy || filter_vcf || annot_seg_dups || annot_repeat_masker || annot_hess_drivers || normalize_indels) {
         call annot_with_bcftools {
             input:
                 vcf = compress_vcf.vcf_compressed,
@@ -72,6 +75,7 @@ workflow annotate_mutations {
                 filter_vcf = filter_vcf,
                 annot_seg_dups = annot_seg_dups,
                 annot_repeat_masker = annot_repeat_masker,
+                annot_hess_drivers = annot_hess_drivers,
                 normalize_indels = normalize_indels,
                 ref_fasta = ref_fasta,
                 ref_fasta_index = ref_fasta_index,
@@ -79,7 +83,9 @@ workflow annotate_mutations {
                 segdup_bed = segdup_bed,
                 segdup_bed_index = segdup_bed_index,
                 repeatmasker_bed = repeatmasker_bed,
-                repeatmasker_bed_index = repeatmasker_bed_index
+                repeatmasker_bed_index = repeatmasker_bed_index,
+                hess_drivers = hess_drivers,
+                hess_drivers_index = hess_drivers_index
         }
     }
 
@@ -391,6 +397,7 @@ task annot_with_bcftools {
         Boolean filter_vcf
         Boolean annot_seg_dups
         Boolean annot_repeat_masker
+        Boolean annot_hess_drivers
         Boolean normalize_indels
         File? ref_fasta
         File? ref_fasta_index
@@ -399,6 +406,8 @@ task annot_with_bcftools {
         File? segdup_bed_index
         File? repeatmasker_bed
         File? repeatmasker_bed_index
+        File? hess_drivers
+        File? hess_drivers_index
 
         String docker_image
         String docker_image_hash_or_tag
@@ -471,6 +480,19 @@ task annot_with_bcftools {
                 --annotations="~{repeatmasker_bed}" \
                 --columns="CHROM,FROM,TO,RM" \
                 --header-lines="repeatmasker.hdr.vcf" \
+                --output="~{vcf}.2"
+            rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
+        fi
+
+        if ~{annot_hess_drivers}; then
+            echo "Annotating Hess drivers"
+            echo '##INFO=<ID=HESS,Number=1,Type=String,Description="Hess driver signature">' > \
+                hess.hdr.vcf
+            bcftools annotate \
+                "~{vcf}" \
+                --annotations="~{hess_drivers}" \
+                --columns="CHROM,POS,REF,ALT,HESS" \
+                --header-lines="hess.hdr.vcf" \
                 --output="~{vcf}.2"
             rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
         fi
