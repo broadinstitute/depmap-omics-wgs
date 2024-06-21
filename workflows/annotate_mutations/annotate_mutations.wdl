@@ -335,7 +335,7 @@ task gather_vcfs {
 
         String docker_image
         String docker_image_hash_or_tag
-        Int mem_gb = 4
+        Int mem_gb = 8
         Int cpu = 1
         Int preemptible = 3
         Int max_retries = 0
