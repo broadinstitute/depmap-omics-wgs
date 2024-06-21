@@ -10,7 +10,6 @@ workflow annotate_mutations {
         File ref_dict
         String sample_id
         File input_vcf
-        File input_vcf_idx
 
         # scatter/gather VCF by chromosome
         File? xy_intervals
@@ -58,12 +57,17 @@ workflow annotate_mutations {
         String? gcs_project_for_requester_pays
     }
 
+    call compress_vcf {
+        input:
+            vcf = input_vcf,
+            output_file_base_name = sample_id
+    }
+
     if (fix_ploidy || filter_vcf || annot_seg_dups || annot_repeat_masker || normalize_indels) {
         call annot_with_bcftools {
             input:
-                sample_id = sample_id,
-                vcf = input_vcf,
-                vcf_idx = input_vcf_idx,
+                vcf = compress_vcf.vcf_compressed,
+                output_file_base_name = sample_id + "_bcftools_annot",
                 fix_ploidy = fix_ploidy,
                 filter_vcf = filter_vcf,
                 annot_seg_dups = annot_seg_dups,
@@ -82,10 +86,10 @@ workflow annotate_mutations {
     if (annot_snpeff || annot_snpsift) {
         call snpeff_snpsift {
             input:
-                sample_id = sample_id,
-                vcf = select_first([annot_with_bcftools.vcf_annot, input_vcf]),
+                vcf = select_first([annot_with_bcftools.vcf_annot, compress_vcf.vcf_compressed]),
                 annot_snpeff = annot_snpeff,
                 annot_snpsift = annot_snpsift,
+                output_file_base_name = sample_id + "_snpeff_snpsift_annot",
                 clinvar_vcf = clinvar_vcf,
                 clinvar_vcf_index = clinvar_vcf_index
         }
@@ -94,11 +98,10 @@ workflow annotate_mutations {
     if (annot_ensembl_vep) {
         call split_vcf_by_chrom {
             input:
-                sample_id = sample_id,
                 vcf = select_first([
                     snpeff_snpsift.vcf_annot,
                     annot_with_bcftools.vcf_annot,
-                    input_vcf
+                    compress_vcf.vcf_compressed
                 ]),
                 xy_intervals = select_first([xy_intervals])
         }
@@ -109,8 +112,8 @@ workflow annotate_mutations {
 
             call ensembl_vep {
                 input:
-                    sample_id = sample_id + '_chr' + chrom_num,
                     vcf = vcf,
+                    output_file_base_name = sample_id + "_chr" + chrom_num + "_ensembl_vep_annot",
                     vep_cache = vep_cache,
                     ref_fasta_bgz = select_first([ref_fasta_bgz]),
                     gene_constraint_scores = select_first([gene_constraint_scores]),
@@ -122,8 +125,8 @@ workflow annotate_mutations {
 
         call gather_vcfs {
             input:
-                sample_id = sample_id,
-                vcfs = ensembl_vep.vcf_annot
+                vcfs = ensembl_vep.vcf_annot,
+                output_file_base_name = sample_id + "_ensembl_vep_annot",
         }
     }
 
@@ -137,10 +140,10 @@ workflow annotate_mutations {
                     gather_vcfs.output_vcf,
                     snpeff_snpsift.vcf_annot,
                     annot_with_bcftools.vcf_annot,
-                    input_vcf
+                    compress_vcf.vcf_compressed
                 ]),
                 reference_version = select_first([reference_version]),
-                output_file_base_name = sample_id,
+                output_file_base_name = sample_id + "_funco_annot",
                 output_format = "VCF",
                 compress = true,
                 use_gnomad = select_first([use_gnomad]),
@@ -156,20 +159,125 @@ workflow annotate_mutations {
         }
     }
 
+    File vcf_annot = select_first([
+        funcotate.funcotated_output_file,
+        gather_vcfs.output_vcf,
+        snpeff_snpsift.vcf_annot,
+        annot_with_bcftools.vcf_annot,
+        compress_vcf.vcf_compressed
+    ])
+
+    call index_vcf {
+        input:
+            vcf = vcf_annot
+    }
+
     output {
         File mut_annot_vcf = select_first([
             funcotate.funcotated_output_file,
             gather_vcfs.output_vcf,
             snpeff_snpsift.vcf_annot,
             annot_with_bcftools.vcf_annot,
-            input_vcf
+            compress_vcf.vcf_compressed
         ])
+        File mut_annot_vcf_index = index_vcf.vcf_index
+    }
+}
+
+task compress_vcf {
+    input {
+        File vcf
+        String output_file_base_name
+
+        String docker_image
+        String docker_image_hash_or_tag
+        Int mem_gb = 4
+        Int cpu = 1
+        Int preemptible = 3
+        Int max_retries = 0
+        Int additional_disk_gb = 0
+    }
+
+    Int disk_space = ceil(2 * size(vcf, "GiB")) + 10 + additional_disk_gb
+
+    command <<<
+        set -euo pipefail
+
+        bcftools view \
+            "~{vcf}" \
+            --output="~{output_file_base_name}.vcf.gz" \
+            --no-version
+    >>>
+
+    output {
+        File vcf_compressed = "~{output_file_base_name}.vcf.gz"
+    }
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+        continueOnReturnCode: [0, 9] # FilterMutectCalls generates weird vcf.gz files
+    }
+
+    meta {
+        allowNestedInputs: true
+    }
+}
+
+task index_vcf {
+    input {
+        File vcf
+        String index_format = "CSI"
+
+        String docker_image
+        String docker_image_hash_or_tag
+        Int mem_gb = 4
+        Int cpu = 1
+        Int preemptible = 3
+        Int max_retries = 0
+        Int additional_disk_gb = 0
+    }
+
+    Int disk_space = ceil(size(vcf, "GiB")) + 10 + additional_disk_gb
+
+    String vcf_basename = basename(vcf)
+    String index_format_option = if index_format == "CSI" then "--csi" else "--tbi"
+    String index_file_ext = if index_format == "CSI" then ".csi" else ".tbi"
+
+    command <<<
+        set -euo pipefail
+
+        bcftools index \
+            "~{vcf}" \
+            --output="~{vcf_basename}~{index_file_ext}"
+            ~{index_format_option} \
+            --no-version
+    >>>
+
+    output {
+        File vcf_index = "~{vcf_basename}~{index_file_ext}"
+    }
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+
+    meta {
+        allowNestedInputs: true
     }
 }
 
 task split_vcf_by_chrom {
     input {
-        String sample_id
         File vcf
         File xy_intervals
 
@@ -197,7 +305,8 @@ task split_vcf_by_chrom {
             bcftools view \
                 "~{vcf}" \
                 --regions="${chr}" \
-                --output="${split_out}"
+                --output="${split_out}" \
+                --no-version
         done
     >>>
 
@@ -221,8 +330,8 @@ task split_vcf_by_chrom {
 
 task gather_vcfs {
     input {
-        String sample_id
         Array[File] vcfs
+        String output_file_base_name
 
         String docker_image
         String docker_image_hash_or_tag
@@ -246,16 +355,19 @@ task gather_vcfs {
         gatk --java-options "-Xmx~{command_mem_mb}m" \
         GatherVcfsCloud \
             --input ~{sep=" --input " vcfs} \
-            --output "~{sample_id}_combined.vcf.gz" \
+            --output "combined.vcf.gz" \
             --gather-type "BLOCK" \
             --disable-contig-ordering-check
 
         gatk --java-options "-Xmx~{command_mem_mb}m" \
             SortVcf \
-            --INPUT "~{sample_id}_combined.vcf.gz" \
-            --OUTPUT "~{sample_id}.vcf.gz" \
-            --CREATE_INDEX
+            --INPUT "combined.vcf.gz" \
+            --OUTPUT "~{output_file_base_name}.vcf.gz"
     >>>
+
+    output {
+        File output_vcf = "~{output_file_base_name}.vcf.gz"
+    }
 
     runtime {
         docker: "~{docker_image}~{docker_image_hash_or_tag}"
@@ -266,11 +378,6 @@ task gather_vcfs {
         cpu: cpu
     }
 
-    output {
-        File output_vcf = "~{sample_id}.vcf.gz"
-        File output_vcf_index = "~{sample_id}.vcf.gz.tbi"
-    }
-
     meta {
         allowNestedInputs: true
     }
@@ -278,9 +385,8 @@ task gather_vcfs {
 
 task annot_with_bcftools {
     input {
-        String sample_id
         File vcf
-        File vcf_idx
+        String output_file_base_name
         Boolean fix_ploidy
         Boolean filter_vcf
         Boolean annot_seg_dups
@@ -379,11 +485,15 @@ task annot_with_bcftools {
             rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
         fi
 
-        mv "~{vcf}" "~{sample_id}_bcftools_annot.vcf.gz"
+        # ensure it's bgzipped
+        bcftools view \
+            "~{vcf}" \
+            --output="~{output_file_base_name}.vcf.gz" \
+            --no-version
     >>>
 
     output {
-        File vcf_annot = "~{sample_id}_bcftools_annot.vcf.gz"
+        File vcf_annot = "~{output_file_base_name}.vcf.gz"
     }
 
     runtime {
@@ -402,10 +512,10 @@ task annot_with_bcftools {
 
 task snpeff_snpsift {
     input {
-        String sample_id
         File vcf
         Boolean annot_snpeff
         Boolean annot_snpsift
+        String output_file_base_name
         File? clinvar_vcf
         File? clinvar_vcf_index
 
@@ -430,8 +540,10 @@ task snpeff_snpsift {
                 -noStats \
                 GRCh38.mane.1.2.ensembl \
                 "~{vcf}" > \
-                "~{vcf}.2"
-            rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
+                "snpeff_out.vcf"
+
+            bgzip "snpeff_out.vcf" -o "snpeff_out.vcf.gz"
+            rm "snpeff_out.vcf" && mv "snpeff_out.vcf.gz" "~{vcf}"
         fi
 
         if ~{annot_snpsift}; then
@@ -441,16 +553,18 @@ task snpeff_snpsift {
                 -tabix \
                 -noDownload \
                 ~{clinvar_vcf} \
-                "~{sample_id}_snpeff.vcf" > \
-                "~{vcf}.2"
-            rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
+                "~{vcf}" > \
+                "snpsift_out.vcf"
+
+            bgzip "snpsift_out.vcf" -o "snpsift_out.vcf.gz"
+            rm "snpsift_out.vcf" && mv "snpsift_out.vcf.gz" "~{vcf}"
         fi
 
-        bgzip "~{vcf}" -o "~{sample_id}_snpeffsift_annot.vcf.gz"
+        mv "~{vcf}" "~{output_file_base_name}.vcf.gz"
     >>>
 
     output {
-        File vcf_annot = "~{sample_id}_snpeffsift_annot.vcf.gz"
+        File vcf_annot = "~{output_file_base_name}.vcf.gz"
     }
 
     runtime {
@@ -469,8 +583,8 @@ task snpeff_snpsift {
 
 task ensembl_vep {
     input {
-        String sample_id
         File vcf
+        String output_file_base_name
         File vep_cache
         File ref_fasta_bgz
         File gene_constraint_scores
@@ -515,7 +629,7 @@ task ensembl_vep {
             --dir_cache="vep_cache" \
             --dir_plugins="/plugins" \
             --input_file="~{vcf}" \
-            --output_file="~{sample_id}_vep_annot.vcf" \
+            --output_file="~{output_file_base_name}.vcf" \
             --plugin="pLI,pLI.tsv" \
             --plugin="LoFtool,~{loftool_scores}" \
             --plugin="AlphaMissense,file=~{alpha_missense}" \
@@ -529,11 +643,11 @@ task ensembl_vep {
             --everything \
             --pick
 
-        bgzip "~{sample_id}_vep_annot.vcf" --threads=~{cpu}
+        bgzip "~{output_file_base_name}.vcf" --threads=~{cpu}
     >>>
 
     output {
-        File vcf_annot = "~{sample_id}_vep_annot.vcf.gz"
+        File vcf_annot = "~{output_file_base_name}.vcf.gz"
     }
 
     runtime {
@@ -613,9 +727,9 @@ task funcotate {
     String output_maf = output_file_base_name + ".maf"
     String output_maf_index = output_maf + ".idx"
     String output_vcf = output_file_base_name + if compress then ".vcf.gz" else ".vcf"
-    String output_vcf_idx = output_vcf +  if compress then ".tbi" else ".idx"
+    String output_vcf_index = output_vcf +  if compress then ".tbi" else ".idx"
     String output_file = if output_format == "MAF" then output_maf else output_vcf
-    String output_file_index = if output_format == "MAF" then output_maf_index else output_vcf_idx
+    String output_file_index = if output_format == "MAF" then output_maf_index else output_vcf_index
     String transcript_selection_arg = if defined(transcript_selection_list) then " --transcript-list " else ""
     String annotation_def_arg = if defined(funcotator_annotation_defaults) then " --annotation-default " else ""
     String annotation_over_arg = if defined(funcotator_annotation_overrides) then " --annotation-override " else ""
@@ -699,6 +813,5 @@ task funcotate {
 
     output {
         File funcotated_output_file = "~{output_file}"
-        File funcotated_output_file_index = "~{output_file_index}"
     }
 }

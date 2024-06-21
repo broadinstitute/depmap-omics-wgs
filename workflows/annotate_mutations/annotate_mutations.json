@@ -13,6 +13,9 @@
     "annotate_mutations.annot_with_bcftools.docker_image_hash_or_tag": "\"@sha256:9e9d8644288d8670101b0a57bbb21ca6f56290e1d26543f72920fa2dd188287e\"",
     "annotate_mutations.clinvar_vcf": "\"gs://cds-pipelines/data/clinvar/clinvar_20240611.vcf.gz\"",
     "annotate_mutations.clinvar_vcf_index": "\"gs://cds-pipelines/data/clinvar/clinvar_20240611.vcf.gz.tbi\"",
+    "annotate_mutations.compress_vcf": "true",
+    "annotate_mutations.compress_vcf.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/bcftools\"",
+    "annotate_mutations.compress_vcf.docker_image_hash_or_tag": "\"@sha256:9e9d8644288d8670101b0a57bbb21ca6f56290e1d26543f72920fa2dd188287e\"",
     "annotate_mutations.ensembl_vep.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/ensembl_vep\"",
     "annotate_mutations.ensembl_vep.docker_image_hash_or_tag": "\"@sha256:e5556a32aba073ee6da84c02dbd2c30074358233bb4bdf08715375eacb0663c1\"",
     "annotate_mutations.exclude_string": "\"FILTER~\\\"weak_evidence\\\"||FILTER~\\\"map_qual\\\"||FILTER~\\\"strand_bias\\\"||FILTER~\\\"slippage\\\"||FILTER~\\\"clustered_events\\\"||FILTER~\\\"base_qual\\\"\"",
@@ -27,8 +30,9 @@
     "annotate_mutations.gather_vcfs.docker_image_hash_or_tag": "\":4.5.0.0\"",
     "annotate_mutations.gcs_project_for_requester_pays": "\"depmap-omics\"",
     "annotate_mutations.gene_constraint_scores": "\"gs://gcp-public-data--gnomad/legacy/exac_browser/forweb_cleaned_exac_r03_march16_z_data_pLI_CNV-final.txt.gz\"",
+    "annotate_mutations.index_vcf.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/bcftools\"",
+    "annotate_mutations.index_vcf.docker_image_hash_or_tag": "\"@sha256:9e9d8644288d8670101b0a57bbb21ca6f56290e1d26543f72920fa2dd188287e\"",
     "annotate_mutations.input_vcf": "this.mut_filtered_vcf",
-    "annotate_mutations.input_vcf_idx": "this.mut_filtered_vcf_idx",
     "annotate_mutations.interval_list": "\"gs://ccleparams/region_file_wgs.list\"",
     "annotate_mutations.loftool_scores": "\"gs://cds-vep-data/LoFtool_scores.txt\"",
     "annotate_mutations.normalize_indels": "true",
@@ -60,8 +64,8 @@
   "namespace": "cds-pipelines",
   "name": "annotate_mutations",
   "outputs": {
-    "annotate_mutations.funcotated_file_out": "this.funcotated_vcf",
-    "annotate_mutations.funcotated_file_out_idx": "this.funcotated_vcf_idx"
+    "annotate_mutations.mut_annot_vcf": "this.mut_annot_vcf",
+    "annotate_mutations.mut_annot_vcf_index": "this.mut_annot_vcf_index"
   },
   "rootEntityType": "sample"
 }
