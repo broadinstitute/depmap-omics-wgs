@@ -35,6 +35,8 @@
     "annotate_mutations.hess_drivers_index": "\"gs://cds-pipelines/data/hess/hess_drivers.tsv.gz.tbi\"",
     "annotate_mutations.index_vcf.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/bcftools\"",
     "annotate_mutations.index_vcf.docker_image_hash_or_tag": "\"@sha256:9e9d8644288d8670101b0a57bbb21ca6f56290e1d26543f72920fa2dd188287e\"",
+    "annotate_mutations.index_vcf_for_funcotator.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/bcftools\"",
+    "annotate_mutations.index_vcf_for_funcotator.docker_image_hash_or_tag": "\"@sha256:9e9d8644288d8670101b0a57bbb21ca6f56290e1d26543f72920fa2dd188287e\"",
     "annotate_mutations.input_vcf": "this.mut_filtered_vcf",
     "annotate_mutations.interval_list": "\"gs://ccleparams/region_file_wgs.list\"",
     "annotate_mutations.loftool_scores": "\"gs://cds-vep-data/LoFtool_scores.txt\"",

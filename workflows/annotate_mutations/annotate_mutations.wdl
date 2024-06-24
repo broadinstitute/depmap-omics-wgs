@@ -137,17 +137,25 @@ workflow annotate_mutations {
     }
 
     if (annot_funcotator) {
+        File funcotator_input_vcf = select_first([
+            gather_vcfs.output_vcf,
+            snpeff_snpsift.vcf_annot,
+            annot_with_bcftools.vcf_annot,
+            compress_vcf.vcf_compressed
+        ])
+
+        call index_vcf as index_vcf_for_funcotator {
+            input:
+                vcf = funcotator_input_vcf
+        }
+
         call funcotate {
             input:
                 ref_fasta = ref_fasta,
                 ref_fasta_index = ref_fasta_index,
                 ref_dict = ref_dict,
-                input_vcf = select_first([
-                    gather_vcfs.output_vcf,
-                    snpeff_snpsift.vcf_annot,
-                    annot_with_bcftools.vcf_annot,
-                    compress_vcf.vcf_compressed
-                ]),
+                input_vcf = funcotator_input_vcf,
+                input_vcf_index = index_vcf_for_funcotator.vcf_index,
                 reference_version = select_first([reference_version]),
                 output_file_base_name = sample_id + "_funco_annot",
                 output_format = "VCF",
@@ -341,8 +349,8 @@ task gather_vcfs {
 
         String docker_image
         String docker_image_hash_or_tag
-        Int mem_gb = 8
-        Int cpu = 1
+        Int mem_gb = 16
+        Int cpu = 2
         Int preemptible = 3
         Int max_retries = 0
         Int additional_disk_gb = 0
@@ -702,6 +710,7 @@ task funcotate {
         String funcotator_data_sources_url
 
         File input_vcf
+        File input_vcf_index
 
         String reference_version
 
@@ -780,7 +789,11 @@ task funcotate {
 
         # download and extract Funcotator data sources
         DATA_SOURCES_FOLDER="./funcotator_data_sources"
-        gcloud storage rsync --recursive ~{funcotator_data_sources_url} $DATA_SOURCES_FOLDER
+        gcloud storage rsync \
+            --recursive \
+            --quiet \
+            ~{funcotator_data_sources_url} \
+            $DATA_SOURCES_FOLDER
 
         if ~{use_gnomad} ; then
             echo "Enabling gnomAD..."
