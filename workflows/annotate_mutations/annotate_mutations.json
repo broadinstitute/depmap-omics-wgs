@@ -56,6 +56,8 @@
     "annotate_mutations.split_vcf_by_chrom.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/bcftools\"",
     "annotate_mutations.split_vcf_by_chrom.docker_image_hash_or_tag": "\"@sha256:9e9d8644288d8670101b0a57bbb21ca6f56290e1d26543f72920fa2dd188287e\"",
     "annotate_mutations.use_gnomad": "true",
+    "annotate_mutations.vcf2maf.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/vcf2maf\"",
+    "annotate_mutations.vcf2maf.docker_image_hash_or_tag": "\"@sha256:7ddbb1452bb7a76e78c5910e528ee4712ae7d35af63f32ba7f6adbb1e489c3f6\"",
     "annotate_mutations.vep_chrom_cache_url_prefix": "\"gs://cds-pipelines/data/vep/cache/112_GRCh38/\"",
     "annotate_mutations.vep_chrom_cache_url_suffix": "\".tar.gz\"",
     "annotate_mutations.xy_intervals": "\"gs://ccleparams/references/references_wgs_xy.intervals\""

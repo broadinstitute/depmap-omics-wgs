@@ -186,15 +186,19 @@ workflow annotate_mutations {
             vcf = vcf_annot
     }
 
+    call vcf2maf {
+        input:
+            vcf = vcf_annot,
+            vcf_index = index_vcf.vcf_index,
+            output_file_base_name = sample_id + "_mut_annot",
+            ref_fasta = ref_fasta,
+            ref_fasta_index = ref_fasta_index
+    }
+
     output {
-        File mut_annot_vcf = select_first([
-            funcotate.funcotated_output_file,
-            gather_vcfs.output_vcf,
-            snpeff_snpsift.vcf_annot,
-            annot_with_bcftools.vcf_annot,
-            compress_vcf.vcf_compressed
-        ])
+        File mut_annot_vcf = vcf_annot
         File mut_annot_vcf_index = index_vcf.vcf_index
+        File mut_annot_maf = vcf2maf.maf
     }
 }
 
@@ -267,7 +271,7 @@ task index_vcf {
 
         bcftools index \
             "~{vcf}" \
-            --output="~{vcf_basename}~{index_file_ext}"
+            --output="~{vcf_basename}~{index_file_ext}" \
             ~{index_format_option} \
             --no-version
     >>>
@@ -848,5 +852,54 @@ task funcotate {
 
     output {
         File funcotated_output_file = "~{output_file}"
+    }
+}
+
+task vcf2maf {
+    input {
+        File vcf
+        File vcf_index
+        String output_file_base_name
+        File ref_fasta
+        File ref_fasta_index
+
+        String docker_image
+        String docker_image_hash_or_tag
+        Int mem_gb = 4
+        Int cpu = 1
+        Int preemptible = 3
+        Int max_retries = 0
+        Int additional_disk_gb = 0
+    }
+
+    Int disk_space = ceil(2 * size(vcf, "GiB")) + 10 + additional_disk_gb
+
+    command <<<
+        set -euo pipefail
+
+        perl /opt/vcf2maf.pl \
+            --input-vcf="~{vcf}" \
+            --output-maf="~{output_file_base_name}.maf" \
+            --ncbi-build="GRCh38" \
+            --ref-fasta="~{ref_fasta}" \
+            --inhibit-vep \
+            --verbose
+    >>>
+
+    output {
+        File maf = "~{output_file_base_name}.maf"
+    }
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+
+    meta {
+        allowNestedInputs: true
     }
 }
