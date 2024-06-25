@@ -20,6 +20,7 @@ workflow annotate_mutations {
         Boolean annot_seg_dups = true
         Boolean annot_repeat_masker = true
         Boolean annot_hess_drivers = true
+        Boolean annot_oncokb = true
         Boolean normalize_indels = true
         String? exclude_string
         File? segdup_bed
@@ -28,6 +29,7 @@ workflow annotate_mutations {
         File? repeatmasker_bed_index
         File? hess_drivers
         File? hess_drivers_index
+        File? oncokb_annotation
 
         # snpEff and SnpSift annotation
         Boolean annot_snpeff = true
@@ -76,6 +78,7 @@ workflow annotate_mutations {
                 annot_seg_dups = annot_seg_dups,
                 annot_repeat_masker = annot_repeat_masker,
                 annot_hess_drivers = annot_hess_drivers,
+                annot_oncokb = annot_oncokb,
                 normalize_indels = normalize_indels,
                 ref_fasta = ref_fasta,
                 ref_fasta_index = ref_fasta_index,
@@ -85,7 +88,8 @@ workflow annotate_mutations {
                 repeatmasker_bed = repeatmasker_bed,
                 repeatmasker_bed_index = repeatmasker_bed_index,
                 hess_drivers = hess_drivers,
-                hess_drivers_index = hess_drivers_index
+                hess_drivers_index = hess_drivers_index,
+                oncokb_annotation = oncokb_annotation
         }
     }
 
@@ -403,6 +407,7 @@ task annot_with_bcftools {
         Boolean annot_seg_dups
         Boolean annot_repeat_masker
         Boolean annot_hess_drivers
+        Boolean annot_oncokb
         Boolean normalize_indels
         File? ref_fasta
         File? ref_fasta_index
@@ -413,6 +418,7 @@ task annot_with_bcftools {
         File? repeatmasker_bed_index
         File? hess_drivers
         File? hess_drivers_index
+        File? oncokb_annotation
 
         String docker_image
         String docker_image_hash_or_tag
@@ -434,24 +440,24 @@ task annot_with_bcftools {
             echo "Fixing ploidy"
             # set the genotype annotation to be homozygous when we have no ref reads and at
             # least 3 alt reads, e.g., 0/1/2 --> 1/2, 0/1/2/3 --> 1/2/3, etc.
-            bcftools +setGT "~{vcf}" -- \
-                -t q -i'INFO/DP>8 & AF>0.9' -n c:'m|m' > \
-                "~{vcf}.2"
-            bcftools +setGT "~{vcf}.2" -- \
-                -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2"' -n c:'1/2' > \
-                "~{vcf}"
-            bcftools +setGT "~{vcf}" -- \
-                -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3"' -n c:'1/2/3' > \
-                "~{vcf}.2"
-            bcftools +setGT "~{vcf}.2" -- \
-                -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3/4"' -n c:'1/2/3/4' > \
-                "~{vcf}"
-            bcftools +setGT "~{vcf}" -- \
-                -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3/4/5"' -n c:'1/2/3/4/5' > \
-                "~{vcf}.2"
-            bcftools +setGT "~{vcf}.2" -- \
-                -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3/4/5/6"' -n c:'1/2/3/4/5/6' > \
-                "~{vcf}"
+            bcftools +setGT "~{vcf}" \
+                -- -t q -i'INFO/DP>8 & AF>0.9' -n c:'m|m' \
+                > "~{vcf}.2"
+            bcftools +setGT "~{vcf}.2" \
+                -- -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2"' -n c:'1/2' \
+                > "~{vcf}"
+            bcftools +setGT "~{vcf}" \
+                -- -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3"' -n c:'1/2/3' \
+                > "~{vcf}.2"
+            bcftools +setGT "~{vcf}.2" \
+                -- -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3/4"' -n c:'1/2/3/4' \
+                > "~{vcf}"
+            bcftools +setGT "~{vcf}" \
+                -- -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3/4/5"' -n c:'1/2/3/4/5' \
+                > "~{vcf}.2"
+            bcftools +setGT "~{vcf}.2" \
+                -- -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3/4/5/6"' -n c:'1/2/3/4/5/6' \
+                > "~{vcf}"
         fi
 
         if ~{filter_vcf}; then
@@ -465,8 +471,8 @@ task annot_with_bcftools {
 
         if ~{annot_seg_dups}; then
             echo "Annotating segmental duplication regions"
-            echo '##INFO=<ID=SEGDUP,Number=1,Type=String,Description="If variant is in a segmental duplication region">' > \
-                segdup.hdr.vcf
+            echo '##INFO=<ID=SEGDUP,Number=1,Type=String,Description="If variant is in a segmental duplication region">' \
+                > segdup.hdr.vcf
             bcftools annotate \
                 "~{vcf}" \
                 --annotations="~{segdup_bed}" \
@@ -478,8 +484,8 @@ task annot_with_bcftools {
 
         if ~{annot_repeat_masker}; then
             echo "Annotating repeat masker regions"
-            echo '##INFO=<ID=RM,Number=1,Type=String,Description="If variant is in a Repeat Masker region">' > \
-                repeatmasker.hdr.vcf
+            echo '##INFO=<ID=RM,Number=1,Type=String,Description="If variant is in a Repeat Masker region">' \
+                > repeatmasker.hdr.vcf
             bcftools annotate \
                 "~{vcf}" \
                 --annotations="~{repeatmasker_bed}" \
@@ -491,13 +497,50 @@ task annot_with_bcftools {
 
         if ~{annot_hess_drivers}; then
             echo "Annotating Hess drivers"
-            echo '##INFO=<ID=HESS,Number=1,Type=String,Description="Hess driver signature">' > \
-                hess.hdr.vcf
+
+            echo '##INFO=<ID=HESS,Number=1,Type=String,Description="Hess driver signature">' \
+                > hess.hdr.vcf
+
             bcftools annotate \
                 "~{vcf}" \
                 --annotations="~{hess_drivers}" \
                 --columns="CHROM,POS,REF,ALT,HESS" \
                 --header-lines="hess.hdr.vcf" \
+                --output="~{vcf}.2"
+            rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
+        fi
+
+        if ~{annot_oncokb}; then
+            echo "Creating OncoKB indexed TSV"
+            ONCOKB_TAB="~{basename(oncokb_annotation)}.tsv"
+
+            # get the columns we care about in proper chr-pos sorted order
+            csvcut \
+                --columns="Chromosome,Position,Alt,ProteinChange,Oncogenic,MutationEffect,Hotspot" \
+                "~{oncokb_annotation}" \
+                | csvformat --out-tabs --skip-header \
+                | sort --key="1,1V" --key="2,2n" --key="3,3" --key="4,4" \
+                > "${ONCOKB_TAB}"
+
+            bgzip "${ONCOKB_TAB}" --output="${ONCOKB_TAB}.gz"
+            tabix "${ONCOKB_TAB}.gz" -s1 -b2 -e2
+
+            echo "Annotating with OncoKB"
+
+            echo '##INFO=<ID=ONCOKB_PROT,Number=1,Type=String,Description="OncoKB protein change">' \
+                > oncokb.hdr.vcf
+            echo '##INFO=<ID=ONCOKB_ONCO,Number=1,Type=String,Description="OncoKB oncogenic">' \
+                >> oncokb.hdr.vcf
+            echo '##INFO=<ID=ONCOKB_MUTEFF,Number=1,Type=String,Description="OncoKB mutation effect">' \
+                >> oncokb.hdr.vcf
+            echo '##INFO=<ID=ONCOKB_HOTSPOT,Number=1,Type=String,Description="OncoKB hotspot">' \
+                >> oncokb.hdr.vcf
+
+            bcftools annotate \
+                "~{vcf}" \
+                --annotations="${ONCOKB_TAB}.gz" \
+                --columns="CHROM,POS,REF,ALT,ONCOKB_PROT,ONCOKB_ONCO,ONCOKB_MUTEFF,ONCOKB_HOTSPOT" \
+                --header-lines="oncokb.hdr.vcf" \
                 --output="~{vcf}.2"
             rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
         fi
@@ -566,8 +609,8 @@ task snpeff_snpsift {
                 ann \
                 -noStats \
                 GRCh38.mane.1.2.ensembl \
-                "~{vcf}" > \
-                "snpeff_out.vcf"
+                "~{vcf}" \
+                > "snpeff_out.vcf"
 
             bgzip "snpeff_out.vcf" -o "snpeff_out.vcf.gz"
             rm "snpeff_out.vcf" && mv "snpeff_out.vcf.gz" "~{vcf}"
@@ -580,8 +623,8 @@ task snpeff_snpsift {
                 -tabix \
                 -noDownload \
                 ~{clinvar_vcf} \
-                "~{vcf}" > \
-                "snpsift_out.vcf"
+                "~{vcf}" \
+                > "snpsift_out.vcf"
 
             bgzip "snpsift_out.vcf" -o "snpsift_out.vcf.gz"
             rm "snpsift_out.vcf" && mv "snpsift_out.vcf.gz" "~{vcf}"
@@ -642,8 +685,8 @@ task ensembl_vep {
         set -euo pipefail
 
         gunzip -c "~{gene_constraint_scores}" | \
-            awk '{ print $2, $20 }' > \
-            "pLI.tsv"
+            awk '{ print $2, $20 }' \
+            > "pLI.tsv"
 
         echo "Populating VEP cache data"
         mkdir -p "vep_cache"
@@ -670,7 +713,9 @@ task ensembl_vep {
             --everything \
             --pick
 
-        bgzip "~{output_file_base_name}.vcf" --threads=~{cpu}
+        bgzip "~{output_file_base_name}.vcf" \
+            --output="~{output_file_base_name}.vcf.gz" \
+            --threads=~{cpu}
     >>>
 
     output {
@@ -694,6 +739,7 @@ task ensembl_vep {
 # Adapted from https://github.com/broadinstitute/gatk/blob/master/scripts/funcotator_wdl/funcotator.wdl
 #
 # Modifications:
+#   - Index the VCF file first
 #   - Localize pre-extracted Funcotator datasource from GCS
 #   - Use SSD instead of HDD by default
 #

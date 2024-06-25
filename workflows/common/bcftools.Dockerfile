@@ -41,7 +41,7 @@ RUN set -eo pipefail \
 
 RUN set -e \
     && /usr/bin/python3 /tmp/get-pip.py \
-    && pip install -U --no-cache-dir pip matplotlib \
+    && pip install -U --no-cache-dir pip matplotlib csvkit \
     && rm -f /tmp/get-pip.py
 
 ENV BCFTOOLS_PLUGINS /usr/local/src/bcftools/plugins
