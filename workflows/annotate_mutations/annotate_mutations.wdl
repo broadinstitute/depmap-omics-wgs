@@ -144,18 +144,12 @@ workflow annotate_mutations {
             compress_vcf.vcf_compressed
         ])
 
-        call index_vcf as index_vcf_for_funcotator {
-            input:
-                vcf = funcotator_input_vcf
-        }
-
         call funcotate {
             input:
                 ref_fasta = ref_fasta,
                 ref_fasta_index = ref_fasta_index,
                 ref_dict = ref_dict,
                 input_vcf = funcotator_input_vcf,
-                input_vcf_index = index_vcf_for_funcotator.vcf_index,
                 reference_version = select_first([reference_version]),
                 output_file_base_name = sample_id + "_funco_annot",
                 output_format = "VCF",
@@ -272,8 +266,7 @@ task index_vcf {
         bcftools index \
             "~{vcf}" \
             --output="~{vcf_basename}~{index_file_ext}" \
-            ~{index_format_option} \
-            --no-version
+            ~{index_format_option}
     >>>
 
     output {
@@ -714,7 +707,6 @@ task funcotate {
         String funcotator_data_sources_url
 
         File input_vcf
-        File input_vcf_index
 
         String reference_version
 
@@ -777,7 +769,6 @@ task funcotate {
         ref_fasta: { localization_optional: true }
         ref_fasta_index: { localization_optional: true }
         ref_dict: { localization_optional: true }
-        input_vcf: { localization_optional: true }
     }
 
     command <<<
@@ -791,11 +782,14 @@ task funcotate {
             echo "ERROR: Output format must be MAF or VCF."
         fi
 
+        echo "Indexing VCF"
+        gatk --java-options "-Xmx~{command_mem}m"  IndexFeatureFile --input "~{input_vcf}"
+
         # download and extract Funcotator data sources
         DATA_SOURCES_FOLDER="./funcotator_data_sources"
         gcloud storage rsync \
             --recursive \
-            --quiet \
+            --no-user-output-enabled \
             ~{funcotator_data_sources_url} \
             $DATA_SOURCES_FOLDER
 
@@ -872,13 +866,28 @@ task vcf2maf {
         Int additional_disk_gb = 0
     }
 
-    Int disk_space = ceil(2 * size(vcf, "GiB")) + 10 + additional_disk_gb
+    Int disk_space = ceil(10 * size(vcf, "GiB")) + 10 + additional_disk_gb
 
     command <<<
         set -euo pipefail
 
+        DECOMPRESSED_VCF="~{vcf}"
+
+        # vcf2maf can't handle (b)gzipped VCF files
+        case ${DECOMPRESSED_VCF} in *.gz)
+            echo "Decompressing VCF file"
+            DECOMPRESSED_VCF="~{output_file_base_name}.vcf"
+
+            bcftools view \
+                "~{vcf}" \
+                --output="${DECOMPRESSED_VCF}" \
+                --no-version
+            rm "~{vcf}"
+            ;;
+        esac
+
         perl /opt/vcf2maf.pl \
-            --input-vcf="~{vcf}" \
+            --input-vcf="${DECOMPRESSED_VCF}" \
             --output-maf="~{output_file_base_name}.maf" \
             --ncbi-build="GRCh38" \
             --ref-fasta="~{ref_fasta}" \
