@@ -831,7 +831,7 @@ task funcotate {
         echo "Indexing VCF"
         gatk --java-options "-Xmx~{command_mem}m"  IndexFeatureFile --input "~{input_vcf}"
 
-        # download and extract Funcotator data sources
+        echo "Downloading Funcotator data sources"
         DATA_SOURCES_FOLDER="./funcotator_data_sources"
         gcloud storage rsync \
             --recursive \
@@ -861,6 +861,7 @@ task funcotate {
             -R ~{ref_fasta} \
             -V ~{input_vcf} \
             -O ~{output_file} \
+            --verbosity WARNING \
             ~{interval_list_arg} ~{default="" interval_list} \
             --annotation-default normal_barcode:~{default="Unknown" control_id} \
             --annotation-default tumor_barcode:~{default="Unknown" case_id} \
