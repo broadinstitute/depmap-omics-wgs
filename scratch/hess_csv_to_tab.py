@@ -27,10 +27,15 @@ hess = hess.sort_values(["chr_num", "POS"])
 hess = hess.drop(columns="chr_num")
 
 hess.to_csv("./data/hess_drivers.tsv", sep="\t", index=False, header=False)
-# bgzip ./data/hess_drivers.tsv -k
-# tabix ./data/hess_drivers.tsv.gz -s1 -b2 -e2
-# bcftools annotate input.vcf.gz \
-#   --annotations=hess_drivers.tsv.gz \
-#   --output=output.vcf.gz \
-#   --header-lines=hess.hdr.vcf \
-#   --columns=CHROM,POS,REF,ALT,HESS
+
+"""
+echo '##INFO=<ID=HESS,Number=1,Type=String,Description="Hess driver signature">' \
+    > ./data/hess.hdr.vcf
+bgzip ./data/hess_drivers.tsv -k
+tabix ./data/hess_drivers.tsv.gz -s1 -b2 -e2
+bcftools annotate input.vcf.gz \
+    --annotations=./data/hess_drivers.tsv.gz \
+    --output=./data/output.vcf.gz \
+    --header-lines=./data/hess.hdr.vcf \
+    --columns=CHROM,POS,REF,ALT,HESS
+"""
