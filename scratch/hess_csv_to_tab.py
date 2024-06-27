@@ -33,6 +33,8 @@ echo '##INFO=<ID=HESS,Number=1,Type=String,Description="Hess driver signature">'
     > ./data/hess.hdr.vcf
 bgzip ./data/hess_drivers.tsv -k
 tabix ./data/hess_drivers.tsv.gz -s1 -b2 -e2
+
+# e.g.
 bcftools annotate input.vcf.gz \
     --annotations=./data/hess_drivers.tsv.gz \
     --output=./data/output.vcf.gz \

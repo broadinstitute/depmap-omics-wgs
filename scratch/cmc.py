@@ -20,6 +20,7 @@ cmc["MUTATION_SIGNIFICANCE_TIER"] = cmc["MUTATION_SIGNIFICANCE_TIER"].astype("in
 cmc[["chrom", "start_end"]] = cmc["Mutation genome position GRCh38"].str.split(
     ":", regex=False, n=1, expand=True
 )
+cmc["chrom"] = "chr" + cmc["chrom"]
 cmc = cmc.drop(columns="Mutation genome position GRCh38")
 
 cmc[["start", "end"]] = (
@@ -36,21 +37,57 @@ cmc = cmc.rename(
     }
 )
 
-cmc = cmc.reset_index(drop=True)
-cmc["id"] = cmc.index.values
-cmc["id"].astype("string")
+cmc = cmc[["chrom", "pos", "ref", "alt", "mutation_significance_tier"]]
+cmc = cmc.dropna(subset=["chrom", "pos", "mutation_significance_tier"])
 
-cmc = cmc[["chrom", "pos", "id", "ref", "alt", "mutation_significance_tier"]]
+cmc_ok = cmc.loc[~cmc.isna().any(axis=1)].copy()
+cmc_to_fill = cmc.loc[cmc.isna().any(axis=1)].copy()
 
-cmc["chrom"] = cmc["chrom"].replace({"X": "23", "Y": "24"}).astype("int8")
-cmc = cmc.sort_values(["chrom", "pos"])
-cmc["chrom"] = cmc["chrom"].astype("string").replace({"23": "X", "24": "Y"})
-cmc["chrom"] = "chr" + cmc["chrom"]
+missing = cmc_to_fill.copy()
+missing["start"] = missing["pos"] - 2
+missing["end"] = missing["pos"] - 1
+missing = missing[["chrom", "start", "end"]].drop_duplicates()
+missing.to_csv("./data/cmc/missing.bed", sep="\t", header=False, index=False)
 
-cmc = cmc.dropna(subset=["chrom", "pos", "ref", "mutation_significance_tier"])
-cmc["alt"] = cmc["alt"].fillna(".")
+"""
+bedtools getfasta \
+    -fi ./data/Homo_sapiens_assembly38.fasta \
+    -bed ./data/cmc/missing.bed \
+    -bedOut \
+    > ./data/cmc/missing_left_alleles.bed
+"""
 
-cmc.to_csv("./data/cmc/cosmic_cmc.tsv", sep="\t", index=False, header=False)
+missing_left_alleles = pd.read_csv(
+    "./data/cmc/missing_left_alleles.bed",
+    sep="\t",
+    header=None,
+    names=["chrom", "start", "end", "left_allele"],
+)
+missing_left_alleles["pos"] = missing_left_alleles["end"] + 1
+missing_left_alleles = missing_left_alleles[["chrom", "pos", "left_allele"]]
+
+cmc_to_fill = cmc_to_fill.merge(
+    missing_left_alleles, how="outer", on=["chrom", "pos"], indicator=True
+)
+
+assert cmc_to_fill["_merge"].eq("both").all()
+
+cmc_to_fill[["ref", "alt"]] = cmc_to_fill[["ref", "alt"]].fillna("")
+cmc_to_fill["ref"] = cmc_to_fill["left_allele"] + cmc_to_fill["ref"]
+cmc_to_fill["alt"] = cmc_to_fill["left_allele"] + cmc_to_fill["alt"]
+cmc_to_fill["pos"] -= 1
+
+cmc_to_fill = cmc_to_fill.drop(columns=["left_allele", "_merge"])
+
+cmc_fixed = pd.concat([cmc_ok, cmc_to_fill])
+
+cmc_fixed["chrom"] = cmc_fixed["chrom"].str.lstrip("chr")
+cmc_fixed["chrom"] = cmc_fixed["chrom"].replace({"X": "23", "Y": "24"}).astype("int8")
+cmc_fixed = cmc_fixed.sort_values(["chrom", "pos"])
+cmc_fixed["chrom"] = cmc_fixed["chrom"].astype("string").replace({"23": "X", "24": "Y"})
+cmc_fixed["chrom"] = "chr" + cmc_fixed["chrom"]
+
+cmc_fixed.to_csv("./data/cmc/cosmic_cmc.tsv", sep="\t", index=False, header=False)
 
 """
 echo '##INFO=<ID=CMC_TIER,Number=1,Type=String,Description="COSMIC CMC Mutation Significance Tier">' \
@@ -58,7 +95,7 @@ echo '##INFO=<ID=CMC_TIER,Number=1,Type=String,Description="COSMIC CMC Mutation 
 
 bcftools convert \
     --columns=CHROM,POS,REF,ALT,- \
-    --fasta-ref=./data//Homo_sapiens_assembly38.fasta \
+    --fasta-ref=./data/Homo_sapiens_assembly38.fasta \
     --tsv2vcf \
     ./data/cmc/cosmic_cmc.tsv \
     -o ./data/cmc/cosmic_cmc.vcf
@@ -71,13 +108,12 @@ bcftools annotate ./data/cmc/cosmic_cmc.vcf \
     --header-lines=./data/cmc/cosmic_cmc.hdr.vcf \
     --columns=CHROM,POS,REF,ALT,CMC_TIER
 
-gatk LeftAlignAndTrimVariants \
-    -R ./data/Homo_sapiens_assembly38.fasta \
-    -V ./data/cmc/cosmic_cmc_annot.vcf \
-    -O ./data/cmc/cosmic_cmc_annot_norm.vcf.gz \
-    --split-multi-allelics \
-    --dont-trim-alleles
-    
+bcftools norm ./data/cmc/cosmic_cmc_annot.vcf \
+    --check-ref=w \
+    --fasta-ref=./data/Homo_sapiens_assembly38.fasta \
+    --output=./data/cmc/cosmic_cmc_annot_norm.vcf.gz
+bcftools index ./data/cmc/cosmic_cmc_annot_norm.vcf.gz
+
 # e.g.
 bcftools annotate input.vcf.gz \
     --annotations=./data/cmc/cosmic_cmc_annot_norm.vcf.gz \
