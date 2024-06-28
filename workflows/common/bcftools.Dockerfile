@@ -6,7 +6,7 @@ ENV BCFTOOLS_VERSION="1.20"
 ADD https://bootstrap.pypa.io/get-pip.py /tmp/get-pip.py
 
 RUN set -e \
-  && ln -sf bash /bin/sh
+    && ln -sf bash /bin/sh
 
 RUN set -e \
     && apt-get -y update \
@@ -14,8 +14,7 @@ RUN set -e \
     && apt-get -y install --no-install-recommends --no-install-suggests \
         autoconf ca-certificates curl gcc libbz2-dev libcurl4-gnutls-dev \
         libgsl-dev liblzma-dev libperl-dev libssl-dev libz-dev make perl \
-        pkg-config python3-dev python3-distutils texlive-fonts-extra \
-        texlive-fonts-recommended texlive-latex-base texlive-latex-extra lbzip2 \
+        pkg-config python3-dev python3-distutils lbzip2 \
     && apt-get -y autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -39,9 +38,10 @@ RUN set -eo pipefail \
     && make \
     && make install
 
+# also install csvkit
 RUN set -e \
     && /usr/bin/python3 /tmp/get-pip.py \
-    && pip install -U --no-cache-dir pip matplotlib csvkit \
+    && pip install -U --no-cache-dir csvkit \
     && rm -f /tmp/get-pip.py
 
 ENV BCFTOOLS_PLUGINS /usr/local/src/bcftools/plugins
