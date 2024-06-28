@@ -1,0 +1,64 @@
+{
+  "taskGroups": [
+    {
+      "taskSpec": {
+        "runnables": [
+          {
+            "displayName": "update-open-cravat",
+            "container": {
+              "imageUri": "us-docker.pkg.dev/depmap-omics/public/open_cravat:production",
+              "entrypoint": "/bin/bash",
+              "commands": [
+                "/mnt/disks/cds_pipelines/scripts/update_open_cravat_data.sh"
+              ],
+              "enableImageStreaming": false
+            },
+            "environment": {
+              "variables": {
+                "GS_URL_PREFIX": "gs://cds-pipelines/data/open-cravat"
+              }
+            }
+          }
+        ],
+        "computeResource": {
+          "cpuMilli": 2000,
+          "memoryMib": 8192,
+          "bootDiskMib": 30000
+        },
+        "volumes": [
+          {
+            "gcs": {
+              "remotePath": "cds-pipelines"
+            },
+            "mountPath": "/mnt/disks/cds_pipelines",
+            "mountOptions": [
+              "-o ro",
+              "-implicit-dirs",
+              "--billing-project depmap-omics"
+            ]
+          }
+        ],
+        "maxRetryCount": 0,
+        "maxRunDuration": "6000s"
+      },
+      "taskCount": 1,
+      "parallelism": 1
+    }
+  ],
+  "allocationPolicy": {
+    "instances": [
+      {
+        "policy": {
+          "machineType": "n2-standard-2",
+          "provisioningModel": "SPOT"
+        }
+      }
+    ],
+    "serviceAccount": {
+      "email": "omics-pipeline-runner@depmap-omics.iam.gserviceaccount.com"
+    }
+  },
+  "logsPolicy": {
+    "destination": "CLOUD_LOGGING"
+  }
+}
