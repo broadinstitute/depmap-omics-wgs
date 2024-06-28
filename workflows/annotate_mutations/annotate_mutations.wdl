@@ -47,6 +47,10 @@ workflow annotate_mutations {
         File? clinvar_vcf
         File? clinvar_vcf_index
 
+        # open-cravat annotation
+        Boolean annot_open_cravat = true
+        String? open_cravat_data_sources_url
+
         # Ensembl VEP annotation
         Boolean annot_ensembl_vep = true
         File? ref_fasta_bgz
@@ -162,7 +166,7 @@ workflow annotate_mutations {
             compress_vcf.vcf_compressed
         ])
 
-        call funcotate {
+        call funcotator {
             input:
                 ref_fasta = ref_fasta,
                 ref_fasta_index = ref_fasta_index,
@@ -186,7 +190,7 @@ workflow annotate_mutations {
     }
 
     File vcf_annot = select_first([
-        funcotate.funcotated_output_file,
+        funcotator.funcotated_output_file,
         gather_vcfs.output_vcf,
         snpeff_snpsift.vcf_annot,
         annot_with_bcftools.vcf_annot,
@@ -687,6 +691,78 @@ task snpeff_snpsift {
     }
 }
 
+task open_cravat {
+    input {
+        File vcf
+        String output_file_base_name
+        String open_cravat_data_sources_url
+        Array[String] annotators_to_use = [
+            "brca1_func_assay",
+            "ccre_screen",
+            "dida",
+            "gtex",
+            "gwas_catalog",
+            "pharmgkb",
+            "provean",
+            "revel",
+            "spliceai"
+        ]
+        String genome = "hg38"
+        String modules_options = "vcfreporter.type=separate"
+
+        String docker_image
+        String docker_image_hash_or_tag
+        Int mem_gb = 16
+        Int cpu = 4
+        Int preemptible = 3
+        Int max_retries = 0
+        Int additional_disk_gb = 0
+    }
+
+    Float datasources_size_gb = 25
+    Int disk_space = ceil(10 * size(vcf, "GiB")) + datasources_size_gb + 10 + additional_disk_gb
+
+    command <<<
+        set -euo pipefail
+
+        gcloud storage rsync \
+            --recursive \
+            --no-user-output-enabled \
+            $DATA_SOURCES_FOLDER
+
+        oc run ~{vcf} \
+            --liftover ~{genome} \
+            --mp ~{cpu} \
+            -t vcf \
+            -d out \
+            -a ~{sep=" " annotators_to_use} \
+            ~{"--module-option "+ modules_options}
+
+        mv "out/~{vcf}.vcf" "~{output_file_base_name}.vcf"
+
+        bgzip "~{output_file_base_name}.vcf" \
+            --output="~{output_file_base_name}.vcf.gz" \
+            --threads=~{cpu}
+    >>>
+
+    output {
+        File vcf_annot = "~{output_file_base_name}.vcf.gz"
+    }
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+
+    meta {
+        allowNestedInputs: true
+    }
+}
+
 task ensembl_vep {
     input {
         File vcf
@@ -781,7 +857,7 @@ task ensembl_vep {
 #
 # Use this file as a base and manually implement changes in the upstream code in order
 # to retain these modifications.
-task funcotate {
+task funcotator {
     input {
         File ref_fasta
         File ref_fasta_index
