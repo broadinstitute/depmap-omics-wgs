@@ -14,22 +14,32 @@ workflow annotate_mutations {
         # scatter/gather VCF by chromosome
         File? xy_intervals
 
-        # misc. bcftools-based annotation
+        # misc. bcftools-based fixes, filters, and annotations
         Boolean fix_ploidy = true
+
         Boolean filter_vcf = true
-        Boolean annot_seg_dups = true
-        Boolean annot_repeat_masker = true
-        Boolean annot_hess_drivers = true
-        Boolean annot_oncokb = true
-        Boolean normalize_indels = true
         String? exclude_string
+
+        Boolean normalize_indels = true
+
+        Boolean annot_seg_dups = true
         File? segdup_bed
         File? segdup_bed_index
+
+        Boolean annot_repeat_masker = true
         File? repeatmasker_bed
         File? repeatmasker_bed_index
+
+        Boolean annot_hess_drivers = true
         File? hess_drivers
         File? hess_drivers_index
+
+        Boolean annot_oncokb = true
         File? oncokb_annotation
+
+        Boolean annot_cosmic_cmc = true
+        File? cosmic_cmc
+        File? cosmic_cmc_index
 
         # snpEff and SnpSift annotation
         Boolean annot_snpeff = true
@@ -68,7 +78,8 @@ workflow annotate_mutations {
             output_file_base_name = sample_id
     }
 
-    if (fix_ploidy || filter_vcf || annot_seg_dups || annot_repeat_masker || annot_hess_drivers || normalize_indels) {
+    if (fix_ploidy || filter_vcf || annot_seg_dups || annot_repeat_masker ||
+        annot_hess_drivers || annot_oncokb || annot_cosmic_cmc || normalize_indels) {
         call annot_with_bcftools {
             input:
                 vcf = compress_vcf.vcf_compressed,
@@ -79,6 +90,7 @@ workflow annotate_mutations {
                 annot_repeat_masker = annot_repeat_masker,
                 annot_hess_drivers = annot_hess_drivers,
                 annot_oncokb = annot_oncokb,
+                annot_cosmic_cmc = annot_cosmic_cmc,
                 normalize_indels = normalize_indels,
                 ref_fasta = ref_fasta,
                 ref_fasta_index = ref_fasta_index,
@@ -89,7 +101,9 @@ workflow annotate_mutations {
                 repeatmasker_bed_index = repeatmasker_bed_index,
                 hess_drivers = hess_drivers,
                 hess_drivers_index = hess_drivers_index,
-                oncokb_annotation = oncokb_annotation
+                oncokb_annotation = oncokb_annotation,
+                cosmic_cmc = cosmic_cmc,
+                cosmic_cmc_index = cosmic_cmc_index
         }
     }
 
@@ -408,6 +422,7 @@ task annot_with_bcftools {
         Boolean annot_repeat_masker
         Boolean annot_hess_drivers
         Boolean annot_oncokb
+        Boolean annot_cosmic_cmc
         Boolean normalize_indels
         File? ref_fasta
         File? ref_fasta_index
@@ -419,6 +434,8 @@ task annot_with_bcftools {
         File? hess_drivers
         File? hess_drivers_index
         File? oncokb_annotation
+        File? cosmic_cmc
+        File? cosmic_cmc_index
 
         String docker_image
         String docker_image_hash_or_tag
@@ -436,26 +453,28 @@ task annot_with_bcftools {
     command <<<
         set -euo pipefail
 
+        TMP_VCF="~{basename(vcf, '.vcf.gz')}_tmp.vcf.gz"
+
         if ~{fix_ploidy}; then
             echo "Fixing ploidy"
             # set the genotype annotation to be homozygous when we have no ref reads and at
             # least 3 alt reads, e.g., 0/1/2 --> 1/2, 0/1/2/3 --> 1/2/3, etc.
             bcftools +setGT "~{vcf}" \
                 -- -t q -i'INFO/DP>8 & AF>0.9' -n c:'m|m' \
-                > "~{vcf}.2"
-            bcftools +setGT "~{vcf}.2" \
+                > "${TMP_VCF}"
+            bcftools +setGT "${TMP_VCF}" \
                 -- -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2"' -n c:'1/2' \
                 > "~{vcf}"
             bcftools +setGT "~{vcf}" \
                 -- -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3"' -n c:'1/2/3' \
-                > "~{vcf}.2"
-            bcftools +setGT "~{vcf}.2" \
+                > "${TMP_VCF}"
+            bcftools +setGT "${TMP_VCF}" \
                 -- -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3/4"' -n c:'1/2/3/4' \
                 > "~{vcf}"
             bcftools +setGT "~{vcf}" \
                 -- -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3/4/5"' -n c:'1/2/3/4/5' \
-                > "~{vcf}.2"
-            bcftools +setGT "~{vcf}.2" \
+                > "${TMP_VCF}"
+            bcftools +setGT "${TMP_VCF}" \
                 -- -t q -i'AD[*:0]=0 & INFO/DP>8 & GT="0/1/2/3/4/5/6"' -n c:'1/2/3/4/5/6' \
                 > "~{vcf}"
         fi
@@ -465,8 +484,18 @@ task annot_with_bcftools {
             bcftools view \
                 "~{vcf}" \
                 --exclude='~{exclude_string}' \
-                --output="~{vcf}.2"
-            rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
+                --output="${TMP_VCF}"
+            rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"
+        fi
+
+        if ~{normalize_indels}; then
+            echo "Normalizing indels"
+            bcftools norm "~{vcf}" \
+                --multiallelics=- \
+                --site-win=10000 \
+                --fasta-ref="~{ref_fasta}" \
+                --output="${TMP_VCF}"
+            rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"
         fi
 
         if ~{annot_seg_dups}; then
@@ -478,8 +507,8 @@ task annot_with_bcftools {
                 --annotations="~{segdup_bed}" \
                 --columns="CHROM,FROM,TO,SEGDUP" \
                 --header-lines="segdup.hdr.vcf" \
-                --output="~{vcf}.2"
-            rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
+                --output="${TMP_VCF}"
+            rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"
         fi
 
         if ~{annot_repeat_masker}; then
@@ -491,8 +520,8 @@ task annot_with_bcftools {
                 --annotations="~{repeatmasker_bed}" \
                 --columns="CHROM,FROM,TO,RM" \
                 --header-lines="repeatmasker.hdr.vcf" \
-                --output="~{vcf}.2"
-            rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
+                --output="${TMP_VCF}"
+            rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"
         fi
 
         if ~{annot_hess_drivers}; then
@@ -506,13 +535,13 @@ task annot_with_bcftools {
                 --annotations="~{hess_drivers}" \
                 --columns="CHROM,POS,REF,ALT,HESS" \
                 --header-lines="hess.hdr.vcf" \
-                --output="~{vcf}.2"
-            rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
+                --output="${TMP_VCF}"
+            rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"
         fi
 
         if ~{annot_oncokb}; then
             echo "Creating OncoKB indexed TSV"
-            ONCOKB_TAB="~{basename(oncokb_annotation)}.tsv"
+            ONCOKB_TAB="~{basename(select_first([oncokb_annotation]), '.csv')}.tsv"
 
             # get the columns we care about in proper chr-pos sorted order
             csvcut \
@@ -541,18 +570,25 @@ task annot_with_bcftools {
                 --annotations="${ONCOKB_TAB}.gz" \
                 --columns="CHROM,POS,REF,ALT,ONCOKB_PROT,ONCOKB_ONCO,ONCOKB_MUTEFF,ONCOKB_HOTSPOT" \
                 --header-lines="oncokb.hdr.vcf" \
-                --output="~{vcf}.2"
-            rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
+                --output="${TMP_VCF}"
+            rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"
         fi
 
-        if ~{normalize_indels}; then
-            echo "Normalizing indels"
-            bcftools norm "~{vcf}" \
-                --multiallelics=- \
-                --site-win=10000 \
-                --fasta-ref="~{ref_fasta}" \
-                --output="~{vcf}.2"
-            rm "~{vcf}" && mv "~{vcf}.2" "~{vcf}"
+        if ~{annot_cosmic_cmc}; then
+            echo "Annotating COSMIC Cancer Mutation Census tiers"
+
+            echo '##INFO=<ID=CMC_TIER,Number=1,Type=String,Description="COSMIC CMC Mutation Significance Tier">' \
+                > cosmic_cmc.hdr.vcf
+
+            bcftools index "~{vcf}"
+
+            bcftools annotate \
+                "~{vcf}" \
+                --annotations="~{cosmic_cmc}" \
+                --columns="CMC_TIER" \
+                --header-lines="cosmic_cmc.hdr.vcf" \
+                --output="${TMP_VCF}"
+            rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"
         fi
 
         # ensure it's bgzipped
