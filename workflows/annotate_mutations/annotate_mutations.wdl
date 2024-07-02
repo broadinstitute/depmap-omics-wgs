@@ -758,7 +758,11 @@ task open_cravat {
             -d out \
             -a ~{sep=" " annotators_to_use}
 
-        mv "out/~{basename(vcf)}.vcf" "~{output_file_base_name}.vcf"
+        # fix header that's difficult for vcf2maf to parse
+        sed -e '/^##INFO=<ID=OC_provean__prediction/s/"D(amaging)"/D(amaging)/' \
+            -e '/^##INFO=<ID=OC_provean__prediction/s/"N(eutral)"/N(eutral)/' \
+            "out/~{basename(vcf)}.vcf" > "~{output_file_base_name}.vcf"
+        rm "out/~{basename(vcf)}.vcf"
 
         bgzip "~{output_file_base_name}.vcf" \
             --output="~{output_file_base_name}.vcf.gz" \
