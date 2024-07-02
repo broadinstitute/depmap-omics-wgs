@@ -22,6 +22,7 @@ COPY --from=htslib_builder /usr/local/bin/bgzip /usr/local/bin/bgzip
 
 RUN pip install open-cravat==2.7.3
 
+# install gcloud CLI
 RUN apt-get update && \
     apt-get install -y \
     apt-transport-https \

@@ -7,7 +7,6 @@ oc module install -y \
   vcfreporter \
   brca1_func_assay \
   ccre_screen \
-  dida \
   gtex \
   gwas_catalog \
   pharmgkb \
