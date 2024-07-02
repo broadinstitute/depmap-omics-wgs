@@ -123,10 +123,24 @@ workflow annotate_mutations {
         }
     }
 
+    if (annot_open_cravat) {
+        call open_cravat {
+            input:
+                vcf = select_first([
+                    snpeff_snpsift.vcf_annot,
+                    annot_with_bcftools.vcf_annot,
+                    compress_vcf.vcf_compressed
+                ]),
+                output_file_base_name = sample_id + "_open_cravat",
+                open_cravat_data_sources_url = select_first([open_cravat_data_sources_url])
+        }
+    }
+
     if (annot_ensembl_vep) {
         call split_vcf_by_chrom {
             input:
                 vcf = select_first([
+                    open_cravat.vcf_annot,
                     snpeff_snpsift.vcf_annot,
                     annot_with_bcftools.vcf_annot,
                     compress_vcf.vcf_compressed
@@ -151,7 +165,7 @@ workflow annotate_mutations {
             }
         }
 
-        call gather_vcfs {
+        call gather_vcfs as ensembvl_vep_gathered {
             input:
                 vcfs = ensembl_vep.vcf_annot,
                 output_file_base_name = sample_id + "_ensembl_vep_annot",
@@ -160,7 +174,7 @@ workflow annotate_mutations {
 
     if (annot_funcotator) {
         File funcotator_input_vcf = select_first([
-            gather_vcfs.output_vcf,
+            ensembvl_vep_gathered.output_vcf,
             snpeff_snpsift.vcf_annot,
             annot_with_bcftools.vcf_annot,
             compress_vcf.vcf_compressed
@@ -191,7 +205,8 @@ workflow annotate_mutations {
 
     File vcf_annot = select_first([
         funcotator.funcotated_output_file,
-        gather_vcfs.output_vcf,
+        ensembvl_vep_gathered.output_vcf,
+        open_cravat.vcf_annot,
         snpeff_snpsift.vcf_annot,
         annot_with_bcftools.vcf_annot,
         compress_vcf.vcf_compressed
@@ -699,7 +714,6 @@ task open_cravat {
         Array[String] annotators_to_use = [
             "brca1_func_assay",
             "ccre_screen",
-            "dida",
             "gtex",
             "gwas_catalog",
             "pharmgkb",
@@ -719,26 +733,32 @@ task open_cravat {
         Int additional_disk_gb = 0
     }
 
-    Float datasources_size_gb = 25
-    Int disk_space = ceil(10 * size(vcf, "GiB")) + datasources_size_gb + 10 + additional_disk_gb
+    Int datasources_size_gb = 25
+    Int boot_disk_space = datasources_size_gb + 10
+    Int disk_space = ceil(10 * size(vcf, "GiB")) + 10 + additional_disk_gb
 
     command <<<
         set -euo pipefail
 
+        RSYNC_DEST="$(oc config md)"
+
+        echo "Downloading annotator data"
         gcloud storage rsync \
             --recursive \
             --no-user-output-enabled \
-            $DATA_SOURCES_FOLDER
+            "~{open_cravat_data_sources_url}" \
+            $RSYNC_DEST
 
+        echo "Annotating with Open-Cravat"
         oc run ~{vcf} \
             --liftover ~{genome} \
             --mp ~{cpu} \
+            --module-option vcfreporter.type=separate \
             -t vcf \
             -d out \
-            -a ~{sep=" " annotators_to_use} \
-            ~{"--module-option "+ modules_options}
+            -a ~{sep=" " annotators_to_use}
 
-        mv "out/~{vcf}.vcf" "~{output_file_base_name}.vcf"
+        mv "out/~{basename(vcf)}.vcf" "~{output_file_base_name}.vcf"
 
         bgzip "~{output_file_base_name}.vcf" \
             --output="~{output_file_base_name}.vcf.gz" \
@@ -753,6 +773,7 @@ task open_cravat {
         docker: "~{docker_image}~{docker_image_hash_or_tag}"
         memory: "~{mem_gb} GB"
         disks: "local-disk ~{disk_space} SSD"
+        bootDiskSizeGb: boot_disk_space
         preemptible: preemptible
         maxRetries: max_retries
         cpu: cpu
