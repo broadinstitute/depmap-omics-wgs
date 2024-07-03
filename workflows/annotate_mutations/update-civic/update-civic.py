@@ -97,7 +97,6 @@ df = df.rename(
         "start": "pos",
         "reference_bases": "ref",
         "variant_bases": "alt",
-        "evidence_score": "actionability_score",
         "summary": "description",
     }
 )
@@ -105,7 +104,7 @@ df = df.rename(
 df["chrom"] = "chr" + df["chrom"]
 
 df = df.dropna(subset=["variant_id", "chrom", "pos", "ref", "alt"])
-df = df.loc[~df[["actionability_score", "description"]].isna().all(axis=1)]
+df = df.loc[~df[["evidence_score", "description"]].isna().all(axis=1)]
 
 df = df.loc[
     :,
@@ -115,7 +114,7 @@ df = df.loc[
         "pos",
         "ref",
         "alt",
-        "actionability_score",
+        "evidence_score",
         "description",
     ],
 ]
@@ -125,6 +124,7 @@ liftover = LiftOver("hg19", "hg38")
 df["chrom_pos_hg38"] = df.apply(
     lambda x: liftover_one(liftover, x["chrom"], x["pos"] - 1), axis=1
 )
+
 df[["chrom_hg38", "pos_hg38"]] = df["chrom_pos_hg38"].str.split(",", expand=True)
 df["chrom_hg38"] = df["chrom_hg38"].astype("string")
 df["pos_hg38"] = df["pos_hg38"].astype("Int64")
@@ -143,6 +143,22 @@ df["chr_num"] = df["chr_num"].astype("int8")
 df = df.sort_values(["chr_num", "pos"])
 df = df.drop(columns="chr_num")
 
-df[["chrom", "pos", "ref", "alt", "actionability_score", "description"]].to_csv(
-    "./data/civic/civic.tsv", sep="\t", index=False, header=False
+df[["chrom", "pos", "ref", "alt", "evidence_score", "description"]].to_csv(
+    f"./data/civic/civic_{today}.tsv", sep="\t", index=False, header=False
 )
+
+"""
+echo '##INFO=<ID=CIVIC_SCORE,Number=1,Type=String,Description="CIVIC evidence score">' \
+    > ./data/civic/civic.hdr.vcf
+echo '##INFO=<ID=CIVIC_DESC,Number=1,Type=String,Description="CIVIC variant description">' \
+    >> ./data/civic/civic.hdr.vcf
+bgzip ./data/civic/civic_2024-07-03.tsv -k
+tabix ./data/civic/civic_2024-07-03.tsv.gz -s1 -b2 -e2
+
+# e.g.
+bcftools annotate input.vcf.gz \
+    --annotations=./data/civic/civic_2024-07-03.tsv.gz \
+    --output=./data/output.vcf.gz \
+    --header-lines=./data/hess.hdr.vcf \
+    --columns=CHROM,POS,REF,ALT,CIVIC_SCORE,CIVIC_DESC
+"""

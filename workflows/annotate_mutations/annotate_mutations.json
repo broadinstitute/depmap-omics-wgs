@@ -3,6 +3,7 @@
   "inputs": {
     "annotate_mutations.alpha_missense": "\"gs://cds-vep-data/AlphaMissense_hg38.tsv.gz\"",
     "annotate_mutations.alpha_missense_index": "\"gs://cds-vep-data/AlphaMissense_hg38.tsv.gz.tbi\"",
+    "annotate_mutations.annot_civic": "true",
     "annotate_mutations.annot_cosmic_cmc": "true",
     "annotate_mutations.annot_ensembl_vep": "true",
     "annotate_mutations.annot_hess_drivers": "true",
@@ -15,6 +16,8 @@
     "annotate_mutations.annot_snpsift": "true",
     "annotate_mutations.annot_with_bcftools.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/bcftools\"",
     "annotate_mutations.annot_with_bcftools.docker_image_hash_or_tag": "\"@sha256:2514b00e7866254a03a2a1cc519150f19da3687efa0acc0437fdeb98bf82d9f1\"",
+    "annotate_mutations.civic_annotation": "\"gs://cds-pipelines/data/civic/civic_2024-07-03.tsv.gz\"",
+    "annotate_mutations.civic_annotation_index": "\"gs://cds-pipelines/data/civic/civic_2024-07-03.tsv.gz.tbi\"",
     "annotate_mutations.clinvar_vcf": "\"gs://cds-pipelines/data/clinvar/clinvar_20240611.vcf.gz\"",
     "annotate_mutations.clinvar_vcf_index": "\"gs://cds-pipelines/data/clinvar/clinvar_20240611.vcf.gz.tbi\"",
     "annotate_mutations.compress_vcf": "true",

@@ -37,6 +37,10 @@ workflow annotate_mutations {
         Boolean annot_oncokb = true
         File? oncokb_annotation
 
+        Boolean annot_civic = true
+        File? civic_annotation
+        File? civic_annotation_index
+
         Boolean annot_cosmic_cmc = true
         File? cosmic_cmc
         File? cosmic_cmc_index
@@ -83,7 +87,8 @@ workflow annotate_mutations {
     }
 
     if (fix_ploidy || filter_vcf || annot_seg_dups || annot_repeat_masker ||
-        annot_hess_drivers || annot_oncokb || annot_cosmic_cmc || normalize_indels) {
+        annot_hess_drivers || annot_oncokb || annot_civic || annot_cosmic_cmc ||
+        normalize_indels) {
         call annot_with_bcftools {
             input:
                 vcf = compress_vcf.vcf_compressed,
@@ -94,6 +99,7 @@ workflow annotate_mutations {
                 annot_repeat_masker = annot_repeat_masker,
                 annot_hess_drivers = annot_hess_drivers,
                 annot_oncokb = annot_oncokb,
+                annot_civic = annot_civic,
                 annot_cosmic_cmc = annot_cosmic_cmc,
                 normalize_indels = normalize_indels,
                 ref_fasta = ref_fasta,
@@ -106,6 +112,8 @@ workflow annotate_mutations {
                 hess_drivers = hess_drivers,
                 hess_drivers_index = hess_drivers_index,
                 oncokb_annotation = oncokb_annotation,
+                civic_annotation = civic_annotation,
+                civic_annotation_index = civic_annotation_index,
                 cosmic_cmc = cosmic_cmc,
                 cosmic_cmc_index = cosmic_cmc_index
         }
@@ -441,6 +449,7 @@ task annot_with_bcftools {
         Boolean annot_repeat_masker
         Boolean annot_hess_drivers
         Boolean annot_oncokb
+        Boolean annot_civic
         Boolean annot_cosmic_cmc
         Boolean normalize_indels
         File? ref_fasta
@@ -453,6 +462,8 @@ task annot_with_bcftools {
         File? hess_drivers
         File? hess_drivers_index
         File? oncokb_annotation
+        File? civic_annotation
+        File? civic_annotation_index
         File? cosmic_cmc
         File? cosmic_cmc_index
 
@@ -606,6 +617,23 @@ task annot_with_bcftools {
                 --annotations="~{cosmic_cmc}" \
                 --columns="CMC_TIER" \
                 --header-lines="cosmic_cmc.hdr.vcf" \
+                --output="${TMP_VCF}"
+            rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"
+        fi
+
+        if ~{annot_civic}; then
+            echo "Annotating CIVIC variants"
+
+            echo '##INFO=<ID=CIVIC_SCORE,Number=1,Type=String,Description="CIVIC evidence score">' \
+                > civic.hdr.vcf
+            echo '##INFO=<ID=CIVIC_DESC,Number=1,Type=String,Description="CIVIC variant description">' \
+                >> civic.hdr.vcf
+
+            bcftools annotate \
+                "~{vcf}" \
+                --annotations="~{civic_annotation}" \
+                --columns="CHROM,POS,REF,ALT,CIVIC_SCORE,CIVIC_DESC" \
+                --header-lines="civic.hdr.vcf" \
                 --output="${TMP_VCF}"
             rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"
         fi
