@@ -2764,6 +2764,17 @@ docs = ["sphinx (>=4.5.0,<5.0.0)", "sphinx-rtd-theme", "zope.interface"]
 tests = ["coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)"]
 
 [[package]]
+name = "pyliftover"
+version = "0.4.1"
+description = "Pure-python implementation of UCSC ``liftOver`` genome coordinate conversion."
+optional = false
+python-versions = "*"
+files = [
+    {file = "pyliftover-0.4.1-py3-none-any.whl", hash = "sha256:49ef8938010d2e934abb483d3ef8073897ed6b88bcd978c486c8f7631c24dbc1"},
+    {file = "pyliftover-0.4.1.tar.gz", hash = "sha256:33ad187e35d1b6662ba446432f4dd1a808ac2914ce1645eef37598fa5a3860cd"},
+]
+
+[[package]]
 name = "pylint"
 version = "3.1.0"
 description = "python code static checker"
@@ -3878,4 +3889,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "ace1e0d3e57126386ca8774535a0a0b8cfde7632499914dc0f96b5efa93473c0"
+content-hash = "f2276684bbf94541fadde0ddb65b6aab32a86ec0db749a4fd3174793ca5e7717"

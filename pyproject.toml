@@ -28,6 +28,7 @@ ruff = "^0.4.2"
 pyright = "^1.1.365"
 ruff-lsp = "^0.0.53"
 jupyter = "^1.0.0"
+pyliftover = "^0.4.1"
 
 [[tool.poetry.source]]
 name = "public-python"
