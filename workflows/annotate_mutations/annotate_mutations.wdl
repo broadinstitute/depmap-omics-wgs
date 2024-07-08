@@ -762,8 +762,9 @@ task open_cravat {
     }
 
     Int datasources_size_gb = 25
-    Int boot_disk_space = datasources_size_gb + 10
-    Int disk_space = ceil(10 * size(vcf, "GiB")) + 10 + additional_disk_gb
+    Int extracted_vcf_size = ceil(10 * size(vcf, "GiB"))
+    Int boot_disk_space = datasources_size_gb + extracted_vcf_size + 10
+    Int disk_space = extracted_vcf_size + 10 + additional_disk_gb
 
     command <<<
         set -euo pipefail
