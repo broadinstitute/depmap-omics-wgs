@@ -1,3 +1,8 @@
+"""
+This script downloads the latest data form CivicDB and transforms the data to be
+uploaded to GCs.
+"""
+
 import datetime
 
 import pandas as pd

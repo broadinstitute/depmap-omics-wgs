@@ -1,3 +1,8 @@
+"""
+The Hess drivers set is no longer being updated, so these files don't need to be
+timestamped and this script doesn't need to be re-run.
+"""
+
 import pandas as pd
 
 hess = pd.read_csv(
