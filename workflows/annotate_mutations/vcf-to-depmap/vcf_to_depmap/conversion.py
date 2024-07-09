@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from vcf_to_depmap.utils import get_vcf_info_and_format_dtypes, read_vcf
+from vcf_to_depmap.utils import get_vcf_info_and_format_dtypes, process_vcf, read_vcf
 
 
 def convert(
@@ -9,6 +9,8 @@ def convert(
     tsg_list_path: Path,
     out_path: Path,
     force_keep: set[str],
+    compound_info_fields: set[str],
+    url_encoded_col_name_regex: str | None,
 ):
     with open(oncogenes_list_path, "r") as f:
         oncogenes = set(line.strip() for line in f)
@@ -16,7 +18,10 @@ def convert(
     with open(tsg_list_path, "r") as f:
         tumor_suppressor_genes = set(line.strip() for line in f)
 
-    info_and_format_dtypes = get_vcf_info_and_format_dtypes(vcf_path)
-    vcf = read_vcf(vcf_path, info_and_format_dtypes)
+    info_and_format_dtypes = get_vcf_info_and_format_dtypes(
+        vcf_path, compound_info_fields
+    )
+    df = read_vcf(vcf_path)
+    process_vcf(df, info_and_format_dtypes, url_encoded_col_name_regex)
 
     pass

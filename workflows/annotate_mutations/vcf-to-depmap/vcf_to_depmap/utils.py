@@ -2,15 +2,17 @@ import re
 from pathlib import Path
 from pprint import pp
 from typing import Callable
+from urllib.parse import unquote
 
 import numpy as np
 import pandas as pd
 from caseconverter import snakecase
 
 
-def get_vcf_info_and_format_dtypes(path: Path) -> pd.DataFrame:
+def get_vcf_info_and_format_dtypes(
+    path: Path, compound_info_fields: set[str]
+) -> pd.DataFrame:
     header_lines = []
-    pipe_delim_subfields = {"FUNCOTATION", "ANN", "LOF", "CSQ", "NMD"}
 
     with open(path, "r") as f:
         while True:
@@ -21,15 +23,17 @@ def get_vcf_info_and_format_dtypes(path: Path) -> pd.DataFrame:
             elif not line.startswith("#"):
                 break
 
-    rows = []
+    arr = []
 
     for x in header_lines:
         kind = re.search(r"^##(\w+)", x).group(1).lower()
         interior = re.search(r"<(.+)>$", x).group(1)
         parts = re.findall(r'([A-Za-z0-9_]+)=(".*?"|[^,]+)', interior)
+
         d = {k: v.strip('"') for k, v in parts}
-        d["kind"] = kind
-        d["has_subfields"] = d["ID"] in pipe_delim_subfields
+        d["kind"] = kind if kind == "info" else "value"
+        d["has_subfields"] = d["ID"] in compound_info_fields
+        d["ID"] = "__".join([d["kind"], snakecase(d["ID"])])
 
         if d["has_subfields"]:
             subfields = d["Description"].split(r"|")
@@ -40,11 +44,9 @@ def get_vcf_info_and_format_dtypes(path: Path) -> pd.DataFrame:
                 for x in subfields
             ]
 
-        d["ID"] = snakecase(d["ID"])
+        arr.append(d)
 
-        rows.append(d)
-
-    df = pd.DataFrame(rows)
+    df = pd.DataFrame(arr)
     df.columns = df.columns.str.lower()
 
     df["type"] = df["type"].replace(
@@ -60,7 +62,7 @@ def get_vcf_info_and_format_dtypes(path: Path) -> pd.DataFrame:
     return df
 
 
-def read_vcf(path: Path, info_and_format_dtypes: pd.DataFrame) -> pd.DataFrame:
+def read_vcf(path: Path) -> pd.DataFrame:
     df = pd.read_csv(
         path,
         sep="\t",
@@ -99,9 +101,22 @@ def read_vcf(path: Path, info_and_format_dtypes: pd.DataFrame) -> pd.DataFrame:
     if df[["chromosome", "position", "ref", "alt"]].duplicated().any():
         raise ValueError("Duplicate variants detected in the VCF file.")
 
+    return df
+
+
+def process_vcf(
+    df: pd.DataFrame,
+    info_and_format_dtypes: pd.DataFrame,
+    url_encoded_col_name_regex: str | None,
+) -> pd.DataFrame:
     df = expand_info_and_value_cols(df)
-    obs_info_formats = collect_castable_info_and_values(df, info_and_format_dtypes)
+    obs_info_formats = info_and_format_dtypes.loc[
+        info_and_format_dtypes["id"].isin(df.columns)
+    ]
     df = fix_info_and_value_dtypes(df, obs_info_formats)
+
+    url_encoded_col_names = df.columns[df.columns.str.match(url_encoded_col_name_regex)]
+    df.loc[:, url_encoded_col_names] = df.loc[:, url_encoded_col_names].map(unquote)
 
     return df
 
@@ -121,22 +136,6 @@ def parse_vcf_info(info: str) -> dict[str, str]:
     parts = info.split(";")
     kv = [x.split("=") for x in parts]
     return dict(zip([x[0] for x in kv], [x[1] if len(x) == 2 else None for x in kv]))
-
-
-def collect_castable_info_and_values(df, info_and_format_dtypes):
-    format_rows = info_and_format_dtypes.loc[
-        info_and_format_dtypes["kind"].eq("format")
-    ].copy()
-
-    info_rows = info_and_format_dtypes.loc[
-        info_and_format_dtypes["kind"].eq("info")
-    ].copy()
-
-    format_rows["id"] = "value__" + format_rows["id"]
-    info_rows["id"] = "info__" + info_rows["id"]
-
-    info_and_formats = pd.concat([info_rows, format_rows], ignore_index=True)
-    return info_and_formats.loc[info_and_formats["id"].isin(df.columns)]
 
 
 def fix_info_and_value_dtypes(df, obs_info_formats):
@@ -175,6 +174,18 @@ def fix_info_and_value_dtypes(df, obs_info_formats):
                     ].astype(r["type"])
 
     assert np.dtype("O") not in list(df.dtypes)
+
+    df = df[
+        [
+            "chromosome",
+            "position",
+            "ref",
+            "alt",
+            "filter",
+            *df.columns[df.columns.str.startswith("value__")].sort_values(),
+            *df.columns[df.columns.str.startswith("info__")].sort_values(),
+        ]
+    ]
 
     return df
 

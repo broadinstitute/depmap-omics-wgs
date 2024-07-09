@@ -24,10 +24,24 @@ def main(
     tsg_list: Annotated[Path, typer.Option(exists=True)],
     out: Annotated[Path, typer.Option()],
     force_keep: Annotated[Optional[List[str]], typer.Option()] = None,
+    compound_info_field: Annotated[Optional[List[str]], typer.Option()] = None,
+    url_encoded_col_name_regex: Annotated[Optional[str], typer.Option()] = None,
 ) -> None:
     force_keep_set = set(force_keep) if force_keep is not None else {}
+    compound_info_field_set = (
+        set(compound_info_field) if compound_info_field is not None else {}
+    )
 
-    convert(vcf, oncogenes_list, tsg_list, out, force_keep_set)
+    convert(
+        vcf,
+        oncogenes_list,
+        tsg_list,
+        out,
+        force_keep_set,
+        compound_info_field_set,
+        url_encoded_col_name_regex,
+    )
+
     echo("Done.")
 
 
