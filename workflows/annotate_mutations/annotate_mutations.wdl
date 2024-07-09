@@ -758,12 +758,12 @@ task open_cravat {
         Int cpu = 4
         Int preemptible = 3
         Int max_retries = 0
-        Int additional_disk_gb = 0
+        Int additional_disk_gb = 20
     }
 
     Int datasources_size_gb = 25
     Int extracted_vcf_size = ceil(10 * size(vcf, "GiB"))
-    Int boot_disk_space = datasources_size_gb + extracted_vcf_size + 10
+    Int boot_disk_space = datasources_size_gb + 10
     Int disk_space = extracted_vcf_size + 10 + additional_disk_gb
 
     command <<<
@@ -793,9 +793,7 @@ task open_cravat {
             "out/~{basename(vcf)}.vcf" > "~{output_file_base_name}.vcf"
         rm "out/~{basename(vcf)}.vcf"
 
-        bgzip "~{output_file_base_name}.vcf" \
-            --output="~{output_file_base_name}.vcf.gz" \
-            --threads=~{cpu}
+        bgzip "~{output_file_base_name}.vcf" --threads=~{cpu}
     >>>
 
     output {
@@ -879,9 +877,8 @@ task ensembl_vep {
             --everything \
             --pick
 
-        bgzip "~{output_file_base_name}.vcf" \
-            --output="~{output_file_base_name}.vcf.gz" \
-            --threads=~{cpu}
+        # older version of bgzip in the image doesn't have `--output` option
+        bgzip "~{output_file_base_name}.vcf" --threads=~{cpu}
     >>>
 
     output {
