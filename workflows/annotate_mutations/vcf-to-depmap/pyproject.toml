@@ -12,6 +12,7 @@ pandas = "^2.2.2"
 typer = "^0.12.3"
 click = "^8.1.7"
 pandera = "^0.20.1"
+case-converter = "^1.1.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.8"

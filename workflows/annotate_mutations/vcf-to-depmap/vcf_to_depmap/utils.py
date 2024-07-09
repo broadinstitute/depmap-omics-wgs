@@ -1,13 +1,16 @@
 import re
 from pathlib import Path
 from pprint import pp
+from typing import Callable
 
 import numpy as np
 import pandas as pd
+from caseconverter import snakecase
 
 
 def get_vcf_info_and_format_dtypes(path: Path) -> pd.DataFrame:
     header_lines = []
+    pipe_delim_subfields = {"FUNCOTATION", "ANN", "LOF", "CSQ", "NMD"}
 
     with open(path, "r") as f:
         while True:
@@ -22,14 +25,26 @@ def get_vcf_info_and_format_dtypes(path: Path) -> pd.DataFrame:
 
     for x in header_lines:
         kind = re.search(r"^##(\w+)", x).group(1).lower()
-        interior = re.search(r"<([^>]+)>$", x).group(1)
-        parts = re.findall(r'([A-Z a-z 0-9 _]+)=(".*?"|[^,]+)', interior)
-        kv = {k: v.strip('"') for k, v in parts}
-        kv["kind"] = kind
-        rows.append(kv)
+        interior = re.search(r"<(.+)>$", x).group(1)
+        parts = re.findall(r'([A-Za-z0-9_]+)=(".*?"|[^,]+)', interior)
+        d = {k: v.strip('"') for k, v in parts}
+        d["kind"] = kind
+        d["has_subfields"] = d["ID"] in pipe_delim_subfields
+
+        if d["has_subfields"]:
+            subfields = d["Description"].split(r"|")
+            subfields[0] = subfields[0].split(":")[-1]
+
+            d["subfields"] = [
+                snakecase(re.search(r"[\s']*([^']+)[\s']*$", x).group(1))
+                for x in subfields
+            ]
+
+        d["ID"] = snakecase(d["ID"])
+
+        rows.append(d)
 
     df = pd.DataFrame(rows)
-    df = df.drop_duplicates()
     df.columns = df.columns.str.lower()
 
     df["type"] = df["type"].replace(
@@ -97,7 +112,7 @@ def expand_info_and_value_cols(df):
         lambda x: dict(zip(x["format"].split(":"), x["values"].split(":"))), axis=1
     )
 
-    df = expand_dict_columns(df)
+    df = expand_dict_columns(df, col_name_formatter=snakecase)
 
     return df.drop(columns=["format", "values"])
 
@@ -134,6 +149,7 @@ def fix_info_and_value_dtypes(df, obs_info_formats):
             expanded = df[r["id"]].str.split(",", expand=True)
 
             if expanded.shape[1] == 1:
+                new_col_names = [r["id"]]
                 df[r["id"]] = df[r["id"]].astype(r["type"])
             else:
                 new_col_names = [
@@ -146,6 +162,18 @@ def fix_info_and_value_dtypes(df, obs_info_formats):
 
                 df = df.drop(columns=[r["id"]])
 
+            if r["has_subfields"]:
+                for c in new_col_names:
+                    df[c] = df[c].str.strip("[]()").str.split("|")
+                    df.loc[~df[c].isna(), c] = df.loc[~df[c].isna(), c].apply(
+                        lambda x: dict(zip(r["subfields"], x))
+                    )
+                    df = expand_dict_columns(df)
+
+                    df[df.columns[df.columns.str.startswith(c)]] = df[
+                        df.columns[df.columns.str.startswith(c)]
+                    ].astype(r["type"])
+
     assert np.dtype("O") not in list(df.dtypes)
 
     return df
@@ -156,6 +184,7 @@ def expand_dict_columns(
     sep: str = "__",
     name_columns_with_parent: bool = True,
     parent_key: str = "",
+    col_name_formatter: Callable[[str], str] = lambda _: _,
 ) -> pd.DataFrame:
     """
     Recursively expand columns in a data frame containing dictionaries into separate
@@ -167,6 +196,7 @@ def expand_dict_columns(
     their parents' column names
     :param parent_key: the name of the parent column, applicable only if
     `name_columns_with_parent` is `True` (for recursion)
+    :param col_name_formatter: an optional function to format resulting column names
     :return: a widened data frame
     """
 
@@ -180,10 +210,19 @@ def expand_dict_columns(
             if name_columns_with_parent:
                 # e.g. if current column `c` is "foo" and the nested data contains a
                 # field "bar", the resulting column name is "foo__bar"
+
                 nested_df.columns = [
-                    sep.join([parent_key, str(c), str(col)])
+                    sep.join(
+                        [
+                            parent_key,
+                            col_name_formatter(str(c)),
+                            col_name_formatter(str(col)),
+                        ]
+                    )
                     if parent_key != ""
-                    else sep.join([str(c), str(col)])
+                    else sep.join(
+                        [col_name_formatter(str(c)), col_name_formatter(str(col))]
+                    )
                     for col in nested_df.columns
                 ]
 
@@ -193,7 +232,7 @@ def expand_dict_columns(
                     nested_df,
                     sep=sep,
                     name_columns_with_parent=name_columns_with_parent,
-                    parent_key=str(c),
+                    parent_key=col_name_formatter(str(c)),
                 )
             )
 
