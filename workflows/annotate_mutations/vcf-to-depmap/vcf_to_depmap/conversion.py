@@ -8,6 +8,7 @@ def convert(
     oncogenes_list_path: Path,
     tsg_list_path: Path,
     out_path: Path,
+    drop_cols: set[str],
     force_keep: set[str],
     compound_info_fields: set[str],
     url_encoded_col_name_regex: str | None,
@@ -22,6 +23,6 @@ def convert(
         vcf_path, compound_info_fields
     )
     df = read_vcf(vcf_path)
-    process_vcf(df, info_and_format_dtypes, url_encoded_col_name_regex)
+    process_vcf(df, info_and_format_dtypes, drop_cols, url_encoded_col_name_regex)
 
     pass

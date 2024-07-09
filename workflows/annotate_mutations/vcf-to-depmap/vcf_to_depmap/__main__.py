@@ -23,23 +23,26 @@ def main(
     oncogenes_list: Annotated[Path, typer.Option(exists=True)],
     tsg_list: Annotated[Path, typer.Option(exists=True)],
     out: Annotated[Path, typer.Option()],
+    drop_col: Annotated[Optional[List[str]], typer.Option()] = None,
     force_keep: Annotated[Optional[List[str]], typer.Option()] = None,
     compound_info_field: Annotated[Optional[List[str]], typer.Option()] = None,
     url_encoded_col_name_regex: Annotated[Optional[str], typer.Option()] = None,
 ) -> None:
-    force_keep_set = set(force_keep) if force_keep is not None else {}
-    compound_info_field_set = (
+    drop_cols = set(drop_col) if drop_col is not None else {}
+    force_keeps = set(force_keep) if force_keep is not None else {}
+    compound_info_fields = (
         set(compound_info_field) if compound_info_field is not None else {}
     )
 
     convert(
-        vcf,
-        oncogenes_list,
-        tsg_list,
-        out,
-        force_keep_set,
-        compound_info_field_set,
-        url_encoded_col_name_regex,
+        vcf_path=vcf,
+        oncogenes_list_path=oncogenes_list,
+        tsg_list_path=tsg_list,
+        out_path=out,
+        drop_cols=drop_cols,
+        force_keep=force_keeps,
+        compound_info_fields=compound_info_fields,
+        url_encoded_col_name_regex=url_encoded_col_name_regex,
     )
 
     echo("Done.")

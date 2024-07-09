@@ -107,13 +107,18 @@ def read_vcf(path: Path) -> pd.DataFrame:
 def process_vcf(
     df: pd.DataFrame,
     info_and_format_dtypes: pd.DataFrame,
+    drop_cols: set[str],
     url_encoded_col_name_regex: str | None,
 ) -> pd.DataFrame:
+    cols_to_drop = list(drop_cols)
+    df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
+
     df = expand_info_and_value_cols(df)
-    obs_info_formats = info_and_format_dtypes.loc[
-        info_and_format_dtypes["id"].isin(df.columns)
-    ]
-    df = fix_info_and_value_dtypes(df, obs_info_formats)
+    df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
+
+    df = fix_info_and_value_dtypes(df, info_and_format_dtypes)
+    df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
+
     df = urldecode_cols(df, url_encoded_col_name_regex)
 
     return df
@@ -136,7 +141,11 @@ def parse_vcf_info(info: str) -> dict[str, str]:
     return dict(zip([x[0] for x in kv], [x[1] if len(x) == 2 else None for x in kv]))
 
 
-def fix_info_and_value_dtypes(df, obs_info_formats):
+def fix_info_and_value_dtypes(df, info_and_format_dtypes):
+    obs_info_formats = info_and_format_dtypes.loc[
+        info_and_format_dtypes["id"].isin(df.columns)
+    ]
+
     for _, r in obs_info_formats.iterrows():
         if r["type"] == "boolean":
             df[r["id"]] = df[r["id"]].astype("boolean")
