@@ -173,16 +173,22 @@ workflow annotate_mutations {
             }
         }
 
-        call gather_vcfs as ensembvl_vep_gathered {
+        call gather_vcfs as ensembl_vep_gathered {
             input:
                 vcfs = ensembl_vep.vcf_annot,
+                output_file_base_name = sample_id + "_ensembl_vep_annot",
+        }
+
+        call sort_vcf as ensembl_vep_sorted {
+            input:
+                vcf = ensembl_vep_gathered.output_vcf,
                 output_file_base_name = sample_id + "_ensembl_vep_annot",
         }
     }
 
     if (annot_funcotator) {
         File funcotator_input_vcf = select_first([
-            ensembvl_vep_gathered.output_vcf,
+            ensembl_vep_sorted.output_vcf,
             snpeff_snpsift.vcf_annot,
             annot_with_bcftools.vcf_annot,
             compress_vcf.vcf_compressed
@@ -213,7 +219,7 @@ workflow annotate_mutations {
 
     File vcf_annot = select_first([
         funcotator.funcotated_output_file,
-        ensembvl_vep_gathered.output_vcf,
+        ensembl_vep_sorted.output_vcf,
         open_cravat.vcf_annot,
         snpeff_snpsift.vcf_annot,
         annot_with_bcftools.vcf_annot,
@@ -332,6 +338,48 @@ task index_vcf {
     }
 }
 
+task sort_vcf {
+    input {
+        File vcf
+        String output_file_base_name
+
+        String docker_image
+        String docker_image_hash_or_tag
+        Int mem_gb = 4
+        Int cpu = 1
+        Int preemptible = 3
+        Int max_retries = 0
+        Int additional_disk_gb = 0
+    }
+
+    Int disk_space = ceil(size(vcf, "GiB")) + 10 + additional_disk_gb
+
+    command <<<
+        set -euo pipefail
+
+        bcftools sort \
+            "~{vcf}" \
+            --output="~{output_file_base_name}.vcf.gz"
+    >>>
+
+    output {
+        File output_vcf = "~{output_file_base_name}.vcf.gz"
+    }
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+
+    meta {
+        allowNestedInputs: true
+    }
+}
+
 task split_vcf_by_chrom {
     input {
         File vcf
@@ -409,16 +457,11 @@ task gather_vcfs {
         set -euo pipefail
 
         gatk --java-options "-Xmx~{command_mem_mb}m" \
-        GatherVcfsCloud \
+            GatherVcfsCloud \
             --input ~{sep=" --input " vcfs} \
-            --output "combined.vcf.gz" \
+            --output "~{output_file_base_name}.vcf.gz" \
             --gather-type "BLOCK" \
             --disable-contig-ordering-check
-
-        gatk --java-options "-Xmx~{command_mem_mb}m" \
-            SortVcf \
-            --INPUT "combined.vcf.gz" \
-            --OUTPUT "~{output_file_base_name}.vcf.gz"
     >>>
 
     output {
