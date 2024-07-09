@@ -114,9 +114,7 @@ def process_vcf(
         info_and_format_dtypes["id"].isin(df.columns)
     ]
     df = fix_info_and_value_dtypes(df, obs_info_formats)
-
-    url_encoded_col_names = df.columns[df.columns.str.match(url_encoded_col_name_regex)]
-    df.loc[:, url_encoded_col_names] = df.loc[:, url_encoded_col_names].map(unquote)
+    df = urldecode_cols(df, url_encoded_col_name_regex)
 
     return df
 
@@ -186,6 +184,22 @@ def fix_info_and_value_dtypes(df, obs_info_formats):
             *df.columns[df.columns.str.startswith("info__")].sort_values(),
         ]
     ]
+
+    return df
+
+
+def urldecode_cols(df, url_encoded_col_name_regex):
+    col_has_percent = df.apply(lambda x: x.str.contains("%"), axis=1).any(axis=0)
+    percent_cols = col_has_percent[col_has_percent].index
+
+    url_encoded_col_names = df.columns[df.columns.str.match(url_encoded_col_name_regex)]
+
+    if not set(url_encoded_col_names).issuperset(set(percent_cols)):
+        raise ValueError("Check VCF for additional URL-encoded info")
+
+    df.loc[:, url_encoded_col_names] = df.loc[:, url_encoded_col_names].map(
+        lambda x: unquote(x) if x is not pd.NA else pd.NA
+    )
 
     return df
 
