@@ -113,10 +113,10 @@ def process_vcf(
     cols_to_drop = list(drop_cols)
     df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
 
-    df = expand_info_and_value_cols(df)
+    df = expand_info_value_filters(df)
     df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
 
-    df = fix_info_and_value_dtypes(df, info_and_format_dtypes)
+    df = expand_and_cast(df, info_and_format_dtypes)
     df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
 
     df = urldecode_cols(df, url_encoded_col_name_regex)
@@ -124,12 +124,12 @@ def process_vcf(
     return df
 
 
-def expand_info_and_value_cols(df):
+def expand_info_value_filters(df):
     df["info"] = df["info"].apply(parse_vcf_info)
     df["value"] = df.apply(
         lambda x: dict(zip(x["format"].split(":"), x["values"].split(":"))), axis=1
     )
-
+    df = expand_filters(df)
     df = expand_dict_columns(df, col_name_formatter=snakecase)
 
     return df.drop(columns=["format", "values"])
@@ -141,7 +141,22 @@ def parse_vcf_info(info: str) -> dict[str, str]:
     return dict(zip([x[0] for x in kv], [x[1] if len(x) == 2 else None for x in kv]))
 
 
-def fix_info_and_value_dtypes(df, info_and_format_dtypes):
+def expand_filters(df):
+    filters_long = df["filter"].str.split(";").explode().to_frame()
+    obs_filters = list(filters_long["filter"].unique())
+
+    filters_long[obs_filters] = False
+    for f in obs_filters:
+        filters_long[f] = filters_long["filter"].eq(f)
+
+    filters_long = filters_long.drop(columns="filter")
+    filters_long.columns = "filter__" + filters_long.columns.str.lower()
+    filters_long = filters_long.groupby(filters_long.index)[filters_long.columns].any()
+
+    return df.join(filters_long, how="left").drop(columns="filter")
+
+
+def expand_and_cast(df, info_and_format_dtypes):
     obs_info_formats = info_and_format_dtypes.loc[
         info_and_format_dtypes["id"].isin(df.columns)
     ]
@@ -188,8 +203,8 @@ def fix_info_and_value_dtypes(df, info_and_format_dtypes):
             "position",
             "ref",
             "alt",
-            "filter",
             *df.columns[df.columns.str.startswith("value__")].sort_values(),
+            *df.columns[df.columns.str.startswith("filter__")].sort_values(),
             *df.columns[df.columns.str.startswith("info__")].sort_values(),
         ]
     ]
