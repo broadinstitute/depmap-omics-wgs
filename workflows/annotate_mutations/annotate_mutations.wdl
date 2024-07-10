@@ -762,7 +762,7 @@ task open_cravat {
     }
 
     Int datasources_size_gb = 25
-    Int extracted_vcf_size = ceil(10 * size(vcf, "GiB"))
+    Int extracted_vcf_size = ceil(2 * 10 * size(vcf, "GiB"))
     Int boot_disk_space = datasources_size_gb + 10
     Int disk_space = extracted_vcf_size + 10 + additional_disk_gb
 
@@ -790,8 +790,13 @@ task open_cravat {
         # fix header that's difficult for vcf2maf to parse
         sed -e '/^##INFO=<ID=OC_provean__prediction/s/"D(amaging)"/D(amaging)/' \
             -e '/^##INFO=<ID=OC_provean__prediction/s/"N(eutral)"/N(eutral)/' \
-            "out/~{basename(vcf)}.vcf" > "~{output_file_base_name}.vcf"
+            "out/~{basename(vcf)}.vcf" > "~{output_file_base_name}_to_fix.vcf"
         rm "out/~{basename(vcf)}.vcf"
+
+        # URL encode space characters inserted by pharmgkb (violates VCF 4.2 spec)
+        awk 'BEGIN {FS="\t"} NF>=5 {gsub(/ /, "%20")} 1' \
+            "~{output_file_base_name}_to_fix.vcf" > "~{output_file_base_name}.vcf"
+        rm "~{output_file_base_name}_to_fix.vcf"
 
         bgzip "~{output_file_base_name}.vcf" --threads=~{cpu}
     >>>
