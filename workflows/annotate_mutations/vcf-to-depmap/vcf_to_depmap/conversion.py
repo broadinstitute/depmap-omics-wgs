@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from vcf_to_depmap.utils import get_vcf_info_and_format_dtypes, process_vcf, read_vcf
+from vcf_to_depmap.annotation import annotate_vcf
+from vcf_to_depmap.vcf_utils import clean_vcf, get_vcf_info_and_format_dtypes, read_vcf
 
 
 def convert(
@@ -26,12 +27,14 @@ def convert(
 
     df = read_vcf(vcf_path)
 
-    process_vcf(
+    clean_vcf(
         df,
         info_and_format_dtypes,
         drop_cols,
         url_encoded_col_name_regex,
         funco_sanitized_col_name_regex,
     )
+
+    annotate_vcf(df, oncogenes, tumor_suppressor_genes)
 
     pass
