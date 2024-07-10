@@ -23,7 +23,9 @@ def convert(
     info_and_format_dtypes = get_vcf_info_and_format_dtypes(
         vcf_path, compound_info_fields
     )
+
     df = read_vcf(vcf_path)
+
     process_vcf(
         df,
         info_and_format_dtypes,

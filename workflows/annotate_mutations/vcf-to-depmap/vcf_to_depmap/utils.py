@@ -135,6 +135,11 @@ def process_vcf(
     df.replace({"": pd.NA}, inplace=True)
     df = urldecode_cols(df, url_encoded_col_name_regex, funco_sanitized_col_name_regex)
 
+    df = remove_na_cols(df)
+    df = convert_booleans(df)
+
+    pp(df.iloc[0].to_dict())
+
     return df
 
 
@@ -167,7 +172,7 @@ def expand_filters(df):
     filters_long = filters_long.drop(columns="filter")
     filters_long.columns = "filter__" + filters_long.columns.str.lower()
     filters_long = filters_long.groupby(filters_long.index)[filters_long.columns].any()
-    filters_long = filters_long.astype("string")
+    filters_long = filters_long.astype("boolean")
 
     return df.join(filters_long, how="left").drop(columns="filter")
 
@@ -256,6 +261,30 @@ def urldecode_cols(df, url_encoded_col_name_regex, funco_sanitized_col_name_rege
 
     df.loc[:, list(either_col_names)] = df.loc[:, list(either_col_names)].map(
         lambda x: unquote(x) if x is not pd.NA else pd.NA
+    )
+
+    return df
+
+
+def remove_na_cols(df: pd.DataFrame) -> pd.DataFrame:
+    col_is_na = df.isna().all(axis=0)
+    return df.drop(columns=col_is_na[col_is_na].index)
+
+
+def convert_booleans(df: pd.DataFrame) -> pd.DataFrame:
+    df_strings = df.select_dtypes(include="string")
+
+    all_bool_like = df_strings.isin({"True", "true", "False", "false", pd.NA}).all(
+        axis=0
+    )
+
+    bool_cols = all_bool_like[all_bool_like].index
+
+    df[bool_cols] = (
+        df[bool_cols]
+        .astype("object")
+        .replace({"True": True, "true": True, "False": False, "false": False})
+        .astype("boolean")
     )
 
     return df
