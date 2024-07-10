@@ -79,9 +79,7 @@ class GistedWdl:
                 # statement in this WDL file to the dependent file's public GCS URL
 
                 rel_path = import_match[1]  # relative path to the dependent file
-                import_alias = import_match[
-                    2
-                ]  # the `as <x>` component of the statement
+                import_alias = import_match[2]  # `as <x>` component of the statement
 
                 # absolute path to the dependent file
                 abs_wdl_path = Path.joinpath(wdl_path.parent.absolute(), rel_path)

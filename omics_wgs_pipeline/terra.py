@@ -44,7 +44,7 @@ class TerraWorkflow:
         self.method_config = json.load(open(self.method_config_json_path, "r"))
         self.persisted_wdl_script: PersistedWdl | None = None
 
-    def persist_method_on_gcs(self) -> None:
+    def persist_method_on_github(self) -> None:
         """
         Upload the method's WDL script to GitHub, rewriting import statements for
         dependent WDL scripts as needed.
@@ -218,7 +218,7 @@ class TerraWorkspace:
         :return: the latest method's snapshot
         """
 
-        terra_workflow.persist_method_on_gcs()
+        terra_workflow.persist_method_on_github()
         assert terra_workflow.persisted_wdl_script is not None
 
         with tempfile.NamedTemporaryFile("w") as f:
@@ -254,7 +254,7 @@ class TerraWorkspace:
         """
 
         # get contents of WDL uploaded to GCS
-        terra_workflow.persist_method_on_gcs()
+        terra_workflow.persist_method_on_github()
         assert terra_workflow.persisted_wdl_script is not None
 
         with tempfile.NamedTemporaryFile("w") as f:
