@@ -121,6 +121,7 @@ def process_vcf(
     info_and_format_dtypes: pd.DataFrame,
     drop_cols: set[str],
     url_encoded_col_name_regex: str | None,
+    funco_sanitized_col_name_regex: str | None,
 ) -> pd.DataFrame:
     cols_to_drop = list(drop_cols)
     df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
@@ -131,9 +132,8 @@ def process_vcf(
     df = expand_and_cast(df, info_and_format_dtypes)
     df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
 
-    df = urldecode_cols(df, url_encoded_col_name_regex)
-
     df.replace({"": pd.NA}, inplace=True)
+    df = urldecode_cols(df, url_encoded_col_name_regex, funco_sanitized_col_name_regex)
 
     return df
 
@@ -233,19 +233,28 @@ def expand_and_cast(df, info_and_format_dtypes):
     return df
 
 
-def urldecode_cols(df, url_encoded_col_name_regex):
+def urldecode_cols(df, url_encoded_col_name_regex, funco_sanitized_col_name_regex):
     col_has_percent = df.apply(lambda x: x.str.contains("%"), axis=1).any(axis=0)
     obs_percent_cols = col_has_percent[col_has_percent].index
 
     url_encoded_col_names = df.columns[df.columns.str.match(url_encoded_col_name_regex)]
+    funco_sanitized_col_names = df.columns[
+        df.columns.str.match(funco_sanitized_col_name_regex)
+    ]
+    either_col_names = set(url_encoded_col_names).union(set(funco_sanitized_col_names))
 
-    if not set(url_encoded_col_names).issuperset(set(obs_percent_cols)):
+    if not set(either_col_names).issuperset(set(obs_percent_cols)):
         # if this happens, we might need another CLI option to specify cols that have
         # percent signs but aren't actually URL-encoded
-        others = set(obs_percent_cols).difference(set(url_encoded_col_names))
+        others = set(obs_percent_cols).difference(set(either_col_names))
         raise ValueError(f"Check VCF for additional URL-encoded info in {others}")
 
-    df.loc[:, url_encoded_col_names] = df.loc[:, url_encoded_col_names].map(
+    for c in funco_sanitized_col_names:
+        df[c] = df[c].str.replace(
+            r"_(%[A-Za-z0-9]{2})_", lambda x: x.group(1), regex=True
+        )
+
+    df.loc[:, list(either_col_names)] = df.loc[:, list(either_col_names)].map(
         lambda x: unquote(x) if x is not pd.NA else pd.NA
     )
 

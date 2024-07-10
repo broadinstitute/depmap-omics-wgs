@@ -27,6 +27,7 @@ def main(
     force_keep: Annotated[Optional[List[str]], typer.Option()] = None,
     compound_info_field: Annotated[Optional[List[str]], typer.Option()] = None,
     url_encoded_col_name_regex: Annotated[Optional[str], typer.Option()] = None,
+    funco_sanitized_col_name_regex: Annotated[Optional[str], typer.Option()] = None,
 ) -> None:
     drop_cols = set(drop_col) if drop_col is not None else {}
     force_keeps = set(force_keep) if force_keep is not None else {}
@@ -43,6 +44,7 @@ def main(
         force_keep=force_keeps,
         compound_info_fields=compound_info_fields,
         url_encoded_col_name_regex=url_encoded_col_name_regex,
+        funco_sanitized_col_name_regex=funco_sanitized_col_name_regex,
     )
 
     echo("Done.")

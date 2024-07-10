@@ -12,6 +12,7 @@ def convert(
     force_keep: set[str],
     compound_info_fields: set[str],
     url_encoded_col_name_regex: str | None,
+    funco_sanitized_col_name_regex: str | None,
 ):
     with open(oncogenes_list_path, "r") as f:
         oncogenes = set(line.strip() for line in f)
@@ -23,6 +24,12 @@ def convert(
         vcf_path, compound_info_fields
     )
     df = read_vcf(vcf_path)
-    process_vcf(df, info_and_format_dtypes, drop_cols, url_encoded_col_name_regex)
+    process_vcf(
+        df,
+        info_and_format_dtypes,
+        drop_cols,
+        url_encoded_col_name_regex,
+        funco_sanitized_col_name_regex,
+    )
 
     pass
