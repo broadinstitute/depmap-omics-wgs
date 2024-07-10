@@ -6,6 +6,7 @@ from urllib.parse import unquote
 
 import numpy as np
 import pandas as pd
+from _csv import QUOTE_NONE
 from caseconverter import snakecase
 
 
@@ -79,27 +80,38 @@ def read_vcf(path: Path) -> pd.DataFrame:
             "format",
             "values",
         ],
-        usecols=[
-            "chromosome",
-            "position",
-            "ref",
-            "alt",
-            "filter",
-            "info",
-            "format",
-            "values",
-        ],
-        comment="#",
-        nrows=100,
+        dtype="string",
+        na_values=".",
+        keep_default_na=False,
+        quoting=QUOTE_NONE,
+        low_memory=False,
+        # nrows=100,
     )
 
-    df[["chromosome", "ref", "alt", "filter"]] = df[
-        ["chromosome", "ref", "alt", "filter"]
-    ].astype("string")
+    header_line = (
+        df.loc[df["chromosome"].eq("#CHROM")]
+        .drop(columns="values")
+        .to_dict(orient="records")
+    )[0]
+
+    assert header_line == {
+        "chromosome": "#CHROM",
+        "position": "POS",
+        "id": "ID",
+        "ref": "REF",
+        "alt": "ALT",
+        "qual": "QUAL",
+        "filter": "FILTER",
+        "info": "INFO",
+        "format": "FORMAT",
+    }
+
+    df = df.loc[~df["chromosome"].str.startswith("#")]
+    df = df.drop(columns=["id", "qual"])
     df["position"] = df["position"].astype("int64")
 
-    if df[["chromosome", "position", "ref", "alt"]].duplicated().any():
-        raise ValueError("Duplicate variants detected in the VCF file.")
+    assert ~df[["chromosome", "position", "ref", "alt"]].duplicated().any()
+    assert ~df.isna().any().any()
 
     return df
 
@@ -120,6 +132,8 @@ def process_vcf(
     df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
 
     df = urldecode_cols(df, url_encoded_col_name_regex)
+
+    df.replace({"": pd.NA}, inplace=True)
 
     return df
 
@@ -146,12 +160,14 @@ def expand_filters(df):
     obs_filters = list(filters_long["filter"].unique())
 
     filters_long[obs_filters] = False
+
     for f in obs_filters:
         filters_long[f] = filters_long["filter"].eq(f)
 
     filters_long = filters_long.drop(columns="filter")
     filters_long.columns = "filter__" + filters_long.columns.str.lower()
     filters_long = filters_long.groupby(filters_long.index)[filters_long.columns].any()
+    filters_long = filters_long.astype("string")
 
     return df.join(filters_long, how="left").drop(columns="filter")
 
@@ -171,7 +187,6 @@ def expand_and_cast(df, info_and_format_dtypes):
 
             if expanded.shape[1] == 1:
                 new_col_names = [r["id"]]
-                df[r["id"]] = df[r["id"]].astype(r["type"])
             else:
                 new_col_names = [
                     "_".join([r["id"], str(x + 1)])
@@ -179,9 +194,9 @@ def expand_and_cast(df, info_and_format_dtypes):
                 ]
 
                 df[new_col_names] = expanded.values
-                df[new_col_names] = df[new_col_names].astype(r["type"])
-
                 df = df.drop(columns=[r["id"]])
+
+            new_col_names_w_subfields = new_col_names
 
             if r["has_subfields"]:
                 for c in new_col_names:
@@ -191,9 +206,15 @@ def expand_and_cast(df, info_and_format_dtypes):
                     )
                     df = expand_dict_columns(df)
 
-                    df[df.columns[df.columns.str.startswith(c)]] = df[
-                        df.columns[df.columns.str.startswith(c)]
+                    new_col_names_w_subfields = df.columns[df.columns.str.startswith(c)]
+
+                    df[new_col_names_w_subfields] = df[
+                        new_col_names_w_subfields
                     ].astype(r["type"])
+
+            df[new_col_names_w_subfields] = df[new_col_names_w_subfields].astype(
+                r["type"]
+            )
 
     assert np.dtype("O") not in list(df.dtypes)
 
@@ -214,12 +235,15 @@ def expand_and_cast(df, info_and_format_dtypes):
 
 def urldecode_cols(df, url_encoded_col_name_regex):
     col_has_percent = df.apply(lambda x: x.str.contains("%"), axis=1).any(axis=0)
-    percent_cols = col_has_percent[col_has_percent].index
+    obs_percent_cols = col_has_percent[col_has_percent].index
 
     url_encoded_col_names = df.columns[df.columns.str.match(url_encoded_col_name_regex)]
 
-    if not set(url_encoded_col_names).issuperset(set(percent_cols)):
-        raise ValueError("Check VCF for additional URL-encoded info")
+    if not set(url_encoded_col_names).issuperset(set(obs_percent_cols)):
+        # if this happens, we might need another CLI option to specify cols that have
+        # percent signs but aren't actually URL-encoded
+        others = set(obs_percent_cols).difference(set(url_encoded_col_names))
+        raise ValueError(f"Check VCF for additional URL-encoded info in {others}")
 
     df.loc[:, url_encoded_col_names] = df.loc[:, url_encoded_col_names].map(
         lambda x: unquote(x) if x is not pd.NA else pd.NA
