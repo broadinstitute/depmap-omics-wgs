@@ -30,6 +30,7 @@ def expand_dict_columns(
         if isinstance(s.iloc[0], dict):
             # if the column contains dictionaries, recursively flatten them
             nested_df = pd.json_normalize(s.tolist())
+            nested_df.index = df.index
 
             if name_columns_with_parent:
                 # e.g. if current column `c` is "foo" and the nested data contains a

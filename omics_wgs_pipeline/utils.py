@@ -107,6 +107,7 @@ def expand_dict_columns(
     sep: str = "__",
     name_columns_with_parent: bool = True,
     parent_key: str = "",
+    col_name_formatter: Callable[[str], str] = lambda _: _,
 ) -> pd.DataFrame:
     """
     Recursively expand columns in a data frame containing dictionaries into separate
@@ -118,6 +119,7 @@ def expand_dict_columns(
     their parents' column names
     :param parent_key: the name of the parent column, applicable only if
     `name_columns_with_parent` is `True` (for recursion)
+    :param col_name_formatter: an optional function to format resulting column names
     :return: a widened data frame
     """
 
@@ -127,14 +129,24 @@ def expand_dict_columns(
         if isinstance(s.iloc[0], dict):
             # if the column contains dictionaries, recursively flatten them
             nested_df = pd.json_normalize(s.tolist())
+            nested_df.index = df.index
 
             if name_columns_with_parent:
                 # e.g. if current column `c` is "foo" and the nested data contains a
                 # field "bar", the resulting column name is "foo__bar"
+
                 nested_df.columns = [
-                    sep.join([parent_key, str(c), str(col)])
+                    sep.join(
+                        [
+                            parent_key,
+                            col_name_formatter(str(c)),
+                            col_name_formatter(str(col)),
+                        ]
+                    )
                     if parent_key != ""
-                    else sep.join([str(c), str(col)])
+                    else sep.join(
+                        [col_name_formatter(str(c)), col_name_formatter(str(col))]
+                    )
                     for col in nested_df.columns
                 ]
 
@@ -144,7 +156,7 @@ def expand_dict_columns(
                     nested_df,
                     sep=sep,
                     name_columns_with_parent=name_columns_with_parent,
-                    parent_key=str(c),
+                    parent_key=col_name_formatter(str(c)),
                 )
             )
 
