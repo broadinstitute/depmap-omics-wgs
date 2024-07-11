@@ -86,6 +86,7 @@ def read_vcf(path: Path) -> pd.DataFrame:
         quoting=QUOTE_NONE,
         low_memory=False,
         # nrows=100,
+        encoding_errors="backslashreplace",
     )
 
     header_line = (
@@ -114,6 +115,7 @@ def read_vcf(path: Path) -> pd.DataFrame:
     assert ~df.isna().any().any()
 
     return df
+    return df.reset_index(drop=True)
 
 
 def clean_vcf(
@@ -133,6 +135,7 @@ def clean_vcf(
     df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
 
     df.replace({"": pd.NA}, inplace=True)
+    df.replace({"": pd.NA, ".": pd.NA}, inplace=True)
 
     df = urldecode_cols(df, url_encoded_col_name_regex, funco_sanitized_col_name_regex)
     df = remove_na_cols(df)

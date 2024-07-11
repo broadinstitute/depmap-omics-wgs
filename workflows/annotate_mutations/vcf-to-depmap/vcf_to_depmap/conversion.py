@@ -27,7 +27,7 @@ def convert(
 
     df = read_vcf(vcf_path)
 
-    clean_vcf(
+    df = clean_vcf(
         df,
         info_and_format_dtypes,
         drop_cols,
