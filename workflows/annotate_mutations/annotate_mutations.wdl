@@ -530,7 +530,7 @@ task annot_with_bcftools {
 
         if ~{annot_seg_dups}; then
             echo "Annotating segmental duplication regions"
-            echo '##INFO=<ID=SEGDUP,Number=1,Type=String,Description="If variant is in a segmental duplication region">' \
+            echo '##INFO=<ID=SEGDUP,Number=0,Type=Flag,Description="If variant is in a segmental duplication region">' \
                 > segdup.hdr.vcf
             bcftools annotate \
                 "~{vcf}" \
@@ -543,7 +543,7 @@ task annot_with_bcftools {
 
         if ~{annot_repeat_masker}; then
             echo "Annotating repeat masker regions"
-            echo '##INFO=<ID=RM,Number=1,Type=String,Description="If variant is in a Repeat Masker region">' \
+            echo '##INFO=<ID=RM,Number=0,Type=Flag,Description="If variant is in a Repeat Masker region">' \
                 > repeatmasker.hdr.vcf
             bcftools annotate \
                 "~{vcf}" \
