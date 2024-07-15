@@ -1,7 +1,9 @@
+import re
 from pathlib import Path
-from typing import Annotated, List, Optional
+from typing import Annotated, Any
 
 import pandas as pd
+import tomllib
 import typer
 from click import echo
 
@@ -17,38 +19,55 @@ pd.set_option("display.width", 200)
 pd.set_option("expand_frame_repr", True)
 pd.set_option("mode.chained_assignment", "warn")
 
+app = typer.Typer()
 
+config: dict[str, Any] = {}
+
+
+# noinspection PyUnusedLocal
+def done(*args, **kwargs):
+    typer.echo("Done.")
+
+
+@app.callback(result_callback=done)
 def main(
+    ctx: typer.Context,
+    config_path: Annotated[Path, typer.Option(exists=True)],
+):
+    with open(config_path.name, "rb") as f:
+        config.update(tomllib.load(f))
+
+    ctx.obj = config
+
+
+@app.command()
+def clean_and_annotate(
+    ctx: typer.Context,
     vcf: Annotated[Path, typer.Option(exists=True)],
     oncogenes_list: Annotated[Path, typer.Option(exists=True)],
     tsg_list: Annotated[Path, typer.Option(exists=True)],
     out: Annotated[Path, typer.Option()],
-    drop_col: Annotated[Optional[List[str]], typer.Option()] = None,
-    force_keep: Annotated[Optional[List[str]], typer.Option()] = None,
-    compound_info_field: Annotated[Optional[List[str]], typer.Option()] = None,
-    url_encoded_col_name_regex: Annotated[Optional[str], typer.Option()] = None,
-    funco_sanitized_col_name_regex: Annotated[Optional[str], typer.Option()] = None,
 ) -> None:
-    drop_cols = set(drop_col) if drop_col is not None else {}
-    force_keeps = set(force_keep) if force_keep is not None else {}
-    compound_info_fields = (
-        set(compound_info_field) if compound_info_field is not None else {}
-    )
-
     convert(
         vcf_path=vcf,
         oncogenes_list_path=oncogenes_list,
         tsg_list_path=tsg_list,
         out_path=out,
-        drop_cols=drop_cols,
-        force_keep=force_keeps,
-        compound_info_fields=compound_info_fields,
-        url_encoded_col_name_regex=url_encoded_col_name_regex,
-        funco_sanitized_col_name_regex=funco_sanitized_col_name_regex,
+        drop_cols=set(ctx.obj["settings"]["drop_cols"]),
+        na_cols=set(ctx.obj["settings"]["na_cols"]),
+        bool_cols=set(ctx.obj["settings"]["bool_cols"]),
+        force_keep=set(ctx.obj["settings"]["force_keep"]),
+        compound_info_fields=set(ctx.obj["settings"]["compound_info_fields"]),
+        url_encoded_col_name_regex=re.compile(
+            "|".join(ctx.obj["settings"]["url_encoded_col_name_regexes"])
+        ),
+        funco_sanitized_col_name_regex=re.compile(
+            "|".join(ctx.obj["settings"]["funco_sanitized_col_name_regexes"])
+        ),
     )
 
     echo("Done.")
 
 
 if __name__ == "__main__":
-    typer.run(main)
+    app()

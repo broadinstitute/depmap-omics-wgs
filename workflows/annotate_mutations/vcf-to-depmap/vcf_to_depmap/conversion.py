@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from vcf_to_depmap.annotation import annotate_vcf
@@ -10,10 +11,12 @@ def convert(
     tsg_list_path: Path,
     out_path: Path,
     drop_cols: set[str],
+    na_cols: set[str],
+    bool_cols: set[str],
     force_keep: set[str],
     compound_info_fields: set[str],
-    url_encoded_col_name_regex: str | None,
-    funco_sanitized_col_name_regex: str | None,
+    url_encoded_col_name_regex: re.Pattern,
+    funco_sanitized_col_name_regex: re.Pattern,
 ):
     with open(oncogenes_list_path, "r") as f:
         oncogenes = set(line.strip() for line in f)
@@ -28,11 +31,13 @@ def convert(
     df = read_vcf(vcf_path)
 
     df = clean_vcf(
-        df,
-        info_and_format_dtypes,
-        drop_cols,
-        url_encoded_col_name_regex,
-        funco_sanitized_col_name_regex,
+        df=df,
+        info_and_format_dtypes=info_and_format_dtypes,
+        drop_cols=drop_cols,
+        na_cols=na_cols,
+        bool_cols=bool_cols,
+        url_encoded_col_name_regex=url_encoded_col_name_regex,
+        funco_sanitized_col_name_regex=funco_sanitized_col_name_regex,
     )
 
     annotate_vcf(df, oncogenes, tumor_suppressor_genes)

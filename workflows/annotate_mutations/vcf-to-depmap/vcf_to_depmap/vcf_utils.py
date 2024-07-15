@@ -85,7 +85,7 @@ def read_vcf(path: Path) -> pd.DataFrame:
         keep_default_na=False,
         quoting=QUOTE_NONE,
         low_memory=False,
-        # nrows=100,
+        # nrows=1000,
         encoding_errors="backslashreplace",
     )
 
@@ -114,7 +114,6 @@ def read_vcf(path: Path) -> pd.DataFrame:
     assert ~df[["chromosome", "position", "ref", "alt"]].duplicated().any()
     assert ~df.isna().any().any()
 
-    return df
     return df.reset_index(drop=True)
 
 
@@ -122,8 +121,10 @@ def clean_vcf(
     df: pd.DataFrame,
     info_and_format_dtypes: pd.DataFrame,
     drop_cols: set[str],
-    url_encoded_col_name_regex: str | None,
-    funco_sanitized_col_name_regex: str | None,
+    na_cols: set[str],
+    bool_cols: set[str],
+    url_encoded_col_name_regex: re.Pattern,
+    funco_sanitized_col_name_regex: re.Pattern,
 ) -> pd.DataFrame:
     cols_to_drop = list(drop_cols)
     df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
@@ -138,14 +139,14 @@ def clean_vcf(
     df.replace({"": pd.NA, ".": pd.NA}, inplace=True)
 
     df = urldecode_cols(df, url_encoded_col_name_regex, funco_sanitized_col_name_regex)
-    df = remove_na_cols(df)
-    df = convert_booleans(df)
+    df = remove_na_cols(df, na_cols)
+    df = convert_booleans(df, bool_cols)
 
     # pp(df.iloc[0].to_dict())
     return df
 
 
-def expand_info_value_filters(df):
+def expand_info_value_filters(df: pd.DataFrame) -> pd.DataFrame:
     df["info"] = df["info"].apply(parse_vcf_info)
     df["value"] = df.apply(
         lambda x: dict(zip(x["format"].split(":"), x["values"].split(":"))), axis=1
@@ -162,7 +163,7 @@ def parse_vcf_info(info: str) -> dict[str, str]:
     return dict(zip([x[0] for x in kv], [x[1] if len(x) == 2 else None for x in kv]))
 
 
-def expand_filters(df):
+def expand_filters(df: pd.DataFrame) -> pd.DataFrame:
     filters_long = df["filter"].str.split(";").explode().to_frame()
     obs_filters = list(filters_long["filter"].unique())
 
@@ -240,7 +241,11 @@ def expand_and_cast(df, info_and_format_dtypes):
     return df
 
 
-def urldecode_cols(df, url_encoded_col_name_regex, funco_sanitized_col_name_regex):
+def urldecode_cols(
+    df: pd.DataFrame,
+    url_encoded_col_name_regex: re.Pattern,
+    funco_sanitized_col_name_regex: re.Pattern,
+) -> pd.DataFrame:
     col_has_percent = df.apply(lambda x: x.str.contains("%"), axis=1).any(axis=0)
     obs_percent_cols = col_has_percent[col_has_percent].index
 
@@ -268,25 +273,31 @@ def urldecode_cols(df, url_encoded_col_name_regex, funco_sanitized_col_name_rege
     return df
 
 
-def remove_na_cols(df: pd.DataFrame) -> pd.DataFrame:
+def remove_na_cols(df: pd.DataFrame, na_cols: set[str]) -> pd.DataFrame:
     col_is_na = df.isna().all(axis=0)
+    obs_na_cols = col_is_na[col_is_na].index
+    assert set(obs_na_cols) == na_cols
+
     return df.drop(columns=col_is_na[col_is_na].index)
 
 
-def convert_booleans(df: pd.DataFrame) -> pd.DataFrame:
+def convert_booleans(df: pd.DataFrame, bool_cols: set[str]) -> pd.DataFrame:
     df_strings = df.select_dtypes(include="string")
 
-    all_bool_like = df_strings.isin({"True", "true", "False", "false", pd.NA}).all(
-        axis=0
-    )
+    true_vals = {"True", "true", "Y", "y"}
+    false_vals = {"False", "false", "N", "n"}
 
-    bool_cols = all_bool_like[all_bool_like].index
+    col_is_boollike = df_strings.isin({*true_vals, *false_vals, pd.NA}).all(axis=0)
 
-    df[bool_cols] = (
-        df[bool_cols]
-        .astype("object")
-        .replace({"True": True, "true": True, "False": False, "false": False})
-        .astype("boolean")
-    )
+    obs_bool_cols = col_is_boollike[col_is_boollike].index
+    assert set(obs_bool_cols) == bool_cols
+
+    df[obs_bool_cols] = df[obs_bool_cols].astype("object")
+
+    for c in obs_bool_cols:
+        df.loc[df[c].isin({"True", "true", "Y", "y"}), c] = True
+        df.loc[df[c].isin({"False", "false", "N", "n"}), c] = False
+
+    df[obs_bool_cols] = df[obs_bool_cols].astype("boolean")
 
     return df
