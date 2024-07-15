@@ -218,7 +218,7 @@ def expand_and_cast(df, info_and_format_dtypes):
                     ].astype(r["type"])
 
                     if len(new_col_names) > 1:
-                        regex = re.compile(f"^{c}__")
+                        regex = re.compile(f"^{re.escape(c)}__")
 
                         digit_move_map = dict(
                             zip(

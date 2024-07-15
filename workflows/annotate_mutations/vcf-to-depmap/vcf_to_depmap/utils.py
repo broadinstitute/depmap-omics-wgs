@@ -1,4 +1,5 @@
-from typing import Callable
+import re
+from typing import Callable, Iterable
 
 import pandas as pd
 
@@ -83,3 +84,8 @@ def expand_dict_columns(
             )
 
     return df
+
+
+def cs(df: pd.DataFrame, prefix: str) -> list[str]:
+    regex = re.compile(rf"^{re.escape(prefix)}(_\d+)?$")
+    return list(df.columns[df.columns.str.match(regex)])

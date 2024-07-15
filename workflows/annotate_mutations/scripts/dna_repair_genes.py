@@ -13,7 +13,7 @@ df = pd.read_table(
 )
 
 df = df.rename(
-    {
+    columns={
         "Gene Name": "gene_name",
         "Activity linked to OMIM": "activity",
         "Chromosome location linked to NCBI MapView": "chrom_pos",

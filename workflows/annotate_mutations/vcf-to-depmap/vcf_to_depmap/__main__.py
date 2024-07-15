@@ -44,12 +44,14 @@ def main(
 def clean_and_annotate(
     ctx: typer.Context,
     vcf: Annotated[Path, typer.Option(exists=True)],
+    dna_repair_genes: Annotated[Path, typer.Option(exists=True)],
     oncogenes_list: Annotated[Path, typer.Option(exists=True)],
     tsg_list: Annotated[Path, typer.Option(exists=True)],
     out: Annotated[Path, typer.Option()],
 ) -> None:
     convert(
         vcf_path=vcf,
+        dna_repair_genes_path=dna_repair_genes,
         oncogenes_list_path=oncogenes_list,
         tsg_list_path=tsg_list,
         out_path=out,
