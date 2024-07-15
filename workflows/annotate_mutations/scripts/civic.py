@@ -4,6 +4,7 @@ uploaded to GCs.
 """
 
 import datetime
+from urllib.parse import quote
 
 import pandas as pd
 import requests
@@ -147,6 +148,10 @@ df["chr_num"] = df["chr_num"].astype("int8")
 
 df = df.sort_values(["chr_num", "pos"])
 df = df.drop(columns="chr_num")
+
+df.loc[~df["description"].isna(), "description"] = df.loc[
+    ~df["description"].isna(), "description"
+].apply(quote)
 
 df[["chrom", "pos", "ref", "alt", "evidence_score", "description"]].to_csv(
     f"./data/civic/civic_{today}.tsv", sep="\t", index=False, header=False

@@ -46,6 +46,7 @@ compound_info_fields = [
 ]
 
 url_encoded_col_name_regexes = [
+    "^info__civic_desc",
     "^info__csq__hgvsp",
     "^info__oc_base_achange",
     "^info__oc_base_all_mappings",
