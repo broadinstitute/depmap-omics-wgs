@@ -126,7 +126,9 @@ def expand_dict_columns(
     flattened_dict = {}
 
     for c, s in df.items():
-        if isinstance(s.iloc[0], dict):
+        fvi = s.first_valid_index()
+
+        if fvi is not None and isinstance(s.loc[fvi], dict):
             # if the column contains dictionaries, recursively flatten them
             nested_df = pd.json_normalize(s.tolist())
             nested_df.index = df.index
