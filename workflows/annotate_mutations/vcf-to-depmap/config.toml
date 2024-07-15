@@ -59,10 +59,6 @@ url_encoded_col_name_regexes = [
 funco_sanitized_col_name_regexes = ["^info__funcotation"]
 
 na_cols = [
-    "info__ann_2__aapos_aalength",
-    "info__ann_2__c_dnapos_cdnalength",
-    "info__ann_2__cdspos_cdslength",
-    "info__ann_2__hgvsp",
     "info__csq__mane_plus_clinical",
     "info__csq__mi_rna",
     "info__funcotation__clin_var_vcf_af_esp",

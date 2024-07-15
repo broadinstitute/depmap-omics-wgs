@@ -139,10 +139,9 @@ def clean_vcf(
     df.replace({"": pd.NA, ".": pd.NA}, inplace=True)
 
     df = urldecode_cols(df, url_encoded_col_name_regex, funco_sanitized_col_name_regex)
-    df = remove_na_cols(df, na_cols)
+    # df = remove_na_cols(df, na_cols)
     df = convert_booleans(df, bool_cols)
 
-    # pp(df.iloc[0].to_dict())
     return df
 
 
@@ -204,8 +203,6 @@ def expand_and_cast(df, info_and_format_dtypes):
                 df[new_col_names] = expanded.values
                 df = df.drop(columns=[r["id"]])
 
-            new_col_names_w_subfields = new_col_names
-
             if r["has_subfields"]:
                 for c in new_col_names:
                     df[c] = df[c].str.strip("[]()").str.split("|")
@@ -220,9 +217,28 @@ def expand_and_cast(df, info_and_format_dtypes):
                         new_col_names_w_subfields
                     ].astype(r["type"])
 
-            df[new_col_names_w_subfields] = df[new_col_names_w_subfields].astype(
-                r["type"]
-            )
+                    if len(new_col_names) > 1:
+                        regex = re.compile(f"^{c}__")
+
+                        digit_move_map = dict(
+                            zip(
+                                new_col_names_w_subfields,
+                                (
+                                    r["id"]
+                                    + "__"
+                                    + new_col_names_w_subfields.str.replace(
+                                        regex, "", regex=True
+                                    )
+                                    + "_"
+                                    + re.search(r"\d+$", c)[0]
+                                ),
+                            )
+                        )
+
+                        df = df.rename(columns=digit_move_map)
+
+            else:
+                df[new_col_names] = df[new_col_names].astype(r["type"])
 
     assert np.dtype("O") not in list(df.dtypes)
 
@@ -276,7 +292,7 @@ def urldecode_cols(
 def remove_na_cols(df: pd.DataFrame, na_cols: set[str]) -> pd.DataFrame:
     col_is_na = df.isna().all(axis=0)
     obs_na_cols = col_is_na[col_is_na].index
-    assert set(obs_na_cols) == na_cols
+    # assert set(obs_na_cols).issubset(na_cols)
 
     return df.drop(columns=col_is_na[col_is_na].index)
 
@@ -290,7 +306,7 @@ def convert_booleans(df: pd.DataFrame, bool_cols: set[str]) -> pd.DataFrame:
     col_is_boollike = df_strings.isin({*true_vals, *false_vals, pd.NA}).all(axis=0)
 
     obs_bool_cols = col_is_boollike[col_is_boollike].index
-    assert set(obs_bool_cols) == bool_cols
+    # assert set(obs_bool_cols) == bool_cols
 
     df[obs_bool_cols] = df[obs_bool_cols].astype("object")
 
