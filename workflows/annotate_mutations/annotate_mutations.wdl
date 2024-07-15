@@ -575,7 +575,7 @@ task annot_with_bcftools {
 
             # get the columns we care about in proper chr-pos sorted order
             csvcut \
-                --columns="Chromosome,Position,Alt,ProteinChange,Oncogenic,MutationEffect,Hotspot" \
+                --columns="Chromosome,Position,Ref,Alt,ProteinChange,Oncogenic,MutationEffect,Hotspot" \
                 "~{oncokb_annotation}" \
                 | csvformat --out-tabs --skip-header \
                 | sort --key="1,1V" --key="2,2n" --key="3,3" --key="4,4" \
