@@ -1128,7 +1128,7 @@ task merge_info {
     Int disk_space = ceil(3 * size(vcfs, "GiB")) + 10 + additional_disk_gb
 
     command <<<
-        python -m vcf-to-depmap --config-path="config.toml" \
+        python -m annotate-mutations-postprocess --config-path="config.toml" \
             merge-info \
             ~{sep=" --vcf " vcfs} \
             --out="~{output_file_base_name}.vcf.gz"

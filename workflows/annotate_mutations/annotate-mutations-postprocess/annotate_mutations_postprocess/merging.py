@@ -1,8 +1,8 @@
-from _csv import QUOTE_NONE
 from pathlib import Path
 
 import bgzip
 import pandas as pd
+from _csv import QUOTE_NONE
 from click import echo
 from pandas._testing import assert_frame_equal
 
@@ -46,16 +46,21 @@ def do_merge(vcf_paths: list[Path], out_path: Path) -> None:
 
             with bgzip.BGZipReader(raw) as f:
                 this_df = read_vcf(f)
+                this_df["info"] = this_df["info"].str.split(";")
 
                 if df is None:
                     df = this_df
                     common_col_names = df.columns.drop("info")
                 else:
                     assert_frame_equal(df[common_col_names], this_df[common_col_names])
-                    df["info"] = df["info"] + ";" + this_df["info"]
+                    df["info"] = df["info"] + this_df["info"]
 
     header_lines = (
         pd.Series([*header_lines, col_header_line]).drop_duplicates().tolist()
+    )
+
+    df["info"] = df["info"].apply(
+        lambda x: ";".join(pd.Series(x).drop_duplicates().tolist())
     )
 
     echo(f"Writing to {out_path}")
