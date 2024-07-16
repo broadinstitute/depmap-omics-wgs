@@ -14,14 +14,13 @@ workflow annotate_mutations {
         # scatter/gather VCF by chromosome
         File? xy_intervals
 
-        # misc. bcftools-based fixes, filters, and annotations
+        # bcftools-based fixes and filters
         Boolean fix_ploidy = true
-
         Boolean filter_vcf = true
+        Boolean normalize_indels = true
         String? exclude_string
 
-        Boolean normalize_indels = true
-
+        # bcftools-based annotations
         Boolean annot_seg_dups = true
         File? segdup_bed
         File? segdup_bed_index
@@ -86,25 +85,36 @@ workflow annotate_mutations {
             output_file_base_name = sample_id
     }
 
-    if (fix_ploidy || filter_vcf || annot_seg_dups || annot_repeat_masker ||
-        annot_hess_drivers || annot_oncokb || annot_civic || annot_cosmic_cmc ||
-        normalize_indels) {
-        call annot_with_bcftools {
+    if (fix_ploidy || filter_vcf || normalize_indels) {
+        call fix_with_bcftools {
             input:
                 vcf = compress_vcf.vcf_compressed,
-                output_file_base_name = sample_id + "_bcftools_annot",
+                output_file_base_name = sample_id + "_bcftools_fixed",
                 fix_ploidy = fix_ploidy,
                 filter_vcf = filter_vcf,
+                exclude_string = exclude_string,
+                normalize_indels = normalize_indels,
+                ref_fasta = ref_fasta,
+                ref_fasta_index = ref_fasta_index
+        }
+    }
+
+    File fixed_vcf = select_first(
+         [fix_with_bcftools.vcf_fixed, compress_vcf.vcf_compressed]
+    )
+
+    if (annot_seg_dups || annot_repeat_masker || annot_hess_drivers || annot_oncokb ||
+        annot_civic || annot_cosmic_cmc) {
+        call annot_with_bcftools {
+            input:
+                vcf = fixed_vcf,
+                output_file_base_name = sample_id + "_bcftools_annot",
                 annot_seg_dups = annot_seg_dups,
                 annot_repeat_masker = annot_repeat_masker,
                 annot_hess_drivers = annot_hess_drivers,
                 annot_oncokb = annot_oncokb,
                 annot_civic = annot_civic,
                 annot_cosmic_cmc = annot_cosmic_cmc,
-                normalize_indels = normalize_indels,
-                ref_fasta = ref_fasta,
-                ref_fasta_index = ref_fasta_index,
-                exclude_string = exclude_string,
                 segdup_bed = segdup_bed,
                 segdup_bed_index = segdup_bed_index,
                 repeatmasker_bed = repeatmasker_bed,
@@ -122,7 +132,7 @@ workflow annotate_mutations {
     if (annot_snpeff || annot_snpsift) {
         call snpeff_snpsift {
             input:
-                vcf = select_first([annot_with_bcftools.vcf_annot, compress_vcf.vcf_compressed]),
+                vcf = fixed_vcf,
                 annot_snpeff = annot_snpeff,
                 annot_snpsift = annot_snpsift,
                 output_file_base_name = sample_id + "_snpeff_snpsift_annot",
@@ -134,11 +144,7 @@ workflow annotate_mutations {
     if (annot_open_cravat) {
         call open_cravat {
             input:
-                vcf = select_first([
-                    snpeff_snpsift.vcf_annot,
-                    annot_with_bcftools.vcf_annot,
-                    compress_vcf.vcf_compressed
-                ]),
+                vcf = fixed_vcf,
                 output_file_base_name = sample_id + "_open_cravat",
                 open_cravat_data_sources_url = select_first([open_cravat_data_sources_url])
         }
@@ -147,12 +153,7 @@ workflow annotate_mutations {
     if (annot_ensembl_vep) {
         call split_vcf_by_chrom {
             input:
-                vcf = select_first([
-                    open_cravat.vcf_annot,
-                    snpeff_snpsift.vcf_annot,
-                    annot_with_bcftools.vcf_annot,
-                    compress_vcf.vcf_compressed
-                ]),
+                vcf = fixed_vcf,
                 xy_intervals = select_first([xy_intervals])
         }
 
@@ -181,19 +182,12 @@ workflow annotate_mutations {
     }
 
     if (annot_funcotator) {
-        File funcotator_input_vcf = select_first([
-            ensembvl_vep_gathered.output_vcf,
-            snpeff_snpsift.vcf_annot,
-            annot_with_bcftools.vcf_annot,
-            compress_vcf.vcf_compressed
-        ])
-
         call funcotator {
             input:
                 ref_fasta = ref_fasta,
                 ref_fasta_index = ref_fasta_index,
                 ref_dict = ref_dict,
-                input_vcf = funcotator_input_vcf,
+                vcf = fixed_vcf,
                 reference_version = select_first([reference_version]),
                 output_file_base_name = sample_id + "_funco_annot",
                 output_format = "VCF",
@@ -211,33 +205,24 @@ workflow annotate_mutations {
         }
     }
 
-    File vcf_annot = select_first([
-        funcotator.funcotated_output_file,
-        ensembvl_vep_gathered.output_vcf,
-        open_cravat.vcf_annot,
-        snpeff_snpsift.vcf_annot,
-        annot_with_bcftools.vcf_annot,
-        compress_vcf.vcf_compressed
-    ])
-
-    call index_vcf {
-        input:
-            vcf = vcf_annot
-    }
-
-    call vcf2maf {
-        input:
-            vcf = vcf_annot,
-            vcf_index = index_vcf.vcf_index,
-            output_file_base_name = sample_id + "_mut_annot",
-            ref_fasta = ref_fasta,
-            ref_fasta_index = ref_fasta_index
-    }
+#    call index_vcf {
+#        input:
+#            vcf = fixed_vcf
+#    }
+#
+#    call vcf2maf {
+#        input:
+#            vcf = fixed_vcf,
+#            vcf_index = index_vcf.vcf_index,
+#            output_file_base_name = sample_id + "_mut_annot",
+#            ref_fasta = ref_fasta,
+#            ref_fasta_index = ref_fasta_index
+#    }
 
     output {
-        File mut_annot_vcf = vcf_annot
-        File mut_annot_vcf_index = index_vcf.vcf_index
-        File mut_annot_maf = vcf2maf.maf
+#        File mut_annot_vcf = fixed_vcf
+#        File mut_annot_vcf_index = index_vcf.vcf_index
+#        File mut_annot_maf = vcf2maf.maf
     }
 }
 
@@ -439,33 +424,16 @@ task gather_vcfs {
     }
 }
 
-task annot_with_bcftools {
+task fix_with_bcftools {
     input {
         File vcf
         String output_file_base_name
         Boolean fix_ploidy
         Boolean filter_vcf
-        Boolean annot_seg_dups
-        Boolean annot_repeat_masker
-        Boolean annot_hess_drivers
-        Boolean annot_oncokb
-        Boolean annot_civic
-        Boolean annot_cosmic_cmc
         Boolean normalize_indels
         File? ref_fasta
         File? ref_fasta_index
         String? exclude_string
-        File? segdup_bed
-        File? segdup_bed_index
-        File? repeatmasker_bed
-        File? repeatmasker_bed_index
-        File? hess_drivers
-        File? hess_drivers_index
-        File? oncokb_annotation
-        File? civic_annotation
-        File? civic_annotation_index
-        File? cosmic_cmc
-        File? cosmic_cmc_index
 
         String docker_image
         String docker_image_hash_or_tag
@@ -527,6 +495,72 @@ task annot_with_bcftools {
                 --output="${TMP_VCF}"
             rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"
         fi
+
+        # ensure it's bgzipped
+        bcftools view \
+            "~{vcf}" \
+            --output="~{output_file_base_name}.vcf.gz" \
+            --no-version
+    >>>
+
+    output {
+        File vcf_fixed = "~{output_file_base_name}.vcf.gz"
+    }
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+
+    meta {
+        allowNestedInputs: true
+    }
+}
+
+task annot_with_bcftools {
+    input {
+        File vcf
+        String output_file_base_name
+        Boolean annot_seg_dups
+        Boolean annot_repeat_masker
+        Boolean annot_hess_drivers
+        Boolean annot_oncokb
+        Boolean annot_civic
+        Boolean annot_cosmic_cmc
+        String? exclude_string
+        File? segdup_bed
+        File? segdup_bed_index
+        File? repeatmasker_bed
+        File? repeatmasker_bed_index
+        File? hess_drivers
+        File? hess_drivers_index
+        File? oncokb_annotation
+        File? civic_annotation
+        File? civic_annotation_index
+        File? cosmic_cmc
+        File? cosmic_cmc_index
+
+        String docker_image
+        String docker_image_hash_or_tag
+        Int mem_gb = 4
+        Int cpu = 1
+        Int preemptible = 3
+        Int max_retries = 0
+        Int additional_disk_gb = 0
+    }
+
+    Int disk_space = (
+        ceil(size(vcf, "GiB") + 2 * 10 * size(vcf, "GiB")) + 10 + additional_disk_gb
+    )
+
+    command <<<
+        set -euo pipefail
+
+        TMP_VCF="~{basename(vcf, '.vcf.gz')}_tmp.vcf.gz"
 
         if ~{annot_seg_dups}; then
             echo "Annotating segmental duplication regions"
@@ -920,7 +954,7 @@ task funcotator {
         File ref_dict
         String funcotator_data_sources_url
 
-        File input_vcf
+        File vcf
 
         String reference_version
 
@@ -960,7 +994,7 @@ task funcotator {
 
     # Calculate disk size:
     Float ref_size_gb = size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + size(ref_dict, "GiB")
-    Float vcf_size_gb = size(input_vcf, "GiB")
+    Float vcf_size_gb = size(vcf, "GiB")
     Float datasources_size_gb = 25
     Int disk_space = ceil(ref_size_gb + datasources_size_gb + vcf_size_gb) + 20
 
@@ -997,7 +1031,7 @@ task funcotator {
         fi
 
         echo "Indexing VCF"
-        gatk --java-options "-Xmx~{command_mem}m"  IndexFeatureFile --input "~{input_vcf}"
+        gatk --java-options "-Xmx~{command_mem}m"  IndexFeatureFile --input "~{vcf}"
 
         echo "Downloading Funcotator data sources"
         DATA_SOURCES_FOLDER="./funcotator_data_sources"
@@ -1027,7 +1061,7 @@ task funcotator {
             --ref-version ~{reference_version} \
             --output-file-format ~{output_format} \
             -R ~{ref_fasta} \
-            -V ~{input_vcf} \
+            -V ~{vcf} \
             -O ~{output_file} \
             --verbosity WARNING \
             ~{interval_list_arg} ~{default="" interval_list} \
