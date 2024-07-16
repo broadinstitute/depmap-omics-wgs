@@ -1,8 +1,8 @@
+from csv import QUOTE_NONE
 from pathlib import Path
 
 import bgzip
 import pandas as pd
-from _csv import QUOTE_NONE
 from click import echo
 from pandas._testing import assert_frame_equal
 
@@ -14,24 +14,33 @@ def do_merge(vcf_paths: list[Path], out_path: Path) -> None:
     col_header_line = None
     df = None
     common_col_names = None
+    break_next_time = False
 
     for path in vcf_paths:
         with open(path, "rb") as raw:
             echo(f"Reading {path}")
             this_header_texts = ""
 
+            # assume file is bgzipped
             with bgzip.BGZipReader(raw) as f:
                 while True:
+                    # read a small block of bytes at a time
                     if not (d := f.read(10 * 1024)):
                         break
 
+                    # concat the latest chunk of text
                     text = d.tobytes().decode()
                     d.release()
                     this_header_texts += text
 
-                    if "\n#CHROM" in this_header_texts:
+                    # check if we've reached the end of the header section and get one
+                    # more chunk
+                    if break_next_time:
                         break
+                    elif "\n#CHROM" in this_header_texts:
+                        break_next_time = True
 
+            # extract the header lines and the column headers
             this_header_lines = this_header_texts.split("\n")
 
             if col_header_line is None:
@@ -40,12 +49,16 @@ def do_merge(vcf_paths: list[Path], out_path: Path) -> None:
                 ][0]
 
             this_header_lines = [x for x in this_header_lines if x.startswith("##")]
+
+            # add to the collected header lines
             header_lines.extend(this_header_lines)
 
+            # go back to the beginning of the file to read the entire thing with Pandas
             raw.seek(0)
 
             with bgzip.BGZipReader(raw) as f:
                 this_df = read_vcf(f)
+                # represent info as individual annotations so we can de-dup later
                 this_df["info"] = this_df["info"].str.split(";")
 
                 if df is None:

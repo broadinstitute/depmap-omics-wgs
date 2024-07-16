@@ -39,7 +39,7 @@ def main(
     ctx: typer.Context,
     config_path: Annotated[Path, typer.Option(exists=True)],
 ):
-    with open(config_path.name, "rb") as f:
+    with open(config_path, "rb") as f:
         config.update(tomllib.load(f))
 
     ctx.obj = {

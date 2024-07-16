@@ -1,5 +1,5 @@
 import re
-from _csv import QUOTE_NONE
+from csv import QUOTE_NONE
 from pathlib import Path
 from urllib.parse import unquote
 
