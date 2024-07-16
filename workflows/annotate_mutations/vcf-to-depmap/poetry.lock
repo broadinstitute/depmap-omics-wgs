@@ -12,6 +12,16 @@ files = [
 ]
 
 [[package]]
+name = "bgzip"
+version = "0.5.0"
+description = "Utilities working with blocked gzip streams."
+optional = false
+python-versions = "*"
+files = [
+    {file = "bgzip-0.5.0.tar.gz", hash = "sha256:26ea6eed35ac43ea36cff828ca0f94925298ac21283cd0debaf072a92ac4be74"},
+]
+
+[[package]]
 name = "case-converter"
 version = "1.1.0"
 description = "A string case conversion package."
@@ -572,4 +582,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "8aab5c99efe698769a4a1af2efe9c3055fd29b176ebcac512114490e0a0452ca"
+content-hash = "4b606fb34b137930ff04acabaa74bee9229349940255e3758aa77b71c67f6cb4"
