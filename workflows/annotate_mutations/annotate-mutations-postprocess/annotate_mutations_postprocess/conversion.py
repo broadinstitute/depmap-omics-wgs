@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from vcf_to_depmap.annotation import annotate_vcf
-from vcf_to_depmap.vcf_utils import clean_vcf, get_vcf_info_and_format_dtypes, read_vcf
+from annotate_mutations_postprocess.annotation import annotate_vcf
+from annotate_mutations_postprocess.vcf_utils import clean_vcf, get_vcf_info_and_format_dtypes, read_vcf
 
 
 def convert(

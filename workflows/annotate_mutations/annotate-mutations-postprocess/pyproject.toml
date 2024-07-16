@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "vcf-to-depmap"
+name = "annotate-mutations-postprocess"
 version = "0.1.0"
 description = ""
 authors = []
 readme = "README.md"
-packages = [{include = "vcf_to_depmap"}]
+packages = [{include = "annotate_mutations_postprocess"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"

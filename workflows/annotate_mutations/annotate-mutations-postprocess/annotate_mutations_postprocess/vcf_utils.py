@@ -1,13 +1,15 @@
 import re
+from _csv import QUOTE_NONE
 from pathlib import Path
 from urllib.parse import unquote
 
 import numpy as np
 import pandas as pd
-from _csv import QUOTE_NONE
+from bgzip import BGZipReader
 from caseconverter import snakecase
+from click import echo
 
-from vcf_to_depmap.utils import expand_dict_columns
+from annotate_mutations_postprocess.utils import expand_dict_columns
 
 
 def get_vcf_info_and_format_dtypes(
@@ -63,7 +65,7 @@ def get_vcf_info_and_format_dtypes(
     return df
 
 
-def read_vcf(path: Path) -> pd.DataFrame:
+def read_vcf(path: Path | BGZipReader) -> pd.DataFrame:
     df = pd.read_csv(
         path,
         sep="\t",
@@ -112,7 +114,7 @@ def read_vcf(path: Path) -> pd.DataFrame:
     df["position"] = df["position"].astype("int64")
 
     assert ~df[["chromosome", "position", "ref", "alt"]].duplicated().any()
-    assert ~df.isna().any().any()
+    assert df.notna().all().all()
 
     return df.reset_index(drop=True)
 
@@ -275,7 +277,7 @@ def urldecode_cols(
         # if this happens, we might need another CLI option to specify cols that have
         # percent signs but aren't actually URL-encoded
         others = set(obs_percent_cols).difference(set(either_col_names))
-        raise ValueError(f"Check VCF for additional URL-encoded info in {others}")
+        echo(f"Check VCF for additional URL-encoded info in {others}")
 
     for c in funco_sanitized_col_names:
         df[c] = df[c].str.replace(

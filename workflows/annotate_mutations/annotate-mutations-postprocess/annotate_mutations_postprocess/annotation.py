@@ -2,7 +2,7 @@ from pprint import pprint as pp
 
 import pandas as pd
 
-from vcf_to_depmap.utils import cs
+from annotate_mutations_postprocess.utils import cs
 
 
 def annotate_vcf(
@@ -21,6 +21,10 @@ def annotate_vcf(
     df = df.merge(
         dna_repair_genes, how="left", on="info__funcotation__gencode_43_hugo_symbol"
     )
+
+    # TODO: oncokb
+
+    df["driver"] = ~df["filter__multiallelic"] & df["info__civic_score"].ge(8)
 
     return df
 

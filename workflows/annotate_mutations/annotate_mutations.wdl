@@ -174,7 +174,7 @@ workflow annotate_mutations {
             }
         }
 
-        call gather_vcfs as ensembvl_vep_gathered {
+        call gather_vcfs as ensembl_vep_gathered {
             input:
                 vcfs = ensembl_vep.vcf_annot,
                 output_file_base_name = sample_id + "_ensembl_vep_annot",
@@ -205,9 +205,22 @@ workflow annotate_mutations {
         }
     }
 
+    call merge_info {
+        input:
+            vcfs = select_all([
+                fix_with_bcftools.vcf_fixed,
+                annot_with_bcftools.vcf_annot,
+                snpeff_snpsift.vcf_annot,
+                open_cravat.vcf_annot,
+                ensembl_vep_gathered.output_vcf,
+                funcotator.vcf_annot
+            ]),
+            output_file_base_name = sample_id + "_info_merged",
+    }
+
 #    call index_vcf {
 #        input:
-#            vcf = fixed_vcf
+#            vcf = merge_info.vcf_info_merged
 #    }
 #
 #    call vcf2maf {
@@ -220,7 +233,7 @@ workflow annotate_mutations {
 #    }
 
     output {
-#        File mut_annot_vcf = fixed_vcf
+        File mut_annot_vcf = fixed_vcf
 #        File mut_annot_vcf_index = index_vcf.vcf_index
 #        File mut_annot_maf = vcf2maf.maf
     }
@@ -1094,7 +1107,48 @@ task funcotator {
     }
 
     output {
-        File funcotated_output_file = "~{output_file}"
+        File vcf_annot = "~{output_file}"
+    }
+}
+
+task merge_info {
+    input {
+        Array[File] vcfs
+        String output_file_base_name
+
+        String docker_image
+        String docker_image_hash_or_tag
+        Int mem_gb = 8
+        Int cpu = 1
+        Int preemptible = 3
+        Int max_retries = 0
+        Int additional_disk_gb = 0
+    }
+
+    Int disk_space = ceil(3 * size(vcfs, "GiB")) + 10 + additional_disk_gb
+
+    command <<<
+        python -m vcf-to-depmap --config-path="config.toml" \
+            merge-info \
+            ~{sep=" --vcf " vcfs} \
+            --out="~{output_file_base_name}.vcf.gz"
+    >>>
+
+    output {
+        File vcf_info_merged = "~{output_file_base_name}.vcf.gz"
+    }
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+
+    meta {
+        allowNestedInputs: true
     }
 }
 

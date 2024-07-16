@@ -1,5 +1,5 @@
 import re
-from typing import Callable, Iterable
+from typing import Callable
 
 import pandas as pd
 

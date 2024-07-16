@@ -1,13 +1,14 @@
 import re
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, List
 
 import pandas as pd
 import tomllib
 import typer
 from click import echo
 
-from vcf_to_depmap.conversion import convert
+from annotate_mutations_postprocess.conversion import convert
+from annotate_mutations_postprocess.merging import do_merge
 
 pd.set_option("display.max_columns", 30)
 pd.set_option("display.max_colwidth", 50)
@@ -38,6 +39,14 @@ def main(
         config.update(tomllib.load(f))
 
     ctx.obj = config
+
+
+@app.command()
+def merge_info(
+    vcf: Annotated[List[Path], typer.Option(exists=True)],
+    out: Annotated[Path, typer.Option()],
+) -> None:
+    do_merge(vcf_paths=vcf, out_path=out)
 
 
 @app.command()

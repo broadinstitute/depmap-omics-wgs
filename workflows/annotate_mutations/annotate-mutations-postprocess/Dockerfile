@@ -19,5 +19,7 @@ RUN pip install poetry
 COPY pyproject.toml poetry.lock ./
 RUN poetry install --only main --no-root --no-cache
 
-COPY vcf_to_depmap ./vcf_to_depmap
+COPY annotate_mutations_postprocess ./annotate_mutations_postprocess
 RUN poetry install --only-root
+
+COPY config.toml ./
