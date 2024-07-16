@@ -6,7 +6,7 @@ timestamped and this script doesn't need to be re-run.
 import pandas as pd
 
 hess = pd.read_csv(
-    "./data/hess_drivers.csv",
+    "./data/hess/hess_drivers.csv",
     # index_col=True,
     usecols=[
         "CHROM",
@@ -31,18 +31,18 @@ hess["chr_num"] = hess["chr_num"].astype("int8")
 hess = hess.sort_values(["chr_num", "POS"])
 hess = hess.drop(columns="chr_num")
 
-hess.to_csv("./data/hess_drivers.tsv", sep="\t", index=False, header=False)
+hess.to_csv("./data/hess/hess_drivers.tsv", sep="\t", index=False, header=False)
 
 """
 echo '##INFO=<ID=HESS,Number=1,Type=String,Description="Hess driver signature">' \
-    > ./data/hess.hdr.vcf
-bgzip ./data/hess_drivers.tsv -k
-tabix ./data/hess_drivers.tsv.gz -s1 -b2 -e2
+    > ./data/hess/hess.hdr.vcf
+bgzip ./data/hess/hess_drivers.tsv -k
+tabix ./data/hess/hess_drivers.tsv.gz -s1 -b2 -e2
 
 # e.g.
 bcftools annotate input.vcf.gz \
-    --annotations=./data/hess_drivers.tsv.gz \
-    --output=./data/output.vcf.gz \
-    --header-lines=./data/hess.hdr.vcf \
+    --annotations=./data/hess/hess_drivers.tsv.gz \
+    --output=./data/hess/output.vcf.gz \
+    --header-lines=./data/hess/hess.hdr.vcf \
     --columns=CHROM,POS,REF,ALT,HESS
 """
