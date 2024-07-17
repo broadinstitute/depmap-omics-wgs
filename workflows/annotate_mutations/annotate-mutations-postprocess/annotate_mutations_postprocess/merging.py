@@ -16,7 +16,7 @@ def do_merge(vcf_paths: list[Path], out_path: Path) -> None:
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         chunk_vcfs(vcf_paths, tmp_dir)
-        process_chunks(header_lines, out_path, tmp_dir)
+        process_chunks(header_lines, out_path, tmp_dir, len(vcf_paths))
 
 
 def get_header_lines(vcf_paths: list[Path]) -> list[str]:
@@ -111,7 +111,9 @@ def chunk_vcfs(vcf_paths: list[Path], tmp_dir: str) -> None:
                 )
 
 
-def process_chunks(header_lines: list[str], out_path: Path, tmp_dir: str) -> None:
+def process_chunks(
+    header_lines: list[str], out_path: Path, tmp_dir: str, n_vcfs: int
+) -> None:
     with open(out_path, "wb") as raw:
         with bgzip.BGZipWriter(raw) as f:
             echo(f"Writing header to {out_path}")
@@ -126,6 +128,10 @@ def process_chunks(header_lines: list[str], out_path: Path, tmp_dir: str) -> Non
                 parquet_files = glob(
                     os.path.join(sub_dir, "*.parquet"), root_dir=tmp_dir
                 )
+
+                assert (
+                    len(parquet_files) == n_vcfs
+                ), f"Expecting {n_vcfs} in {sub_dir}, but found {len(parquet_files)}"
 
                 df = None
 
