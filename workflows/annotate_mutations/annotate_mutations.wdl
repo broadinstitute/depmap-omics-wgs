@@ -1121,11 +1121,11 @@ task merge_info {
         Int mem_gb = 8
         Int cpu = 1
         Int preemptible = 3
-        Int max_retries = 0
+        Int max_retries = 2
         Int additional_disk_gb = 0
     }
 
-    Int disk_space = ceil(3 * size(vcfs, "GiB")) + 10 + additional_disk_gb
+    Int disk_space = ceil(10 * size(vcfs, "GiB")) + 10 + additional_disk_gb
 
     command <<<
         python -m annotate_mutations_postprocess --config-path="/app/config.toml" \

@@ -1,24 +1,122 @@
+import os
+import tempfile
 from csv import QUOTE_NONE
+from glob import glob
 from pathlib import Path
 
 import bgzip
+import numpy as np
 import pandas as pd
 from click import echo
 from pandas._testing import assert_frame_equal
 
-from annotate_mutations_postprocess.vcf_utils import read_vcf
-
 
 def do_merge(vcf_paths: list[Path], out_path: Path) -> None:
+    header_lines = get_header_lines(vcf_paths)
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        for path in vcf_paths:
+            with open(path, "rb") as raw:
+                with bgzip.BGZipReader(raw) as f:
+                    echo(f"Reading {os.path.basename(path)}")
+                    # noinspection PyTypeChecker
+                    df = pd.read_csv(
+                        f,
+                        sep="\t",
+                        header=None,
+                        names=[
+                            "chromosome",
+                            "position",
+                            "id",
+                            "ref",
+                            "alt",
+                            "qual",
+                            "filter",
+                            "info",
+                            "format",
+                            "values",
+                        ],
+                        dtype="string",
+                        keep_default_na=False,
+                        quoting=QUOTE_NONE,
+                        encoding_errors="backslashreplace",
+                    )
+
+                    df = df.loc[~df["chromosome"].str.startswith("#")]
+                    df["position"] = df["position"].astype("int64")
+
+                    df["chunk"] = 1 + np.arange(len(df)) // 100000
+                    n_chunks = df["chunk"].iloc[-1]
+                    df["chunk"] = (
+                        df["chunk"].astype("string").str.zfill(len(str(n_chunks)))
+                    )
+
+                    echo(
+                        f"Writing {os.path.basename(path)} as {n_chunks} parquet files"
+                    )
+                    df.to_parquet(
+                        path=tmp_dir,
+                        partition_cols=["chunk"],
+                        index=False,
+                        engine="pyarrow",
+                    )
+
+        with open(out_path, "wb") as raw:
+            with bgzip.BGZipWriter(raw) as f:
+                echo(f"Writing header to {out_path}")
+                s = "\n".join(header_lines) + "\n"
+                f.write(s.encode())
+
+                split_dirs = sorted(glob("*", root_dir=tmp_dir))
+
+                for sub_dir in split_dirs:
+                    parquet_files = glob(
+                        os.path.join(sub_dir, "*.parquet"), root_dir=tmp_dir
+                    )
+
+                    df = None
+
+                    for p in parquet_files:
+                        echo(f"Reading {p}")
+                        this_df = pd.read_parquet(
+                            os.path.join(tmp_dir, p), engine="pyarrow"
+                        )
+
+                        if df is None:
+                            df = this_df
+                        else:
+                            df["id"] = (
+                                df["id"].replace({".": pd.NA}).fillna(this_df["id"])
+                            )
+
+                            assert_frame_equal(
+                                df[df.columns.drop(["id", "info"])],
+                                this_df[this_df.columns.drop(["id", "info"])],
+                            )
+
+                            df["info"] = df["info"] + ";" + this_df["info"]
+
+                    df["info"] = df["info"].apply(
+                        lambda x: ";".join(sorted(list(set(x.split(";")))))
+                    )
+
+                    s = df.to_csv(
+                        header=False, index=False, sep="\t", quoting=QUOTE_NONE
+                    )
+
+                    echo(f"Writing merged {sub_dir} rows to {out_path}")
+                    f.write(s.encode())
+
+
+def get_header_lines(vcf_paths):
     header_lines = []
     col_header_line = None
-    df = None
-    common_col_names = None
-    break_next_time = False
 
     for path in vcf_paths:
+        break_next_time = False
+
         with open(path, "rb") as raw:
-            echo(f"Reading {path}")
+            echo(f"Reading {os.path.basename(path)} header")
             this_header_texts = ""
 
             # assume file is bgzipped
@@ -53,37 +151,4 @@ def do_merge(vcf_paths: list[Path], out_path: Path) -> None:
             # add to the collected header lines
             header_lines.extend(this_header_lines)
 
-            # go back to the beginning of the file to read the entire thing with Pandas
-            raw.seek(0)
-
-            with bgzip.BGZipReader(raw) as f:
-                this_df = read_vcf(f)
-                # represent info as individual annotations so we can de-dup later
-                this_df["info"] = this_df["info"].str.split(";")
-
-                if df is None:
-                    df = this_df
-                    common_col_names = df.columns.drop("info")
-                else:
-                    assert_frame_equal(df[common_col_names], this_df[common_col_names])
-                    df["info"] = df["info"] + this_df["info"]
-
-    header_lines = (
-        pd.Series([*header_lines, col_header_line]).drop_duplicates().tolist()
-    )
-
-    df["info"] = df["info"].apply(
-        lambda x: ";".join(pd.Series(x).drop_duplicates().tolist())
-    )
-
-    echo(f"Writing to {out_path}")
-    with open(out_path, "wb") as raw:
-        with bgzip.BGZipWriter(raw) as f:
-            s = "\n".join(
-                [
-                    *header_lines,
-                    df.to_csv(header=False, index=False, sep="\t", quoting=QUOTE_NONE),
-                ]
-            )
-
-            f.write(s.encode())
+    return pd.Series([*header_lines, col_header_line]).drop_duplicates().tolist()

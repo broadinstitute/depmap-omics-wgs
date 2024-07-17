@@ -86,7 +86,6 @@ def read_vcf(path: Path | BGZipReader) -> pd.DataFrame:
         na_values=".",
         keep_default_na=False,
         quoting=QUOTE_NONE,
-        low_memory=False,
         # nrows=1000,
         encoding_errors="backslashreplace",
     )
