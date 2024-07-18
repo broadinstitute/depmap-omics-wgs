@@ -1,22 +1,25 @@
 import os
+import re
+import subprocess
 import tempfile
 from csv import QUOTE_NONE
 from glob import glob
 from pathlib import Path
 
 import bgzip
-import numpy as np
 import pandas as pd
 from click import echo
-from pandas._testing import assert_frame_equal
 
 
-def do_merge(vcf_paths: list[Path], out_path: Path) -> None:
+def do_merge(
+    vcf_paths: list[Path], out_path: Path, chunk_size: int = 100000000
+) -> None:
     header_lines = get_header_lines(vcf_paths)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        chunk_vcfs(vcf_paths, tmp_dir)
-        process_chunks(header_lines, out_path, tmp_dir, len(vcf_paths))
+        chunks = make_chunks(header_lines, chunk_size)
+        chunk_vcfs(vcf_paths, tmp_dir, chunks)
+        process_chunks(header_lines, out_path, tmp_dir, chunks, len(vcf_paths))
 
 
 def get_header_lines(vcf_paths: list[Path]) -> list[str]:
@@ -65,54 +68,105 @@ def get_header_lines(vcf_paths: list[Path]) -> list[str]:
     return pd.Series([*header_lines, col_header_line]).drop_duplicates().tolist()
 
 
-def chunk_vcfs(vcf_paths: list[Path], tmp_dir: str) -> None:
+def make_chunks(header_lines: list[str], chunk_size: int) -> pd.DataFrame:
+    contig_lines = [x for x in header_lines if x.startswith("##contig")]
+    chr_lengths_search = [
+        re.search(r"^##contig=<ID=chr([^,]+),length=(\d+)>$", x) for x in contig_lines
+    ]
+    chr_lengths = pd.DataFrame(
+        [x.groups() for x in chr_lengths_search if x is not None],
+        columns=["chr", "length"],
+    ).astype({"chr": "string", "length": "int64"})
+
+    valid_chrs = {str(x) for x in range(1, 23)}.union({"X", "Y"})
+    # valid_chrs = {"1"}
+    chr_lengths = chr_lengths.loc[chr_lengths["chr"].isin(valid_chrs)]
+
+    chunks = []
+
+    for _, r in chr_lengths.iterrows():
+        start = 1
+
+        while start - 1 < r["length"]:
+            end = min(start + chunk_size - 1, r["length"])
+            chunks.append(
+                {
+                    "chr": f"chr{r["chr"]}",
+                    "start": start,
+                    "end": end,
+                    "split_dir_name": f"chr{r['chr']}_{start}-{end}",
+                }
+            )
+            start = end + 1
+
+    return pd.DataFrame(chunks)
+
+
+def chunk_vcfs(vcf_paths: list[Path], tmp_dir: str, chunks: pd.DataFrame) -> None:
     for path in vcf_paths:
-        with open(path, "rb") as raw:
-            with bgzip.BGZipReader(raw) as f:
-                echo(f"Reading {os.path.basename(path)}")
-                # noinspection PyTypeChecker
-                df = pd.read_csv(
-                    f,
-                    sep="\t",
-                    header=None,
-                    names=[
-                        "chromosome",
-                        "position",
-                        "id",
-                        "ref",
-                        "alt",
-                        "qual",
-                        "filter",
-                        "info",
-                        "format",
-                        "values",
-                    ],
-                    dtype="string",
-                    keep_default_na=False,
-                    quoting=QUOTE_NONE,
-                    encoding_errors="backslashreplace",
-                )
+        echo(f"Indexing {os.path.basename(path)}")
+        subprocess.run(["bcftools", "index", path, "--force"])
 
-                # remove header rows
-                df = df.loc[~df["chromosome"].str.startswith("#")]
-                df["position"] = df["position"].astype("int64")
+    for _, r in chunks.iterrows():
+        split_dir = os.path.join(tmp_dir, r["split_dir_name"])
+        os.makedirs(split_dir)
 
-                # split into named chunks with sortable names
-                df["chunk"] = 1 + np.arange(len(df)) // 100000
-                n_chunks = df["chunk"].iloc[-1]
-                df["chunk"] = df["chunk"].astype("string").str.zfill(len(str(n_chunks)))
+        for path in vcf_paths:
+            chunk_path = os.path.join(split_dir, os.path.basename(path))
+            echo(f"Writing {chunk_path}")
+            subprocess.run(
+                [
+                    "bcftools",
+                    "view",
+                    path,
+                    "--regions",
+                    f"{r['chr']}:{r['start']}-{r['end']}",
+                    "--output",
+                    chunk_path,
+                ]
+            )
 
-                echo(f"Writing {os.path.basename(path)} as {n_chunks} parquet files")
-                df.to_parquet(
-                    path=tmp_dir,
-                    partition_cols=["chunk"],
-                    index=False,
-                    engine="pyarrow",
-                )
+
+def read_vcf(path: Path | str) -> pd.DataFrame:
+    with open(path, "rb") as raw:
+        with bgzip.BGZipReader(raw) as f:
+            echo(f"Reading {path}")
+            # noinspection PyTypeChecker
+            df = pd.read_csv(
+                f,
+                sep="\t",
+                header=None,
+                names=[
+                    "chromosome",
+                    "position",
+                    "id",
+                    "ref",
+                    "alt",
+                    "qual",
+                    "filter",
+                    "info",
+                    "format",
+                    "values",
+                ],
+                dtype="string",
+                keep_default_na=False,
+                quoting=QUOTE_NONE,
+                encoding_errors="backslashreplace",
+            )
+
+            # remove header rows
+            df = df.loc[~df["chromosome"].str.startswith("#")]
+            df["position"] = df["position"].astype("int64")
+
+            return df
 
 
 def process_chunks(
-    header_lines: list[str], out_path: Path, tmp_dir: str, n_vcfs: int
+    header_lines: list[str],
+    out_path: Path,
+    tmp_dir: str,
+    chunks: pd.DataFrame,
+    n_vcfs: int,
 ) -> None:
     with open(out_path, "wb") as raw:
         with bgzip.BGZipWriter(raw) as f:
@@ -120,49 +174,61 @@ def process_chunks(
             s = "\n".join(header_lines) + "\n"
             f.write(s.encode())
 
-            # get all split subfolders
-            split_dirs = sorted(glob("*", root_dir=tmp_dir))
+            for _, r in chunks.iterrows():
+                split_dir = os.path.join(tmp_dir, r["split_dir_name"])
 
-            for sub_dir in split_dirs:
-                # there should be one Parquet file per subfolder
-                parquet_files = glob(
-                    os.path.join(sub_dir, "*.parquet"), root_dir=tmp_dir
+                # there should be one Parquet file per split per input VCF
+                split_files = glob(
+                    os.path.join(split_dir, "*.vcf.gz"), root_dir=tmp_dir
                 )
 
                 assert (
-                    len(parquet_files) == n_vcfs
-                ), f"Expecting {n_vcfs} in {sub_dir}, but found {len(parquet_files)}"
+                    len(split_files) == n_vcfs
+                ), f"Expecting {n_vcfs} in {split_dir}, but found {len(split_files)}"
 
                 df = None
 
-                for p in parquet_files:
-                    echo(f"Reading {p}")
-                    this_df = pd.read_parquet(
-                        os.path.join(tmp_dir, p), engine="pyarrow"
-                    )
+                for p in split_files:
+                    this_df = read_vcf(p)
 
                     if df is None:
                         # starting base data frame
                         df = this_df
                     else:
-                        # some annotators might populate the ID col, so collect those
-                        df["id"] = df["id"].replace({".": pd.NA}).fillna(this_df["id"])
-
-                        # most columns should match since annotators don't modify them
-                        assert_frame_equal(
-                            df[df.columns.drop(["id", "info"])],
-                            this_df[this_df.columns.drop(["id", "info"])],
+                        df = df.merge(
+                            this_df,
+                            how="outer",
+                            on=[
+                                "chromosome",
+                                "position",
+                                "ref",
+                                "alt",
+                                "qual",
+                                "filter",
+                                "format",
+                                "values",
+                            ],
+                            suffixes=("", "2"),
                         )
 
-                        # concat info fields for each row
-                        df["info"] = df["info"] + ";" + this_df["info"]
+                        # some annotators might populate the ID col, so collect those
+                        df["id"] = df["id"].replace({".": pd.NA}).fillna(df["id2"])
+
+                        # ensure that `info` is filled out in case a variant was only
+                        # on one side of the merge
+                        df["info"] = df["info"].fillna(df["info2"])
+
+                        # concat info fields for each row (will de-dup later)
+                        df["info"] = df["info"] + ";" + df["info2"]
+
+                        df = df.drop(columns=["id2", "info2"])
 
                 # de-dup each info field's annotations
                 df["info"] = df["info"].apply(
                     lambda x: ";".join(sorted(list(set(x.split(";")))))
                 )
+                df = df.sort_values("position")
 
+                echo(f"Writing merged {split_dir} rows to {out_path}")
                 s = df.to_csv(header=False, index=False, sep="\t", quoting=QUOTE_NONE)
-
-                echo(f"Writing merged {sub_dir} rows to {out_path}")
                 f.write(s.encode())

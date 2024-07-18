@@ -145,7 +145,7 @@ workflow annotate_mutations {
         call open_cravat {
             input:
                 vcf = fixed_vcf,
-                output_file_base_name = sample_id + "_open_cravat",
+                output_file_base_name = sample_id + "_open_cravat_annot",
                 open_cravat_data_sources_url = select_first([open_cravat_data_sources_url])
         }
     }
