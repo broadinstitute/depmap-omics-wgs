@@ -27,11 +27,12 @@ def get_header_lines(vcf_paths: list[Path]) -> list[str]:
     col_header_line = None
 
     for path in vcf_paths:
+        # don't read more lines than necessary to get the entire header
         break_next_time = False
 
         with open(path, "rb") as raw:
             echo(f"Reading {os.path.basename(path)} header")
-            this_header_texts = ""
+            this_header_texts = ""  # start collecting header text
 
             # assume file is bgzipped
             with bgzip.BGZipReader(raw) as f:
@@ -56,6 +57,7 @@ def get_header_lines(vcf_paths: list[Path]) -> list[str]:
             this_header_lines = this_header_texts.split("\n")
 
             if col_header_line is None:
+                # extract the line with column names
                 col_header_line = [
                     x for x in this_header_lines if x.startswith("#CHROM")
                 ][0]
@@ -65,10 +67,12 @@ def get_header_lines(vcf_paths: list[Path]) -> list[str]:
             # add to the collected header lines
             header_lines.extend(this_header_lines)
 
+    # de-dup but keep original order of lines
     return pd.Series([*header_lines, col_header_line]).drop_duplicates().tolist()
 
 
 def make_chunks(header_lines: list[str], chunk_size: int) -> pd.DataFrame:
+    # contig header lines contain names and lengths of chromosomes
     contig_lines = [x for x in header_lines if x.startswith("##contig")]
     chr_lengths_search = [
         re.search(r"^##contig=<ID=chr([^,]+),length=(\d+)>$", x) for x in contig_lines
@@ -78,13 +82,15 @@ def make_chunks(header_lines: list[str], chunk_size: int) -> pd.DataFrame:
         columns=["chr", "length"],
     ).astype({"chr": "string", "length": "int64"})
 
+    # remove things like decoy contigs
     valid_chrs = {str(x) for x in range(1, 23)}.union({"X", "Y"})
-    # valid_chrs = {"1"}
     chr_lengths = chr_lengths.loc[chr_lengths["chr"].isin(valid_chrs)]
 
+    # start splitting regions into smaller chunks
     chunks = []
 
     for _, r in chr_lengths.iterrows():
+        # `bcftools view` expects 1-index regions in TSVs used for splitting
         start = 1
 
         while start - 1 < r["length"]:
@@ -103,6 +109,7 @@ def make_chunks(header_lines: list[str], chunk_size: int) -> pd.DataFrame:
 
 
 def chunk_vcfs(vcf_paths: list[Path], tmp_dir: str, chunks: pd.DataFrame) -> None:
+    # need to make sure each VCF is tabix-indexed first
     for path in vcf_paths:
         echo(f"Indexing {os.path.basename(path)}")
         subprocess.run(["bcftools", "index", path, "--force"])
@@ -111,6 +118,7 @@ def chunk_vcfs(vcf_paths: list[Path], tmp_dir: str, chunks: pd.DataFrame) -> Non
         split_dir = os.path.join(tmp_dir, r["split_dir_name"])
         os.makedirs(split_dir)
 
+        # each `split_dir` should contain `n_vcfs` when this is done
         for path in vcf_paths:
             chunk_path = os.path.join(split_dir, os.path.basename(path))
             echo(f"Writing {chunk_path}")
@@ -149,7 +157,7 @@ def read_vcf(path: Path | str) -> pd.DataFrame:
                     "values",
                 ],
                 dtype="string",
-                keep_default_na=False,
+                keep_default_na=False,  # let '.' values stay that way
                 quoting=QUOTE_NONE,
                 encoding_errors="backslashreplace",
             )
@@ -170,6 +178,7 @@ def process_chunks(
 ) -> None:
     with open(out_path, "wb") as raw:
         with bgzip.BGZipWriter(raw) as f:
+            # start writing bgzipped output VCF
             echo(f"Writing header to {out_path}")
             s = "\n".join(header_lines) + "\n"
             f.write(s.encode())
@@ -177,7 +186,7 @@ def process_chunks(
             for _, r in chunks.iterrows():
                 split_dir = os.path.join(tmp_dir, r["split_dir_name"])
 
-                # there should be one Parquet file per split per input VCF
+                # there should be one file per split per input VCF
                 split_files = glob(
                     os.path.join(split_dir, "*.vcf.gz"), root_dir=tmp_dir
                 )
@@ -227,6 +236,8 @@ def process_chunks(
                 df["info"] = df["info"].apply(
                     lambda x: ";".join(sorted(list(set(x.split(";")))))
                 )
+
+                # df contains only one chrom, so sorting by position is sufficient
                 df = df.sort_values("position")
 
                 echo(f"Writing merged {split_dir} rows to {out_path}")
