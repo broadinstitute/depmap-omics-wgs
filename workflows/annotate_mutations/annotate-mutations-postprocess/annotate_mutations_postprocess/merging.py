@@ -204,6 +204,7 @@ def process_chunks(
                         # starting base data frame
                         df = this_df
                     else:
+                        # joining `id` and `info` fields to existing df
                         df = df.merge(
                             this_df,
                             how="outer",

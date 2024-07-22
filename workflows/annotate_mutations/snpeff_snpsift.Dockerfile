@@ -10,6 +10,7 @@ RUN wget -q https://github.com/samtools/htslib/releases/download/${VERSION_HTSLI
     make -j4 && \
     make install
 
+
 FROM amazoncorretto:22.0.1-alpine3.19
 
 WORKDIR /tmp

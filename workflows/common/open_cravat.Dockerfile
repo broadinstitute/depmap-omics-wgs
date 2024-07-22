@@ -11,6 +11,7 @@ RUN wget -q https://github.com/samtools/htslib/releases/download/${VERSION_HTSLI
     make -j4 && \
     make install
 
+
 FROM python:3.12.3-bullseye
 
 ENV DEBIAN_FRONTEND=noninteractive \

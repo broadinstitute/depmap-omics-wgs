@@ -407,7 +407,7 @@ task gather_vcfs {
         set -euo pipefail
 
         gatk --java-options "-Xmx~{command_mem_mb}m" \
-        GatherVcfsCloud \
+            GatherVcfsCloud \
             --input ~{sep=" --input " vcfs} \
             --output "combined.vcf.gz" \
             --gather-type "BLOCK" \
