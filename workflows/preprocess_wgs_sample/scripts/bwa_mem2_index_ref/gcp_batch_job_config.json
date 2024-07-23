@@ -1,0 +1,65 @@
+{
+  "taskGroups": [
+    {
+      "taskSpec": {
+        "runnables": [
+          {
+            "displayName": "bwa-mem2-index-ref",
+            "container": {
+              "imageUri": "us-docker.pkg.dev/depmap-omics/public/bwa_mem2:production",
+              "entrypoint": "/bin/bash",
+              "commands": [
+                "/mnt/disks/cds-pipelines/scripts/bwa_mem2_index_ref.sh"
+              ],
+              "enableImageStreaming": false
+            },
+            "environment": {
+              "variables": {
+                "GCS_FOLDER": "gs://ccleparams/GIAB_hg38_patched_ref/bwa-mem2",
+                "REF_FASTA": "gs://ccleparams/GIAB_hg38_patched_ref/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta"
+              }
+            }
+          }
+        ],
+        "computeResource": {
+          "cpuMilli": 32000,
+          "memoryMib": 128000,
+          "bootDiskMib": 150000
+        },
+        "volumes": [
+          {
+            "gcs": {
+              "remotePath": "cds-pipelines"
+            },
+            "mountPath": "/mnt/disks/cds-pipelines",
+            "mountOptions": [
+              "-o ro",
+              "-implicit-dirs",
+              "--billing-project depmap-omics"
+            ]
+          }
+        ],
+        "maxRetryCount": 0,
+        "maxRunDuration": "10000s"
+      },
+      "taskCount": 1,
+      "parallelism": 1
+    }
+  ],
+  "allocationPolicy": {
+    "instances": [
+      {
+        "policy": {
+          "machineType": "n2-standard-32",
+          "provisioningModel": "SPOT"
+        }
+      }
+    ],
+    "serviceAccount": {
+      "email": "omics-pipeline-runner@depmap-omics.iam.gserviceaccount.com"
+    }
+  },
+  "logsPolicy": {
+    "destination": "CLOUD_LOGGING"
+  }
+}
