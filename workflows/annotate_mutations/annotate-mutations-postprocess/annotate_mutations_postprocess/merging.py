@@ -118,7 +118,7 @@ def chunk_vcfs(vcf_paths: list[Path], tmp_dir: str, chunks: pd.DataFrame) -> Non
         split_dir = os.path.join(tmp_dir, r["split_dir_name"])
         os.makedirs(split_dir)
 
-        # each `split_dir` should contain `n_vcfs` when this is done
+        # each `split_dir` should contain `len(vcf_paths)` files when this is done
         for path in vcf_paths:
             chunk_path = os.path.join(split_dir, os.path.basename(path))
             echo(f"Writing {chunk_path}")
@@ -157,7 +157,8 @@ def read_vcf(path: Path | str) -> pd.DataFrame:
                     "values",
                 ],
                 dtype="string",
-                keep_default_na=False,  # let '.' values stay that way
+                na_values=["."],
+                keep_default_na=False,
                 quoting=QUOTE_NONE,
                 encoding_errors="backslashreplace",
             )
@@ -221,22 +222,24 @@ def process_chunks(
                             suffixes=("", "2"),
                         )
 
-                        # some annotators might populate the ID col, so collect those
-                        df["id"] = df["id"].replace({".": pd.NA}).fillna(df["id2"])
-
-                        # ensure that `info` is filled out in case a variant was only
-                        # on one side of the merge
+                        # ensure that `id` and `info` are filled out in case a variant
+                        # was only on one side of the merge or it was on both sides but
+                        # the column was blank
+                        df["id"] = df["id"].fillna(df["id2"])
                         df["info"] = df["info"].fillna(df["info2"])
 
                         # concat info fields for each row (will de-dup later)
-                        df["info"] = df["info"] + ";" + df["info2"]
+                        df["info"] = (
+                            df["info"].fillna("") + ";" + df["info2"].fillna("")
+                        )
 
                         df = df.drop(columns=["id2", "info2"])
 
+                # set missing value for `id`
+                df["info"] = df["info"].replace({pd.NA: "."})
+
                 # de-dup each info field's annotations
-                df["info"] = df["info"].apply(
-                    lambda x: ";".join(sorted(list(set(x.split(";")))))
-                )
+                df["info"] = df["info"].apply(collect_uniq_annots).replace({"": "."})
 
                 # df contains only one chrom, so sorting by position is sufficient
                 df = df.sort_values("position")
@@ -244,3 +247,9 @@ def process_chunks(
                 echo(f"Writing merged {split_dir} rows to {out_path}")
                 s = df.to_csv(header=False, index=False, sep="\t", quoting=QUOTE_NONE)
                 f.write(s.encode())
+
+
+def collect_uniq_annots(x: str) -> str:
+    annots = {x for x in re.split(r";+", x) if len(x) > 0}
+    annots = sorted(list(annots))
+    return ";".join(annots)
