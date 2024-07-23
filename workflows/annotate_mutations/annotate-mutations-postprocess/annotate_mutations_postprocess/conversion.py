@@ -4,7 +4,11 @@ from pathlib import Path
 import pandas as pd
 
 from annotate_mutations_postprocess.annotation import annotate_vcf
-from annotate_mutations_postprocess.vcf_utils import clean_vcf, get_vcf_info_and_format_dtypes, read_vcf
+from annotate_mutations_postprocess.vcf_utils import (
+    clean_vcf,
+    get_vcf_info_and_format_dtypes,
+    read_vcf,
+)
 
 
 def convert(
@@ -45,7 +49,7 @@ def convert(
         funco_sanitized_col_name_regex=funco_sanitized_col_name_regex,
     )
 
-    annotate_vcf(
+    df = annotate_vcf(
         df=df,
         dna_repair_genes=dna_repair_genes,
         oncogenes=oncogenes,

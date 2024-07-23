@@ -157,7 +157,6 @@ def read_vcf(path: Path | str) -> pd.DataFrame:
                     "values",
                 ],
                 dtype="string",
-                na_values=["."],
                 keep_default_na=False,
                 quoting=QUOTE_NONE,
                 encoding_errors="backslashreplace",
@@ -222,11 +221,15 @@ def process_chunks(
                             suffixes=("", "2"),
                         )
 
-                        # ensure that `id` and `info` are filled out in case a variant
-                        # was only on one side of the merge or it was on both sides but
-                        # the column was blank
-                        df["id"] = df["id"].fillna(df["id2"])
-                        df["info"] = df["info"].fillna(df["info2"])
+                        # ensure that `id` is filled out in case a variant was only on
+                        # one side of the merge or it was on both sides but only the
+                        # right side is filled
+                        df["id"] = (
+                            df["id"]
+                            .replace({".": pd.NA})
+                            .fillna(df["id2"].replace({".": pd.NA}))
+                            .fillna(".")
+                        )
 
                         # concat info fields for each row (will de-dup later)
                         df["info"] = (
@@ -234,9 +237,6 @@ def process_chunks(
                         )
 
                         df = df.drop(columns=["id2", "info2"])
-
-                # set missing value for `id`
-                df["info"] = df["info"].replace({pd.NA: "."})
 
                 # de-dup each info field's annotations
                 df["info"] = df["info"].apply(collect_uniq_annots).replace({"": "."})
