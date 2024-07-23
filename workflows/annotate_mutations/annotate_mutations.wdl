@@ -618,7 +618,7 @@ task annot_with_bcftools {
 
         if ~{annot_oncokb}; then
             echo "Creating OncoKB indexed TSV"
-            ONCOKB_TAB="~{basename(select_first([oncokb_annotation]), '.csv')}.tsv"
+            ONCOKB_TAB_BASENAME="~{basename(select_first([oncokb_annotation]), '.csv')}"
 
             # get the columns we care about in proper chr-pos sorted order
             csvcut \
@@ -626,10 +626,15 @@ task annot_with_bcftools {
                 "~{oncokb_annotation}" \
                 | csvformat --out-tabs --skip-header \
                 | sort --key="1,1V" --key="2,2n" --key="3,3" --key="4,4" \
-                > "${ONCOKB_TAB}"
+                > "${ONCOKB_TAB_BASENAME}_to_fix.tsv"
 
-            bgzip "${ONCOKB_TAB}" --output="${ONCOKB_TAB}.gz"
-            tabix "${ONCOKB_TAB}.gz" -s1 -b2 -e2
+            # URL encode space characters (violates VCF 4.2 spec)
+            awk 'BEGIN {FS="\t"} {if(NF>=7) {gsub(/ /, "%20", $6); gsub(/ /, "%20", $7)}} 1' \
+                "${ONCOKB_TAB_BASENAME}_to_fix.tsv" > "${ONCOKB_TAB_BASENAME}.tsv"
+            rm "${ONCOKB_TAB_BASENAME}_to_fix.tsv"
+
+            bgzip "${ONCOKB_TAB_BASENAME}.tsv" --output="${ONCOKB_TAB_BASENAME}.tsv.gz"
+            tabix "${ONCOKB_TAB_BASENAME}.tsv.gz" -s1 -b2 -e2
 
             echo "Annotating with OncoKB"
 
@@ -644,7 +649,7 @@ task annot_with_bcftools {
 
             bcftools annotate \
                 "~{vcf}" \
-                --annotations="${ONCOKB_TAB}.gz" \
+                --annotations="${ONCOKB_TAB_BASENAME}.tsv.gz" \
                 --columns="CHROM,POS,REF,ALT,ONCOKB_PROT,ONCOKB_ONCO,ONCOKB_MUTEFF,ONCOKB_HOTSPOT" \
                 --header-lines="oncokb.hdr.vcf" \
                 --output="${TMP_VCF}"
