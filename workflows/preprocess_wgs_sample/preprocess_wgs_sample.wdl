@@ -11,6 +11,7 @@ version 1.0
 #   - No `ubam` input option.
 #   - `CheckContamination` task copied into this file.
 #   - Remove `validation_report` and `unmapped_bams` workflow outputs.
+#   - Switch from BWA to BWA-MEM2
 #
 # Use this file as a base and manually implement changes in the upstream code in order
 # to retain these modifications.
@@ -50,12 +51,12 @@ workflow preprocess_wgs_sample {
 
         File ref_fasta
         File ref_fasta_index
+        File ref_0123
         File ref_dict
         File ref_amb
         File ref_ann
-        File ref_bwt
+        File ref_bwt_2bit_64
         File ref_pac
-        File ref_sa
     }
 
     String outbam = if (input_type == "BAM") then basename(input_cram_bam, ".bam") + ".aln.mrkdp.bam"
@@ -110,11 +111,11 @@ workflow preprocess_wgs_sample {
                     ref_fasta = ref_fasta,
                     ref_fasta_index = ref_fasta_index,
                     ref_dict = ref_dict,
+                    ref_0123 = ref_0123,
                     ref_amb = ref_amb,
                     ref_ann = ref_ann,
-                    ref_bwt = ref_bwt,
-                    ref_pac = ref_pac,
-                    ref_sa = ref_sa
+                    ref_bwt_2bit_64 = ref_bwt_2bit_64,
+                    ref_pac = ref_pac
             }
         }
     }
@@ -135,11 +136,11 @@ workflow preprocess_wgs_sample {
                     ref_fasta = ref_fasta,
                     ref_fasta_index = ref_fasta_index,
                     ref_dict = ref_dict,
+                    ref_0123 = ref_0123,
                     ref_amb = ref_amb,
                     ref_ann = ref_ann,
-                    ref_bwt = ref_bwt,
-                    ref_pac = ref_pac,
-                    ref_sa = ref_sa
+                    ref_bwt_2bit_64 = ref_bwt_2bit_64,
+                    ref_pac = ref_pac
             }
         }
     }
@@ -469,12 +470,15 @@ task bwa_pe {
         FastqPairRecord fastq_record
         File ref_fasta
         File ref_fasta_index
+        File ref_0123
         File ref_dict
         File ref_amb
         File ref_ann
-        File ref_bwt
+        File ref_bwt_2bit_64
         File ref_pac
-        File ref_sa
+
+        String docker_image
+        String docker_image_hash_or_tag
         Int cpu = 16
         Int preemptible = 1
         Int max_retries = 1
@@ -485,13 +489,13 @@ task bwa_pe {
     File fastq2 = fastq_record.reverse_fastq
     String readgroup = fastq_record.readgroup
     String outbam = fastq_record.readgroup_id + ".bam"
-    Float ref_size =size([ref_fasta, ref_dict, ref_amb, ref_ann, ref_bwt, ref_pac, ref_sa, ref_fasta_index], "GiB")
+    Float ref_size = size([ref_fasta, ref_dict, ref_0123, ref_amb, ref_ann, ref_bwt_2bit_64, ref_pac, ref_fasta_index], "GiB")
     Int mem = ceil(size([fastq1, fastq2], "MiB")) + 10000 + additional_memory_mb
     Int disk_space = ceil((size([fastq1, fastq2], "GiB") * 4) + ref_size) + 10 + additional_disk_gb
 
     command {
         set -euo pipefail
-        bwa mem \
+        bwa-mem2 mem \
             -t ~{cpu} \
             -T 0 \
             -R "~{readgroup}" \
@@ -509,12 +513,17 @@ task bwa_pe {
     }
 
     runtime {
-        docker: "broadgdac/bwa:0.7.15-r1142-dirty"
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
         memory: mem + " MiB"
         disks: "local-disk " + disk_space + " SSD"
         preemptible: preemptible
         maxRetries: max_retries
         cpu: cpu
+        cpuPlatform: "Intel Cascade Lake"
+    }
+
+    meta {
+        allowNestedInputs: true
     }
 }
 
@@ -523,12 +532,15 @@ task bwa_se {
         FastqSingleRecord fastq_record
         File ref_fasta
         File ref_dict
+        File ref_0123
         File ref_amb
         File ref_ann
-        File ref_bwt
+        File ref_bwt_2bit_64
         File ref_pac
-        File ref_sa
         File ref_fasta_index
+
+        String docker_image
+        String docker_image_hash_or_tag
         Int cpu = 16
         Int preemptible = 1
         Int max_retries = 1
@@ -538,13 +550,14 @@ task bwa_se {
     File fastq = fastq_record.fastq
     String readgroup = fastq_record.readgroup
     String outbam = fastq_record.readgroup_id + ".bam"
-    Float ref_size = size([ref_fasta, ref_dict, ref_amb, ref_ann, ref_bwt, ref_pac, ref_sa, ref_fasta_index], "GiB")
+    Float ref_size = size([ref_fasta, ref_dict, ref_0123, ref_amb, ref_ann, ref_bwt_2bit_64, ref_pac, ref_fasta_index], "GiB")
     Int mem = ceil(size(fastq, "MiB")) + 10000 + additional_memory_mb
     Int disk_space = ceil((size(fastq, "GiB") * 4) + ref_size) + 10 + additional_disk_gb
 
     command {
         set -euo pipefail
-        bwa mem \
+
+        bwa-mem2 mem \
             -t ~{cpu} \
             -T 0 \
             -R "~{readgroup}" \
@@ -561,12 +574,17 @@ task bwa_se {
     }
 
     runtime {
-        docker: "broadgdac/bwa:0.7.15-r1142-dirty"
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
         memory: mem + " MiB"
         disks: "local-disk " + disk_space + " SSD"
         preemptible: preemptible
         maxRetries: max_retries
         cpu: cpu
+        cpuPlatform: "Intel Cascade Lake"
+    }
+
+    meta {
+        allowNestedInputs: true
     }
 }
 
@@ -707,34 +725,34 @@ task CalculateSomaticContamination {
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" gatk_override}
 
         gatk --java-options "-Xmx~{command_mem}m" GetPileupSummaries \
-        -R ~{reference} \
-        -I ~{tumor_cram_or_bam} \
-        ~{"--interval-set-rule INTERSECTION -L " + intervals} \
-        -V ~{contamination_vcf} \
-        -L ~{contamination_vcf} \
-        -O pileups.table
+             -R ~{reference} \
+             -I ~{tumor_cram_or_bam} \
+             ~{"--interval-set-rule INTERSECTION -L " + intervals} \
+             -V ~{contamination_vcf} \
+             -L ~{contamination_vcf} \
+             -O pileups.table
 
         if [[ -f "~{normal_cram_or_bam}" ]];
         then
-        gatk --java-options "-Xmx~{command_mem}m" GetPileupSummaries \
-        -R ~{reference} \
-        -I ~{normal_cram_or_bam} \
-        ~{"--interval-set-rule INTERSECTION -L " + intervals} \
-        -V ~{contamination_vcf} \
-        -L ~{contamination_vcf} \
-        -O normal_pileups.table
+            gatk --java-options "-Xmx~{command_mem}m" GetPileupSummaries \
+                 -R ~{reference} \
+                 -I ~{normal_cram_or_bam} \
+                 ~{"--interval-set-rule INTERSECTION -L " + intervals} \
+                 -V ~{contamination_vcf} \
+                 -L ~{contamination_vcf} \
+                 -O normal_pileups.table
 
-        gatk --java-options "-Xmx~{command_mem}m" CalculateContamination \
-        -I pileups.table \
-        -O contamination.table \
-        --tumor-segmentation segments.table \
-        -matched normal_pileups.table
+            gatk --java-options "-Xmx~{command_mem}m" CalculateContamination \
+                 -I pileups.table \
+                 -O contamination.table \
+                 --tumor-segmentation segments.table \
+                 -matched normal_pileups.table
         else
-        touch normal_pileups.table
-        gatk --java-options "-Xmx~{command_mem}m" CalculateContamination \
-        -I pileups.table \
-        -O contamination.table \
-        --tumor-segmentation segments.table
+            touch normal_pileups.table
+            gatk --java-options "-Xmx~{command_mem}m" CalculateContamination \
+                 -I pileups.table \
+                 -O contamination.table \
+                 --tumor-segmentation segments.table
         fi
 
         grep -v ^sample contamination.table | awk '{print($2)}' > contam.txt
@@ -875,10 +893,10 @@ task collect_insert_size_metrics {
 
   command {
     java -Xms~{jvm_mem}m -Xmx~{max_heap}m -jar /usr/picard/picard.jar \
-      CollectInsertSizeMetrics \
-      INPUT=~{input_bam} \
-      OUTPUT=~{output_bam_prefix}.insert_size_metrics \
-      HISTOGRAM_FILE=~{output_bam_prefix}.insert_size_histogram.pdf
+        CollectInsertSizeMetrics \
+        INPUT=~{input_bam} \
+        OUTPUT=~{output_bam_prefix}.insert_size_metrics \
+        HISTOGRAM_FILE=~{output_bam_prefix}.insert_size_histogram.pdf
   }
   runtime {
     docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.26.10"

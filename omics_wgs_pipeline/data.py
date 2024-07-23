@@ -138,9 +138,11 @@ def assign_ref_urls(
     """
 
     ref_exts = {
+        "ref_0123": "fasta.amb.0123",
         "ref_amb": "fasta.amb",
         "ref_ann": "fasta.ann",
         "ref_bwt": "fasta.bwt",
+        "ref_bwt_2bit_64": "fasta.bwt.2bit.64",
         "ref_dict": "dict",
         "ref_fasta": "fasta",
         "ref_fasta_index": "fasta.fai",
