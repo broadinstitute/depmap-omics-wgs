@@ -1,13 +1,16 @@
+import concurrent
 import os
 import re
 import subprocess
 import tempfile
+from concurrent.futures import ProcessPoolExecutor
 from csv import QUOTE_NONE
 from glob import glob
 from pathlib import Path
 
 import bgzip
 import pandas as pd
+import tqdm
 from click import echo
 
 
@@ -84,6 +87,7 @@ def make_chunks(header_lines: list[str], chunk_size: int) -> pd.DataFrame:
 
     # remove things like decoy contigs
     valid_chrs = {str(x) for x in range(1, 23)}.union({"X", "Y"})
+    # valid_chrs = {"1"}
     chr_lengths = chr_lengths.loc[chr_lengths["chr"].isin(valid_chrs)]
 
     # start splitting regions into smaller chunks
@@ -110,29 +114,60 @@ def make_chunks(header_lines: list[str], chunk_size: int) -> pd.DataFrame:
 
 def chunk_vcfs(vcf_paths: list[Path], tmp_dir: str, chunks: pd.DataFrame) -> None:
     # need to make sure each VCF is tabix-indexed first
-    for path in vcf_paths:
-        echo(f"Indexing {os.path.basename(path)}")
-        subprocess.run(["bcftools", "index", path, "--force"])
+    with ProcessPoolExecutor() as executor:
+        echo(f"Indexing {len(vcf_paths)} VCFs")
+        futures = [executor.submit(index_vcf, path) for path in vcf_paths]
+
+        for _ in tqdm.tqdm(
+            concurrent.futures.as_completed(futures), total=len(vcf_paths)
+        ):
+            pass
+
+    # make the output split dirs
+    chunks["split_dir"] = chunks["split_dir_name"].apply(
+        lambda x: os.path.join(tmp_dir, x)
+    )
 
     for _, r in chunks.iterrows():
-        split_dir = os.path.join(tmp_dir, r["split_dir_name"])
-        os.makedirs(split_dir)
+        os.makedirs(r["split_dir"])
 
-        # each `split_dir` should contain `len(vcf_paths)` files when this is done
-        for path in vcf_paths:
-            chunk_path = os.path.join(split_dir, os.path.basename(path))
-            echo(f"Writing {chunk_path}")
-            subprocess.run(
-                [
-                    "bcftools",
-                    "view",
-                    path,
-                    "--regions",
-                    f"{r['chr']}:{r['start']}-{r['end']}",
-                    "--output",
-                    chunk_path,
-                ]
-            )
+    # cross VCF paths with chunk paths
+    vcf_chunks = pd.DataFrame({"path": vcf_paths}).merge(chunks, how="cross")
+    vcf_chunks["chunk_path"] = vcf_chunks.apply(
+        lambda x: os.path.join(x["split_dir"], os.path.basename(x["path"])), axis=1
+    )
+    vcf_chunks = vcf_chunks.drop(columns=["split_dir_name", "split_dir"])
+
+    # write the chunks
+    with ProcessPoolExecutor() as executor:
+        echo(f"Writing {len(vcf_chunks)} VCF chunks")
+        futures = [
+            executor.submit(write_vcf_chunk, r)
+            for r in vcf_chunks.to_dict(orient="records")
+        ]
+
+        for _ in tqdm.tqdm(
+            concurrent.futures.as_completed(futures), total=len(vcf_chunks)
+        ):
+            pass
+
+
+def index_vcf(path: Path | str) -> None:
+    subprocess.run(["bcftools", "index", path, "--force"])
+
+
+def write_vcf_chunk(r: dict[str, str | int]) -> None:
+    subprocess.run(
+        [
+            "bcftools",
+            "view",
+            r["path"],
+            "--regions",
+            f"{r['chr']}:{r['start']}-{r['end']}",
+            "--output",
+            r["chunk_path"],
+        ]
+    )
 
 
 def read_vcf(path: Path | str) -> pd.DataFrame:
