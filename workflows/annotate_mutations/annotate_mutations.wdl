@@ -629,8 +629,11 @@ task annot_with_bcftools {
                 > "${ONCOKB_TAB_BASENAME}_to_fix.tsv"
 
             # URL encode space characters (violates VCF 4.2 spec)
-            awk 'BEGIN {FS="\t"} {if(NF>=7) {gsub(/ /, "%20", $6); gsub(/ /, "%20", $7)}} 1' \
-                "${ONCOKB_TAB_BASENAME}_to_fix.tsv" > "${ONCOKB_TAB_BASENAME}.tsv"
+            awk -F "\t" '{
+                gsub(/ /, "%20", $6);
+                gsub(/ /, "%20", $7);
+                print
+            }' OFS="\t" "${ONCOKB_TAB_BASENAME}_to_fix.tsv" > "${ONCOKB_TAB_BASENAME}.tsv"
             rm "${ONCOKB_TAB_BASENAME}_to_fix.tsv"
 
             bgzip "${ONCOKB_TAB_BASENAME}.tsv" --output="${ONCOKB_TAB_BASENAME}.tsv.gz"
