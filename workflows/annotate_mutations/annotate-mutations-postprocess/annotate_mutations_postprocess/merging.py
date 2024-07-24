@@ -10,7 +10,6 @@ from pathlib import Path
 
 import bgzip
 import pandas as pd
-import tqdm
 from click import echo
 
 
@@ -115,14 +114,8 @@ def chunk_vcfs(vcf_paths: list[Path], tmp_dir: str, chunks: pd.DataFrame) -> Non
     # need to make sure each VCF is tabix-indexed first
     with ProcessPoolExecutor() as executor:
         echo(f"Indexing {len(vcf_paths)} VCFs")
-        futures = [executor.submit(index_vcf, path) for path in vcf_paths]
-
-        for _ in tqdm.tqdm(
-            concurrent.futures.as_completed(futures),
-            total=len(vcf_paths),
-            mininterval=1.0,
-        ):
-            pass
+        for path in vcf_paths:
+            executor.submit(index_vcf, path)
 
     # make the output split dirs
     chunks["split_dir"] = chunks["split_dir_name"].apply(
@@ -142,17 +135,8 @@ def chunk_vcfs(vcf_paths: list[Path], tmp_dir: str, chunks: pd.DataFrame) -> Non
     # write the chunks
     with ProcessPoolExecutor() as executor:
         echo(f"Writing {len(vcf_chunks)} VCF chunks")
-        futures = [
+        for r in vcf_chunks.to_dict(orient="records"):
             executor.submit(write_vcf_chunk, r)
-            for r in vcf_chunks.to_dict(orient="records")
-        ]
-
-        for _ in tqdm.tqdm(
-            concurrent.futures.as_completed(futures),
-            total=len(vcf_chunks),
-            mininterval=1.0,
-        ):
-            pass
 
 
 def index_vcf(path: Path | str) -> None:

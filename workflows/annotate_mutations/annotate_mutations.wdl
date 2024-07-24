@@ -1127,7 +1127,7 @@ task merge_info {
         String docker_image
         String docker_image_hash_or_tag
         Int mem_gb = 8
-        Int cpu = 1
+        Int cpu = 4
         Int preemptible = 3
         Int max_retries = 2
         Int additional_disk_gb = 0
