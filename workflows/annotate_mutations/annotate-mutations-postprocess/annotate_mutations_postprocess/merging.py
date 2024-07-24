@@ -3,7 +3,7 @@ import os
 import re
 import subprocess
 import tempfile
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from csv import QUOTE_NONE
 from glob import glob
 from pathlib import Path
@@ -15,7 +15,7 @@ from click import echo
 
 
 def do_merge(
-    vcf_paths: list[Path], out_path: Path, chunk_size: int = 100000000
+    vcf_paths: list[Path], out_path: Path, chunk_size: int = 1000000000
 ) -> None:
     header_lines = get_header_lines(vcf_paths)
 
@@ -75,7 +75,7 @@ def get_header_lines(vcf_paths: list[Path]) -> list[str]:
 
 
 def make_chunks(header_lines: list[str], chunk_size: int) -> pd.DataFrame:
-    # contig header lines contain names and lengths of chromosomes
+    # contig header lines contain names and lengths of chroms
     contig_lines = [x for x in header_lines if x.startswith("##contig")]
     chr_lengths_search = [
         re.search(r"^##contig=<ID=chr([^,]+),length=(\d+)>$", x) for x in contig_lines
@@ -87,7 +87,6 @@ def make_chunks(header_lines: list[str], chunk_size: int) -> pd.DataFrame:
 
     # remove things like decoy contigs
     valid_chrs = {str(x) for x in range(1, 23)}.union({"X", "Y"})
-    # valid_chrs = {"1"}
     chr_lengths = chr_lengths.loc[chr_lengths["chr"].isin(valid_chrs)]
 
     # start splitting regions into smaller chunks
@@ -119,7 +118,9 @@ def chunk_vcfs(vcf_paths: list[Path], tmp_dir: str, chunks: pd.DataFrame) -> Non
         futures = [executor.submit(index_vcf, path) for path in vcf_paths]
 
         for _ in tqdm.tqdm(
-            concurrent.futures.as_completed(futures), total=len(vcf_paths)
+            concurrent.futures.as_completed(futures),
+            total=len(vcf_paths),
+            mininterval=1.0,
         ):
             pass
 
@@ -147,7 +148,9 @@ def chunk_vcfs(vcf_paths: list[Path], tmp_dir: str, chunks: pd.DataFrame) -> Non
         ]
 
         for _ in tqdm.tqdm(
-            concurrent.futures.as_completed(futures), total=len(vcf_chunks)
+            concurrent.futures.as_completed(futures),
+            total=len(vcf_chunks),
+            mininterval=1.0,
         ):
             pass
 
@@ -168,40 +171,6 @@ def write_vcf_chunk(r: dict[str, str | int]) -> None:
             r["chunk_path"],
         ]
     )
-
-
-def read_vcf(path: Path | str) -> pd.DataFrame:
-    with open(path, "rb") as raw:
-        with bgzip.BGZipReader(raw) as f:
-            echo(f"Reading {path}")
-            # noinspection PyTypeChecker
-            df = pd.read_csv(
-                f,
-                sep="\t",
-                header=None,
-                names=[
-                    "chromosome",
-                    "position",
-                    "id",
-                    "ref",
-                    "alt",
-                    "qual",
-                    "filter",
-                    "info",
-                    "format",
-                    "values",
-                ],
-                dtype="string",
-                keep_default_na=False,
-                quoting=QUOTE_NONE,
-                encoding_errors="backslashreplace",
-            )
-
-            # remove header rows
-            df = df.loc[~df["chromosome"].str.startswith("#")]
-            df["position"] = df["position"].astype("int64")
-
-            return df
 
 
 def process_chunks(
@@ -226,62 +195,99 @@ def process_chunks(
                     os.path.join(split_dir, "*.vcf.gz"), root_dir=tmp_dir
                 )
 
-                assert (
-                    len(split_files) == n_vcfs
-                ), f"Expecting {n_vcfs} in {split_dir}, but found {len(split_files)}"
+                assert len(split_files) == n_vcfs, (
+                    f"Expecting {n_vcfs} in {r['split_dir_name']}, "
+                    f"but found {len(split_files)}"
+                )
 
-                df = None
+                echo(f"Merging {len(split_files)} VCF chunks for {r['split_dir_name']}")
+                df = merge_chunks(split_files)
 
-                for p in split_files:
-                    this_df = read_vcf(p)
-
-                    if df is None:
-                        # starting base data frame
-                        df = this_df
-                    else:
-                        # joining `id` and `info` fields to existing df
-                        df = df.merge(
-                            this_df,
-                            how="outer",
-                            on=[
-                                "chromosome",
-                                "position",
-                                "ref",
-                                "alt",
-                                "qual",
-                                "filter",
-                                "format",
-                                "values",
-                            ],
-                            suffixes=("", "2"),
-                        )
-
-                        # ensure that `id` is filled out in case a variant was only on
-                        # one side of the merge or it was on both sides but only the
-                        # right side is filled
-                        df["id"] = (
-                            df["id"]
-                            .replace({".": pd.NA})
-                            .fillna(df["id2"].replace({".": pd.NA}))
-                            .fillna(".")
-                        )
-
-                        # concat info fields for each row (will de-dup later)
-                        df["info"] = (
-                            df["info"].fillna("") + ";" + df["info2"].fillna("")
-                        )
-
-                        df = df.drop(columns=["id2", "info2"])
-
-                # de-dup each info field's annotations
-                df["info"] = df["info"].apply(collect_uniq_annots).replace({"": "."})
-
-                # df contains only one chrom, so sorting by position is sufficient
-                df = df.sort_values("position")
-
-                echo(f"Writing merged {split_dir} rows to {out_path}")
+                echo(f"Writing merged {r['split_dir_name']} rows to {out_path}")
                 s = df.to_csv(header=False, index=False, sep="\t", quoting=QUOTE_NONE)
                 f.write(s.encode())
+
+
+def merge_chunks(split_files: list[str]) -> pd.DataFrame:
+    df = None
+
+    # reduce VCF chunks
+    with ThreadPoolExecutor() as executor:
+        futures = [executor.submit(read_vcf, p) for p in split_files]
+
+        for future in concurrent.futures.as_completed(futures):
+            df = merge_two_vcfs(df, future.result())
+
+    # de-dup each info field's annotations
+    df["info"] = df["info"].apply(collect_uniq_annots).replace({"": "."})
+
+    # df contains only one chrom, so sorting by pos is sufficient
+    df = df.sort_values("pos")
+
+    return df.fillna(".")
+
+
+def read_vcf(path: str) -> pd.DataFrame:
+    with open(path, "rb") as raw:
+        with bgzip.BGZipReader(raw) as f:
+            # noinspection PyTypeChecker
+            df = pd.read_csv(
+                f,
+                sep="\t",
+                header=None,
+                names=[
+                    "chrom",
+                    "pos",
+                    "id",
+                    "ref",
+                    "alt",
+                    "qual",
+                    "filter",
+                    "info",
+                    "format",
+                    "values",
+                ],
+                dtype="string",
+                na_values=["."],
+                keep_default_na=False,
+                quoting=QUOTE_NONE,
+                encoding_errors="backslashreplace",
+            )
+
+            # remove header rows
+            df = df.loc[~df["chrom"].str.startswith("#")]
+            df["pos"] = df["pos"].astype("int64")
+
+            return df
+
+
+def merge_two_vcfs(df1: pd.DataFrame | None, df2: pd.DataFrame) -> pd.DataFrame:
+    if df1 is None:
+        # starting base data frame
+        df1 = df2
+    else:
+        # joining `id` and `info` fields to existing df
+        df1 = df1.merge(
+            df2,
+            how="outer",
+            on=["chrom", "pos", "ref", "alt"],
+            suffixes=("", "2"),
+        )
+
+        # after correcting for variants potentially only being on one side of the merge,
+        # ensure that columns that should be invariant are the same on each side
+        for c in ["id", "qual", "filter", "format", "values"]:
+            df1[c] = df1[c].fillna(df1[f"{c}2"])
+            assert df1[c].eq(df1[f"{c}2"]).all()
+
+        # concat info fields for each row (will de-dup later)
+        df1["info"] = df1["info"].fillna("") + ";" + df1["info2"].fillna("")
+
+        df1 = df1.drop(
+            columns=["id2", "qual2", "filter2", "format2", "values2", "info2"]
+        )
+
+    return df1
 
 
 def collect_uniq_annots(x: str) -> str:
