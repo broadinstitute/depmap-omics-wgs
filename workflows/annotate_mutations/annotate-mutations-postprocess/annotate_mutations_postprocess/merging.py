@@ -10,7 +10,8 @@ from pathlib import Path
 
 import bgzip
 import pandas as pd
-from click import echo
+
+from annotate_mutations_postprocess.utils import echo
 
 
 def do_merge(

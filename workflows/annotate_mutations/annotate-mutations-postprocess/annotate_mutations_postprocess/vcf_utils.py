@@ -7,9 +7,8 @@ import numpy as np
 import pandas as pd
 from bgzip import BGZipReader
 from caseconverter import snakecase
-from click import echo
 
-from annotate_mutations_postprocess.utils import expand_dict_columns
+from annotate_mutations_postprocess.utils import echo, expand_dict_columns
 
 
 def get_vcf_info_and_format_dtypes(

@@ -5,10 +5,10 @@ from typing import Annotated, Any, List
 import pandas as pd
 import tomllib
 import typer
-from click import echo
 
 from annotate_mutations_postprocess.conversion import convert
 from annotate_mutations_postprocess.merging import do_merge
+from annotate_mutations_postprocess.utils import echo
 
 pd.set_option("display.max_columns", 30)
 pd.set_option("display.max_colwidth", 50)
@@ -27,7 +27,7 @@ config: dict[str, Any] = {}
 
 # noinspection PyUnusedLocal
 def done(*args, **kwargs):
-    typer.echo("Done.")
+    echo("Done.")
 
 
 @app.callback(result_callback=done)
