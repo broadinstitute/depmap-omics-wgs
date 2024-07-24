@@ -19,6 +19,8 @@ def do_merge(
     header_lines = get_header_lines(vcf_paths)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
+        # default chunk size of 1000000000 will just split on chroms, but can be reduced
+        # if memory usage is a concern
         chunks = make_chunks(header_lines, chunk_size)
         chunk_vcfs(vcf_paths, tmp_dir, chunks)
         process_chunks(header_lines, out_path, tmp_dir, chunks, len(vcf_paths))
@@ -129,7 +131,7 @@ def chunk_vcfs(vcf_paths: list[Path], tmp_dir: str, chunks: pd.DataFrame) -> Non
     vcf_chunks = pd.DataFrame({"path": vcf_paths}).merge(chunks, how="cross")
     vcf_chunks["chunk_path"] = vcf_chunks.apply(
         lambda x: os.path.join(x["split_dir"], os.path.basename(x["path"])), axis=1
-    )
+    ).str.rstrip(".gz")
     vcf_chunks = vcf_chunks.drop(columns=["split_dir_name", "split_dir"])
 
     # write the chunks
@@ -149,6 +151,7 @@ def write_vcf_chunk(r: dict[str, str | int]) -> None:
             "bcftools",
             "view",
             r["path"],
+            "--no-header",
             "--regions",
             f"{r['chr']}:{r['start']}-{r['end']}",
             "--output",
@@ -175,9 +178,7 @@ def process_chunks(
                 split_dir = os.path.join(tmp_dir, r["split_dir_name"])
 
                 # there should be one file per split per input VCF
-                split_files = glob(
-                    os.path.join(split_dir, "*.vcf.gz"), root_dir=tmp_dir
-                )
+                split_files = glob(os.path.join(split_dir, "*.vcf"), root_dir=tmp_dir)
 
                 assert len(split_files) == n_vcfs, (
                     f"Expecting {n_vcfs} in {r['split_dir_name']}, "
@@ -186,6 +187,7 @@ def process_chunks(
 
                 echo(f"Merging {len(split_files)} VCF chunks for {r['split_dir_name']}")
                 df = merge_chunks(split_files)
+                [os.remove(x) for x in split_files]
 
                 echo(f"Writing merged {r['split_dir_name']} rows to {out_path}")
                 s = df.to_csv(header=False, index=False, sep="\t", quoting=QUOTE_NONE)
@@ -212,37 +214,36 @@ def merge_chunks(split_files: list[str]) -> pd.DataFrame:
 
 
 def read_vcf(path: str) -> pd.DataFrame:
-    with open(path, "rb") as raw:
-        with bgzip.BGZipReader(raw) as f:
-            # noinspection PyTypeChecker
-            df = pd.read_csv(
-                f,
-                sep="\t",
-                header=None,
-                names=[
-                    "chrom",
-                    "pos",
-                    "id",
-                    "ref",
-                    "alt",
-                    "qual",
-                    "filter",
-                    "info",
-                    "format",
-                    "values",
-                ],
-                dtype="string",
-                na_values=["."],
-                keep_default_na=False,
-                quoting=QUOTE_NONE,
-                encoding_errors="backslashreplace",
-            )
+    with open(path, "r") as f:
+        # noinspection PyTypeChecker
+        df = pd.read_csv(
+            f,
+            sep="\t",
+            header=None,
+            names=[
+                "chrom",
+                "pos",
+                "id",
+                "ref",
+                "alt",
+                "qual",
+                "filter",
+                "info",
+                "format",
+                "values",
+            ],
+            dtype="string",
+            na_values=["."],
+            keep_default_na=False,
+            quoting=QUOTE_NONE,
+            encoding_errors="backslashreplace",
+        )
 
-            # remove header rows
-            df = df.loc[~df["chrom"].str.startswith("#")]
-            df["pos"] = df["pos"].astype("int64")
+        # remove header rows
+        df = df.loc[~df["chrom"].str.startswith("#")]
+        df["pos"] = df["pos"].astype("int64")
 
-            return df
+        return df
 
 
 def merge_two_vcfs(df1: pd.DataFrame | None, df2: pd.DataFrame) -> pd.DataFrame:
