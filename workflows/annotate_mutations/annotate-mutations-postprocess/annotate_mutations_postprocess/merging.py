@@ -147,18 +147,31 @@ def index_vcf(path: Path | str) -> None:
 
 
 def write_vcf_chunk(r: dict[str, str | int]) -> None:
-    subprocess.run(
-        [
-            "bcftools",
-            "view",
-            r["path"],
-            "--no-header",
-            "--regions",
-            f"{r['chr']}:{r['start']}-{r['end']}",
-            "--output",
-            r["chunk_path"],
-        ]
-    )
+    with open(r["chunk_path"], "w") as f:
+        # pipe filtered region of VCF to stdout
+        p1 = subprocess.Popen(
+            [
+                "bcftools",
+                "view",
+                r["path"],
+                "--no-header",
+                "--regions",
+                f"{r['chr']}:{r['start']}-{r['end']}",
+                "--output-type",
+                "v",
+            ],
+            stdout=subprocess.PIPE,
+        )
+
+        # replace invalid UTF characters (e.g. nbsp's from Funcotator)
+        p2 = subprocess.Popen(
+            ["iconv", "-f", "utf-8", "-t", "utf-8", "-c", "-s"],
+            stdin=p1.stdout,
+            stdout=f,
+        )
+
+        p1.stdout.close()
+        _ = p2.communicate(timeout=300)
 
 
 def process_chunks(
