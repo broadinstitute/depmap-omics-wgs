@@ -12,7 +12,6 @@ version 1.0
 #   - `CheckContamination` task copied into this file.
 #   - `CheckContamination` and `collect_insert_size_metrics` made optional.
 #   - Remove `validation_report` and `unmapped_bams` workflow outputs.
-#   - Switch from BWA to BWA-MEM2
 #
 # Use this file as a base and manually implement changes in the upstream code in order
 # to retain these modifications.
@@ -54,12 +53,12 @@ workflow preprocess_wgs_sample {
 
         File ref_fasta
         File ref_fasta_index
-        File ref_0123
         File ref_dict
         File ref_amb
         File ref_ann
-        File ref_bwt_2bit_64
+        File ref_bwt
         File ref_pac
+        File ref_sa
     }
 
     String outbam = if (input_type == "BAM") then basename(input_cram_bam, ".bam") + ".aln.mrkdp.bam"
@@ -114,11 +113,11 @@ workflow preprocess_wgs_sample {
                     ref_fasta = ref_fasta,
                     ref_fasta_index = ref_fasta_index,
                     ref_dict = ref_dict,
-                    ref_0123 = ref_0123,
                     ref_amb = ref_amb,
                     ref_ann = ref_ann,
-                    ref_bwt_2bit_64 = ref_bwt_2bit_64,
-                    ref_pac = ref_pac
+                    ref_bwt = ref_bwt,
+                    ref_pac = ref_pac,
+                    ref_sa = ref_sa
             }
         }
     }
@@ -139,11 +138,11 @@ workflow preprocess_wgs_sample {
                     ref_fasta = ref_fasta,
                     ref_fasta_index = ref_fasta_index,
                     ref_dict = ref_dict,
-                    ref_0123 = ref_0123,
                     ref_amb = ref_amb,
                     ref_ann = ref_ann,
-                    ref_bwt_2bit_64 = ref_bwt_2bit_64,
-                    ref_pac = ref_pac
+                    ref_bwt = ref_bwt,
+                    ref_pac = ref_pac,
+                    ref_sa = ref_sa
             }
         }
     }
@@ -477,15 +476,12 @@ task bwa_pe {
         FastqPairRecord fastq_record
         File ref_fasta
         File ref_fasta_index
-        File ref_0123
         File ref_dict
         File ref_amb
         File ref_ann
-        File ref_bwt_2bit_64
+        File ref_bwt
         File ref_pac
-
-        String docker_image
-        String docker_image_hash_or_tag
+        File ref_sa
         Int cpu = 16
         Int preemptible = 1
         Int max_retries = 1
@@ -496,13 +492,13 @@ task bwa_pe {
     File fastq2 = fastq_record.reverse_fastq
     String readgroup = fastq_record.readgroup
     String outbam = fastq_record.readgroup_id + ".bam"
-    Float ref_size = size([ref_fasta, ref_dict, ref_0123, ref_amb, ref_ann, ref_bwt_2bit_64, ref_pac, ref_fasta_index], "GiB")
+    Float ref_size =size([ref_fasta, ref_dict, ref_amb, ref_ann, ref_bwt, ref_pac, ref_sa, ref_fasta_index], "GiB")
     Int mem = ceil(size([fastq1, fastq2], "MiB")) + 10000 + additional_memory_mb
     Int disk_space = ceil((size([fastq1, fastq2], "GiB") * 4) + ref_size) + 10 + additional_disk_gb
 
     command {
         set -euo pipefail
-        bwa-mem2 mem \
+        bwa mem \
             -t ~{cpu} \
             -T 0 \
             -R "~{readgroup}" \
@@ -520,17 +516,12 @@ task bwa_pe {
     }
 
     runtime {
-        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        docker: "broadgdac/bwa:0.7.15-r1142-dirty"
         memory: mem + " MiB"
         disks: "local-disk " + disk_space + " SSD"
         preemptible: preemptible
         maxRetries: max_retries
         cpu: cpu
-        cpuPlatform: "Intel Cascade Lake"
-    }
-
-    meta {
-        allowNestedInputs: true
     }
 }
 
@@ -539,15 +530,12 @@ task bwa_se {
         FastqSingleRecord fastq_record
         File ref_fasta
         File ref_dict
-        File ref_0123
         File ref_amb
         File ref_ann
-        File ref_bwt_2bit_64
+        File ref_bwt
         File ref_pac
+        File ref_sa
         File ref_fasta_index
-
-        String docker_image
-        String docker_image_hash_or_tag
         Int cpu = 16
         Int preemptible = 1
         Int max_retries = 1
@@ -557,14 +545,13 @@ task bwa_se {
     File fastq = fastq_record.fastq
     String readgroup = fastq_record.readgroup
     String outbam = fastq_record.readgroup_id + ".bam"
-    Float ref_size = size([ref_fasta, ref_dict, ref_0123, ref_amb, ref_ann, ref_bwt_2bit_64, ref_pac, ref_fasta_index], "GiB")
+    Float ref_size = size([ref_fasta, ref_dict, ref_amb, ref_ann, ref_bwt, ref_pac, ref_sa, ref_fasta_index], "GiB")
     Int mem = ceil(size(fastq, "MiB")) + 10000 + additional_memory_mb
     Int disk_space = ceil((size(fastq, "GiB") * 4) + ref_size) + 10 + additional_disk_gb
 
     command {
         set -euo pipefail
-
-        bwa-mem2 mem \
+        bwa mem \
             -t ~{cpu} \
             -T 0 \
             -R "~{readgroup}" \
@@ -581,17 +568,12 @@ task bwa_se {
     }
 
     runtime {
-        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        docker: "broadgdac/bwa:0.7.15-r1142-dirty"
         memory: mem + " MiB"
         disks: "local-disk " + disk_space + " SSD"
         preemptible: preemptible
         maxRetries: max_retries
         cpu: cpu
-        cpuPlatform: "Intel Cascade Lake"
-    }
-
-    meta {
-        allowNestedInputs: true
     }
 }
 

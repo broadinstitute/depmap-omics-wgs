@@ -1,10 +1,6 @@
 {
   "deleted": false,
   "inputs": {
-    "preprocess_wgs_sample.bwa_pe.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/bwa_mem2\"",
-    "preprocess_wgs_sample.bwa_pe.docker_image_hash_or_tag": "\"@sha256:62f2771e1c1480050cc85f9f16da0890190258d65dec1d138d6835738d2c762d\"",
-    "preprocess_wgs_sample.bwa_se.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/bwa_mem2\"",
-    "preprocess_wgs_sample.bwa_se.docker_image_hash_or_tag": "\"@sha256:62f2771e1c1480050cc85f9f16da0890190258d65dec1d138d6835738d2c762d\"",
     "preprocess_wgs_sample.cram_ref_fasta": "this.delivery_ref_fasta",
     "preprocess_wgs_sample.cram_ref_fasta_index": "this.delivery_ref_fasta_index",
     "preprocess_wgs_sample.dbsnp_vcf": "workspace.referenceData_hg38_dbsnp_vcf",
@@ -15,7 +11,6 @@
     "preprocess_wgs_sample.ref_amb": "this.ref_amb",
     "preprocess_wgs_sample.ref_ann": "this.ref_ann",
     "preprocess_wgs_sample.ref_bwt": "this.ref_bwt",
-    "preprocess_wgs_sample.ref_bwt_2bit_64": "this.ref_bwt_2bit_64",
     "preprocess_wgs_sample.ref_dict": "this.ref_dict",
     "preprocess_wgs_sample.ref_fasta": "this.ref_fasta",
     "preprocess_wgs_sample.ref_fasta_index": "this.ref_fasta_index",
