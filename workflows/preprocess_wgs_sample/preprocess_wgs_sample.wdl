@@ -10,6 +10,7 @@ version 1.0
 #     availability.
 #   - No `ubam` input option.
 #   - `CheckContamination` task copied into this file.
+#   - `CheckContamination` and `collect_insert_size_metrics` made optional.
 #   - Remove `validation_report` and `unmapped_bams` workflow outputs.
 #   - Switch from BWA to BWA-MEM2
 #
@@ -44,8 +45,10 @@ workflow preprocess_wgs_sample {
         File? output_map
         String? unmapped_bam_suffix
 
-        File contamination_vcf
-        File contamination_vcf_index
+        Boolean do_check_contamination = false
+        Boolean do_collect_insert_size_metrics = false
+        File? contamination_vcf
+        File? contamination_vcf_index
         File dbsnp_vcf
         File dbsnp_vcf_index
 
@@ -157,15 +160,17 @@ workflow preprocess_wgs_sample {
         input: input_bam = picard_markduplicates.bam
     }
 
-    call CalculateSomaticContamination as check_contamination {
-        input:
-            reference = ref_fasta,
-            reference_dict = ref_dict,
-            reference_index = ref_fasta_index,
-            tumor_cram_or_bam = sort_and_index_markdup_bam.bam,
-            tumor_crai_or_bai = sort_and_index_markdup_bam.bai,
-            contamination_vcf = contamination_vcf,
-            contamination_vcf_index = contamination_vcf_index
+    if (do_check_contamination) {
+        call CalculateSomaticContamination as check_contamination {
+            input:
+                reference = ref_fasta,
+                reference_dict = ref_dict,
+                reference_index = ref_fasta_index,
+                tumor_cram_or_bam = sort_and_index_markdup_bam.bam,
+                tumor_crai_or_bai = sort_and_index_markdup_bam.bai,
+                contamination_vcf = contamination_vcf,
+                contamination_vcf_index = contamination_vcf_index
+        }
     }
 
     call gatk_baserecalibrator {
@@ -186,19 +191,21 @@ workflow preprocess_wgs_sample {
 
     String output_bam_prefix = basename(gatk_applybqsr.bam, ".bam")
 
-    call collect_insert_size_metrics {
-        input:
-            input_bam = gatk_applybqsr.bam,
-            output_bam_prefix = output_bam_prefix
+    if (do_collect_insert_size_metrics) {
+        call collect_insert_size_metrics {
+            input:
+                input_bam = gatk_applybqsr.bam,
+                output_bam_prefix = output_bam_prefix
+        }
     }
 
     output {
         File bam = gatk_applybqsr.bam
         File bai = gatk_applybqsr.bai
         File md_metrics = picard_markduplicates.metrics
-        File insert_size_metrics = collect_insert_size_metrics.insert_size_metrics
-        File insert_size_histogram_pdf = collect_insert_size_metrics.insert_size_histogram_pdf
-        File contamination = check_contamination.contamination
+        File? insert_size_metrics = collect_insert_size_metrics.insert_size_metrics
+        File? insert_size_histogram_pdf = collect_insert_size_metrics.insert_size_histogram_pdf
+        File? contamination = check_contamination.contamination
     }
 
     meta {
@@ -703,8 +710,8 @@ task CalculateSomaticContamination {
         File tumor_crai_or_bai
         File? normal_cram_or_bam
         File? normal_crai_or_bai
-        File contamination_vcf
-        File contamination_vcf_index
+        File? contamination_vcf
+        File? contamination_vcf_index
 
         # runtime
         String gatk_docker = "us.gcr.io/broad-gatk/gatk:4.2.4.1"
