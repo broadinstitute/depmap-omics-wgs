@@ -502,16 +502,27 @@ task bwa_pe {
 
     command {
         set -euo pipefail
+
+        # ensure all reference files appear with expected names
+        ln -vs "~{ref_fasta}" "~{basename(ref_fasta)}"
+        ln -vs "~{ref_fasta_index}" "~{basename(ref_fasta)}.fai"
+        ln -vs "~{ref_0123}" "~{basename(ref_fasta)}.0123"
+        ln -vs "~{ref_dict}" "~{basename(ref_fasta, '.fasta')}.dict"
+        ln -vs "~{ref_amb}" "~{basename(ref_fasta)}.amb"
+        ln -vs "~{ref_ann}" "~{basename(ref_fasta)}.ann"
+        ln -vs "~{ref_bwt_2bit_64}" "~{basename(ref_fasta)}.bwt.2bit.64"
+        ln -vs "~{ref_pac}" "~{basename(ref_fasta)}.pac"
+
         bwa-mem2 mem \
             -t ~{cpu} \
             -T 0 \
             -R "~{readgroup}" \
-            ~{ref_fasta} \
-            ~{fastq1} \
-            ~{fastq2} \
+            "~{basename(ref_fasta)}" \
+            "~{fastq1}" \
+            "~{fastq2}" \
         | samtools view \
             -Shb \
-            -o ~{outbam} \
+            -o "~{outbam}" \
             -
     }
 
@@ -564,15 +575,25 @@ task bwa_se {
     command {
         set -euo pipefail
 
+        # ensure all reference files appear with expected names
+        ln -vs "~{ref_fasta}" "~{basename(ref_fasta)}"
+        ln -vs "~{ref_fasta_index}" "~{basename(ref_fasta)}.fai"
+        ln -vs "~{ref_0123}" "~{basename(ref_fasta)}.0123"
+        ln -vs "~{ref_dict}" "~{basename(ref_fasta, '.fasta')}.dict"
+        ln -vs "~{ref_amb}" "~{basename(ref_fasta)}.amb"
+        ln -vs "~{ref_ann}" "~{basename(ref_fasta)}.ann"
+        ln -vs "~{ref_bwt_2bit_64}" "~{basename(ref_fasta)}.bwt.2bit.64"
+        ln -vs "~{ref_pac}" "~{basename(ref_fasta)}.pac"
+
         bwa-mem2 mem \
             -t ~{cpu} \
             -T 0 \
             -R "~{readgroup}" \
-            ~{ref_fasta} \
-            ~{fastq} \
+            "~{ref_fasta}" \
+            "~{fastq}" \
         | samtools view \
             -Shb \
-            -o ~{outbam} \
+            -o "~{outbam}" \
             -
     }
 
