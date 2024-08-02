@@ -166,8 +166,8 @@ workflow preprocess_wgs_sample {
                 reference = ref_fasta,
                 reference_dict = ref_dict,
                 reference_index = ref_fasta_index,
-                tumor_cram_or_bam = sort_and_index_markdup_bam.bam,
-                tumor_crai_or_bai = sort_and_index_markdup_bam.bai,
+                tumor_cram_or_bam = sort_and_index_markdup_bam.output_bam,
+                tumor_crai_or_bai = sort_and_index_markdup_bam.output_bai,
                 contamination_vcf = contamination_vcf,
                 contamination_vcf_index = contamination_vcf_index
         }
@@ -187,8 +187,8 @@ workflow preprocess_wgs_sample {
                 input:
                     bqsr_regions = subgroup,
                     n_bqsr_splits = n_bqsr_splits,
-                    bam = sort_and_index_markdup_bam.bam,
-                    bam_index = sort_and_index_markdup_bam.bai,
+                    bam = sort_and_index_markdup_bam.output_bam,
+                    bam_index = sort_and_index_markdup_bam.output_bai,
                     ref_fasta = ref_fasta,
                     ref_fasta_index = ref_fasta_index,
                     ref_dict = ref_dict,
@@ -199,8 +199,8 @@ workflow preprocess_wgs_sample {
 
         call GatherBqsrReports {
             input:
-                input_bqsr_reports = BaseRecalibrator.recalibration_report,
-                output_report_filename = basename(sort_and_index_markdup_bam.bam, ".bam") + "_bqsr.grp"
+                input_bqsr_reports = BaseRecalibrator.bqsr_recal_file,
+                output_report_filename = sample_id + ".bqsr.grp"
         }
 
         scatter (subgroup in CreateSequenceGroupingTSV.sequence_grouping_with_unmapped) {
@@ -208,33 +208,33 @@ workflow preprocess_wgs_sample {
                 input:
                     bqsr_regions = subgroup,
                     n_bqsr_splits = n_bqsr_splits,
-                    bam = sort_and_index_markdup_bam.bam,
-                    bam_index = sort_and_index_markdup_bam.bai,
+                    bam = sort_and_index_markdup_bam.output_bam,
+                    bam_index = sort_and_index_markdup_bam.output_bai,
                     bqsr_recal_file = GatherBqsrReports.output_bqsr_report
             }
         }
 
         call GatherBamFiles as BqsrGatherBamFiles {
             input:
-                input_bams = ApplyBQSR.bam,
+                input_bams = ApplyBQSR.recalibrated_bam,
                 output_bam_basename = sample_id + ".analysis_ready"
         }
     }
 
-    File analysis_ready_bam = select_first([BqsrGatherBamFiles.bam, sort_and_index_markdup_bam.bam])
-    File analysis_ready_bai = select_first([BqsrGatherBamFiles.bai, sort_and_index_markdup_bam.bai])
+    File final_bam = select_first([BqsrGatherBamFiles.output_bam, sort_and_index_markdup_bam.output_bam])
+    File final_bai = select_first([BqsrGatherBamFiles.output_bai, sort_and_index_markdup_bam.output_bai])
 
     if (do_collect_insert_size_metrics) {
         call collect_insert_size_metrics {
             input:
-                input_bam = analysis_ready_bam,
+                input_bam = final_bam,
                 output_bam_basename = sample_id
         }
     }
 
     output {
-        File analysis_ready_bam = analysis_ready_bam
-        File analysis_ready_bai = analysis_ready_bai
+        File analysis_ready_bam = final_bam
+        File analysis_ready_bai = final_bai
         File md_metrics = picard_markduplicates.metrics
         File? insert_size_metrics = collect_insert_size_metrics.insert_size_metrics
         File? insert_size_histogram_pdf = collect_insert_size_metrics.insert_size_histogram_pdf
@@ -703,8 +703,8 @@ task sort_and_index_markdup_bam {
     }
 
     output {
-        File bam = "~{output_bam}"
-        File bai = "~{output_bai}"
+        File output_bam = "~{output_bam}"
+        File output_bai = "~{output_bai}"
     }
 
     runtime {
@@ -997,7 +997,6 @@ task ApplyBQSR {
     Int disk_space = ceil((size(bam, "GiB") * 3) / n_bqsr_splits) + 20 + additional_disk_gb
 
     String output_bam = basename(bam)
-    String output_bai = basename(bam, ".bam") + ".bai"
 
     parameter_meta {
         bam: {localization_optional: true}
@@ -1018,8 +1017,7 @@ task ApplyBQSR {
     >>>
 
     output {
-        File bam = "~{output_bam}"
-        File bai = "~{output_bai}"
+        File recalibrated_bam = "~{output_bam}"
     }
 
     runtime {
@@ -1059,7 +1057,7 @@ task GatherBamFiles {
 
     output {
         File output_bam = "~{output_bam_basename}.bam"
-        File output_bam_index = "~{output_bam_basename}.bai"
+        File output_bai = "~{output_bam_basename}.bai"
     }
 
     runtime {
