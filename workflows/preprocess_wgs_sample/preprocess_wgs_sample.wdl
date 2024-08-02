@@ -36,6 +36,7 @@ workflow preprocess_wgs_sample {
         String workflow_version = "1.0" # internal semver not tied to WARP releases
         String workflow_url # populate this with the public URL of this script
 
+        String sample_id
         String input_type # "CRAM" or "BAM"
         File input_cram_bam
         File input_crai_bai
@@ -48,6 +49,7 @@ workflow preprocess_wgs_sample {
         Boolean do_collect_insert_size_metrics = false
         File? contamination_vcf
         File? contamination_vcf_index
+        Boolean perform_bqsr = true
         File dbsnp_vcf
         File dbsnp_vcf_index
 
@@ -60,9 +62,6 @@ workflow preprocess_wgs_sample {
         File ref_pac
         File ref_sa
     }
-
-    String outbam = if (input_type == "BAM") then basename(input_cram_bam, ".bam") + ".aln.mrkdp.bam"
-                    else basename(input_cram_bam, ".cram") + ".aln.mrkdp.bam"
 
     call ToUbams.CramToUnmappedBams {
         input:
@@ -152,11 +151,13 @@ workflow preprocess_wgs_sample {
     call picard_markduplicates {
         input:
             bams = aligned_bams,
-            outbam = outbam
+            outbam = sample_id + ".mrkdup.bam"
     }
 
     call sort_and_index_markdup_bam {
-        input: input_bam = picard_markduplicates.bam
+        input:
+            input_bam = picard_markduplicates.bam,
+            output_bam_basename = sample_id + ".analysis_ready"
     }
 
     if (do_check_contamination) {
@@ -172,40 +173,68 @@ workflow preprocess_wgs_sample {
         }
     }
 
-    call CreateSequenceGroupingTSV {
-        input:
-            ref_dict = ref_dict
+
+    if (perform_bqsr) {
+        call CreateSequenceGroupingTSV {
+            input:
+                ref_dict = ref_dict
+        }
+
+        Int n_bqsr_splits = length(CreateSequenceGroupingTSV.sequence_grouping_with_unmapped)
+
+        scatter (subgroup in CreateSequenceGroupingTSV.sequence_grouping) {
+            call BaseRecalibrator {
+                input:
+                    bqsr_regions = subgroup,
+                    n_bqsr_splits = n_bqsr_splits,
+                    bam = sort_and_index_markdup_bam.bam,
+                    bam_index = sort_and_index_markdup_bam.bai,
+                    ref_fasta = ref_fasta,
+                    ref_fasta_index = ref_fasta_index,
+                    ref_dict = ref_dict,
+                    dbsnp_vcf = dbsnp_vcf,
+                    dbsnp_vcf_index = dbsnp_vcf_index
+            }
+        }
+
+        call GatherBqsrReports {
+            input:
+                input_bqsr_reports = BaseRecalibrator.recalibration_report,
+                output_report_filename = basename(sort_and_index_markdup_bam.bam, ".bam") + "_bqsr.grp"
+        }
+
+        scatter (subgroup in CreateSequenceGroupingTSV.sequence_grouping_with_unmapped) {
+            call ApplyBQSR {
+                input:
+                    bqsr_regions = subgroup,
+                    n_bqsr_splits = n_bqsr_splits,
+                    bam = sort_and_index_markdup_bam.bam,
+                    bam_index = sort_and_index_markdup_bam.bai,
+                    bqsr_recal_file = GatherBqsrReports.output_bqsr_report
+            }
+        }
+
+        call GatherBamFiles as BqsrGatherBamFiles {
+            input:
+                input_bams = ApplyBQSR.bam,
+                output_bam_basename = sample_id + ".analysis_ready"
+        }
     }
 
-    call gatk_baserecalibrator {
-        input:
-            bam = sort_and_index_markdup_bam.bam,
-            ref_fasta = ref_fasta,
-            ref_fasta_index = ref_fasta_index,
-            ref_dict = ref_dict,
-            dbsnp_vcf = dbsnp_vcf,
-            dbsnp_vcf_index = dbsnp_vcf_index
-    }
-
-    call gatk_applybqsr {
-        input:
-            input_bam = sort_and_index_markdup_bam.bam,
-            bqsr_recal_file = gatk_baserecalibrator.bqsr_recal_file
-    }
-
-    String output_bam_prefix = basename(gatk_applybqsr.bam, ".bam")
+    File analysis_ready_bam = select_first([BqsrGatherBamFiles.bam, sort_and_index_markdup_bam.bam])
+    File analysis_ready_bai = select_first([BqsrGatherBamFiles.bai, sort_and_index_markdup_bam.bai])
 
     if (do_collect_insert_size_metrics) {
         call collect_insert_size_metrics {
             input:
-                input_bam = gatk_applybqsr.bam,
-                output_bam_prefix = output_bam_prefix
+                input_bam = analysis_ready_bam,
+                output_bam_basename = sample_id
         }
     }
 
     output {
-        File bam = gatk_applybqsr.bam
-        File bai = gatk_applybqsr.bai
+        File analysis_ready_bam = analysis_ready_bam
+        File analysis_ready_bai = analysis_ready_bai
         File md_metrics = picard_markduplicates.metrics
         File? insert_size_metrics = collect_insert_size_metrics.insert_size_metrics
         File? insert_size_histogram_pdf = collect_insert_size_metrics.insert_size_histogram_pdf
@@ -643,6 +672,7 @@ task picard_markduplicates {
 task sort_and_index_markdup_bam {
     input {
         File input_bam
+        String output_bam_basename
         String tmp_prefix = "tmp_srt"
         Int cpu = 8
         Int preemptible = 2
@@ -654,8 +684,8 @@ task sort_and_index_markdup_bam {
     Int disk_space = ceil(size(input_bam, "GiB") * 3.25) + 20 + additional_disk_gb
     Int mem_per_thread = floor(mem / cpu * 0.85)
     Int index_threads = cpu - 1
-    String output_bam = basename(input_bam)
-    String output_bai = basename(input_bam, ".bam") + ".bai"
+    String output_bam = output_bam_basename + ".bam"
+    String output_bai = output_bam_basename + ".bai"
 
     command {
         set -euo pipefail
@@ -770,7 +800,8 @@ task CalculateSomaticContamination {
     }
 }
 
-# from https://github.com/broadinstitute/warp/blob/9942eed7d6c8aba87ddf096fc77cddc6f5052e54/tasks/broad/Utilities.wdl
+# BQSR scatter-gather tasks from
+# https://github.com/broadinstitute/warp/blob/9942eed7d6c8aba87ddf096fc77cddc6f5052e54/tasks/broad/Utilities.wdl
 task CreateSequenceGroupingTSV {
     input {
         File ref_dict
@@ -792,11 +823,13 @@ task CreateSequenceGroupingTSV {
         with open("~{ref_dict}", "r") as ref_dict_file:
             sequence_tuple_list = []
             longest_sequence = 0
+
             for line in ref_dict_file:
                 if line.startswith("@SQ"):
                     line_split = line.split("\t")
                     # (Sequence_Name, Sequence_Length)
                     sequence_tuple_list.append((line_split[1].split("SN:")[1], int(line_split[2].split("LN:")[1])))
+
             longest_sequence = sorted(sequence_tuple_list, key=lambda x: x[1], reverse=True)[0][1]
 
         # We are adding this to the intervals because hg38 has contigs named with embedded colons and a bug in GATK strips off
@@ -805,6 +838,7 @@ task CreateSequenceGroupingTSV {
         # initialize the tsv string with the first sequence
         tsv_string = sequence_tuple_list[0][0] + hg38_protection_tag
         temp_size = sequence_tuple_list[0][1]
+
         for sequence_tuple in sequence_tuple_list[1:]:
             if temp_size + sequence_tuple[1] <= longest_sequence:
                 temp_size += sequence_tuple[1]
@@ -815,14 +849,14 @@ task CreateSequenceGroupingTSV {
 
         # add the unmapped sequences as a separate line to ensure that they are recalibrated as well
         with open("sequence_grouping.txt","w") as tsv_file:
-          tsv_file.write(tsv_string)
-          tsv_file.close()
+            tsv_file.write(tsv_string)
+            tsv_file.close()
 
         tsv_string += '\n' + "unmapped"
 
         with open("sequence_grouping_with_unmapped.txt","w") as tsv_file_with_unmapped:
-          tsv_file_with_unmapped.write(tsv_string)
-          tsv_file_with_unmapped.close()
+            tsv_file_with_unmapped.write(tsv_string)
+            tsv_file_with_unmapped.close()
         CODE
     >>>
 
@@ -832,43 +866,47 @@ task CreateSequenceGroupingTSV {
     }
 
     runtime {
-        docker: "us.gcr.io/broad-dsp-gcr-public/base/python:3.9-slim"
+        docker: "python:3.12.4-slim"
         memory: "~{mem_gb} GB"
         disks: "local-disk ~{disk_space} SSD"
         preemptible: preemptible
         maxRetries: max_retries
         cpu: cpu
     }
-
-    meta {
-        allowNestedInputs: true
-    }
 }
 
-task gatk_baserecalibrator {
+task BaseRecalibrator {
     input {
+        Array[String] bqsr_regions
+        Int n_bqsr_splits
         File bam
+        File bam_index
         File dbsnp_vcf
         File dbsnp_vcf_index
         File ref_dict
         File ref_fasta
         File ref_fasta_index
+
         Int cpu = 2
         Int preemptible = 2
         Int max_retries = 1
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
     }
+
     String output_grp = basename(bam, ".bam") + "_bqsr.grp"
-    Float ref_size = size([ref_fasta, ref_fasta_index, ref_dict], "GiB")
-    Float dbsnp_size = size([dbsnp_vcf, dbsnp_vcf_index], "GiB")
-    Int mem = ceil(size(bam, "MiB")) + 6000 + additional_memory_mb
+
+    Float ref_size = size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + size(ref_dict, "GiB")
+    Float dbsnp_size = size(dbsnp_vcf, "GiB")
+    Int disk_space = ceil((size(bam, "GiB") / n_bqsr_splits) + ref_size + dbsnp_size) + 20
+
+    Int mem = ceil(size(bam, "MiB") / n_bqsr_splits) + 6000 + additional_memory_mb
     Int jvm_mem = mem - 1000
     Int max_heap = mem - 500
-    Int disk_space = ceil(size(bam, "GiB") + ref_size + dbsnp_size) + 20 + additional_disk_gb
 
     parameter_meta {
         bam: {localization_optional: true}
+        bam_index: {localization_optional: true}
         dbsnp_vcf: {localization_optional: true}
         dbsnp_vcf_index: {localization_optional: true}
         ref_dict: {localization_optional: true}
@@ -876,15 +914,17 @@ task gatk_baserecalibrator {
         ref_fasta_index: {localization_optional: true}
     }
 
-    command {
+    command <<<
         gatk --java-options "-XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -XX:+PrintFlagsFinal -Xlog:gc=debug:file=gc_log.log -Xms~{jvm_mem}m -Xmx~{max_heap}m" \
             BaseRecalibrator \
                 --input ~{bam} \
+                --use-original-qualities \
                 --known-sites ~{dbsnp_vcf} \
                 --reference ~{ref_fasta} \
                 --tmp-dir . \
-                --output ~{output_grp}
-    }
+                --output ~{output_grp} \
+                --intervals ~{sep=" --intervals " bqsr_regions}
+    >>>
 
     output {
         File bqsr_recal_file = "~{output_grp}"
@@ -900,37 +940,82 @@ task gatk_baserecalibrator {
     }
 }
 
-task gatk_applybqsr {
+task GatherBqsrReports {
     input {
-        File input_bam
+        Array[File] input_bqsr_reports
+        String output_report_filename
+
+        Int mem_gb = 4
+        Int cpu = 1
+        Int preemptible = 3
+        Int max_retries = 0
+        Int additional_disk_gb = 0
+    }
+
+    Int disk_space = 3 * ceil(size(input_bqsr_reports, "GiB")) + additional_disk_gb
+
+    command <<<
+        gatk --java-options "-Xms3000m -Xmx3000m" \
+            GatherBQSRReports \
+            -I ~{sep=' -I ' input_bqsr_reports} \
+            -O ~{output_report_filename}
+    >>>
+
+    output {
+        File output_bqsr_report = "~{output_report_filename}"
+    }
+
+    runtime {
+        docker: "us.gcr.io/broad-gatk/gatk:4.5.0.0"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+}
+
+task ApplyBQSR {
+    input {
+        Array[String] bqsr_regions
+        Int n_bqsr_splits
+        File bam
+        File bam_index
         File bqsr_recal_file
         Boolean emit_original_quals = true
+
         Int cpu = 2
         Int preemptible = 2
         Int max_retries = 1
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
     }
-    String output_bam = basename(input_bam)
-    String output_bai = basename(input_bam, ".bam") + ".bai"
-    Int mem = ceil(size(input_bam, "MiB")) + 4000 + additional_memory_mb
+
+    Int mem = ceil(size(bam, "MiB") / n_bqsr_splits) + 4000 + additional_memory_mb
     Int jvm_mem = mem - 1000
     Int max_heap = mem - 500
-    Int disk_space = ceil((size(input_bam, "GiB") * 3)) + 20 + additional_disk_gb
+    Int disk_space = ceil((size(bam, "GiB") * 3) / n_bqsr_splits) + 20 + additional_disk_gb
+
+    String output_bam = basename(bam)
+    String output_bai = basename(bam, ".bam") + ".bai"
 
     parameter_meta {
-        input_bam: {localization_optional: true}
+        bam: {localization_optional: true}
+        bam_index: {localization_optional: true}
     }
 
-    command {
+    command <<<
         gatk --java-options "-XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -XX:+PrintFlagsFinal -Xlog:gc=debug:file=gc_log.log -Xms~{jvm_mem}m -Xmx~{max_heap}m" \
             ApplyBQSR \
-                --input ~{input_bam} \
+                --input ~{bam} \
                 --bqsr-recal-file ~{bqsr_recal_file} \
                 --emit-original-quals ~{emit_original_quals} \
+                --use-original-qualities \
+                --add-output-sam-program-record \
                 --tmp-dir . \
-                --output ~{output_bam}
-    }
+                --output ~{output_bam} \
+                --intervals ~{sep=" --intervals " bqsr_regions}
+    >>>
 
     output {
         File bam = "~{output_bam}"
@@ -947,33 +1032,83 @@ task gatk_applybqsr {
     }
 }
 
+task GatherBamFiles {
+    input {
+        Array[File] input_bams
+        String output_bam_basename
+
+        Int mem_gb = 4
+        Int cpu = 1
+        Int preemptible = 2
+        Int max_retries = 1
+        Int additional_memory_mb = 0
+        Int additional_disk_gb = 0
+    }
+
+    Int java_max_memory_mb = ceil(mem_gb * 1000) - 500
+    Int java_inital_memory_mb = (mem_gb * 1000) - 1000
+    Int disk_space = 2 * ceil(size(input_bams, "GiB")) + 10 + additional_disk_gb
+
+    command <<<
+        java -Xms~{java_inital_memory_mb}m -Xmx~{java_max_memory_mb}m -jar /usr/picard/picard.jar \
+            GatherBamFiles \
+            INPUT=~{sep=' INPUT=' input_bams} \
+            OUTPUT=~{output_bam_basename}.bam \
+            CREATE_INDEX=true
+    >>>
+
+    output {
+        File output_bam = "~{output_bam_basename}.bam"
+        File output_bam_index = "~{output_bam_basename}.bai"
+    }
+
+    runtime {
+        docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.26.10"
+        memory: mem_gb + " GiB"
+        disks: "local-disk " + disk_space + " SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+}
+
 # Collect quality metrics from the aggregated bam
 task collect_insert_size_metrics {
-  input {
-    File input_bam
-    String output_bam_prefix
-    Int additional_memory_mb = 0
-    Int additional_disk_gb = 0
-  }
-  Int mem = ceil(size(input_bam, "GiB")) + 7000 + additional_memory_mb
-  Int jvm_mem = mem - 1000
-  Int max_heap = mem - 500
-  Int disk_size = ceil(size(input_bam, "GiB")) + 20 + additional_disk_gb
+    input {
+        File input_bam
+        String output_bam_basename
 
-  command {
-    java -Xms~{jvm_mem}m -Xmx~{max_heap}m -jar /usr/picard/picard.jar \
-        CollectInsertSizeMetrics \
-        INPUT=~{input_bam} \
-        OUTPUT=~{output_bam_prefix}.insert_size_metrics \
-        HISTOGRAM_FILE=~{output_bam_prefix}.insert_size_histogram.pdf
-  }
-  runtime {
-    docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.26.10"
-    memory: mem + " MiB"
-    disks: "local-disk " + disk_size + " SSD"
-  }
-  output {
-    File insert_size_histogram_pdf = "~{output_bam_prefix}.insert_size_histogram.pdf"
-    File insert_size_metrics = "~{output_bam_prefix}.insert_size_metrics"
-  }
+        Int cpu = 1
+        Int preemptible = 2
+        Int max_retries = 1
+        Int additional_memory_mb = 0
+        Int additional_disk_gb = 0
+    }
+
+    Int mem_mb = ceil(size(input_bam, "GiB")) + 7000 + additional_memory_mb
+    Int jvm_mem = mem_mb - 1000
+    Int max_heap = mem_mb - 500
+    Int disk_size = ceil(size(input_bam, "GiB")) + 20 + additional_disk_gb
+
+    command <<<
+        java -Xms~{jvm_mem}m -Xmx~{max_heap}m -jar /usr/picard/picard.jar \
+            CollectInsertSizeMetrics \
+            INPUT=~{input_bam} \
+            OUTPUT=~{output_bam_basename}.insert_size_metrics \
+            HISTOGRAM_FILE=~{output_bam_basename}.insert_size_histogram.pdf
+    >>>
+
+    output {
+        File insert_size_histogram_pdf = "~{output_bam_basename}.insert_size_histogram.pdf"
+        File insert_size_metrics = "~{output_bam_basename}.insert_size_metrics"
+    }
+
+    runtime {
+        docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.26.10"
+        memory: mem_mb + " MiB"
+        disks: "local-disk " + disk_size + " SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
 }

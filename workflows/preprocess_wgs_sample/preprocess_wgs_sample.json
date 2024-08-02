@@ -7,6 +7,10 @@
     "preprocess_wgs_sample.dbsnp_vcf_index": "\"gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf\"",
     "preprocess_wgs_sample.do_check_contamination": "false",
     "preprocess_wgs_sample.do_collect_insert_size_metrics": "false",
+    "preprocess_wgs_sample.input_crai_bai": "this.delivery_crai_bai",
+    "preprocess_wgs_sample.input_cram_bam": "this.delivery_cram_bam",
+    "preprocess_wgs_sample.input_type": "this.delivery_file_format",
+    "preprocess_wgs_sample.perform_bqsr": "true",
     "preprocess_wgs_sample.ref_amb": "this.ref_amb",
     "preprocess_wgs_sample.ref_ann": "this.ref_ann",
     "preprocess_wgs_sample.ref_bwt": "this.ref_bwt",
@@ -15,9 +19,7 @@
     "preprocess_wgs_sample.ref_fasta_index": "this.ref_fasta_index",
     "preprocess_wgs_sample.ref_pac": "this.ref_pac",
     "preprocess_wgs_sample.ref_sa": "this.ref_sa",
-    "preprocess_wgs_sample.input_cram_bam": "this.delivery_cram_bam",
-    "preprocess_wgs_sample.input_crai_bai": "this.delivery_crai_bai",
-    "preprocess_wgs_sample.input_type": "this.delivery_file_format"
+    "preprocess_wgs_sample.sample_id": "this.sample_id"
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
@@ -28,8 +30,8 @@
   "namespace": "cds-pipelines",
   "name": "preprocess_wgs_sample",
   "outputs": {
-    "preprocess_wgs_sample.bam": "this.bam",
-    "preprocess_wgs_sample.bai": "this.bai",
+    "preprocess_wgs_sample.analysis_ready_bam": "this.analysis_ready_bam",
+    "preprocess_wgs_sample.analysis_ready_bai": "this.analysis_ready_bai",
     "preprocess_wgs_sample.md_metrics": "this.preprocess_md_metrics",
     "preprocess_wgs_sample.insert_size_metrics": "this.preprocess_insert_size_metrics",
     "preprocess_wgs_sample.insert_size_histogram_pdf": "this.preprocess_insert_size_histogram_pdf",
