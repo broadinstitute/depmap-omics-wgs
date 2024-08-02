@@ -1,5 +1,7 @@
 import os
 import re
+import subprocess
+import tempfile
 from pathlib import Path
 
 import github
@@ -17,7 +19,6 @@ class GistedWdl:
         self.method_name = method_name
         self.github_pat = github_pat
         self.gist = None
-        self.find_or_create_gist()
 
     def find_or_create_gist(self):
         """
@@ -54,8 +55,6 @@ class GistedWdl:
         :return: a dictionary of the uploaded WDL, its public URL, and its
         `pipeline_version` (if found as a variable in the `workflow`)
         """
-
-        assert self.gist is not None
 
         with open(wdl_path, "r") as f:
             wdl_lines = f.readlines()
@@ -104,7 +103,25 @@ class GistedWdl:
         # construct the final version of this WDL script
         converted_wdl = "\n".join(buffer)
 
+        # validate the WDL before uploading
+        with tempfile.NamedTemporaryFile("w") as f:
+            f.write(converted_wdl)
+            f.flush()
+
+            res = subprocess.run(
+                ["java", "-jar", os.environ["WOMTOOL_JAR"], "validate", f.name],
+                capture_output=True,
+            )
+
+            if res.returncode != 0 or "Success" not in res.stdout.decode():
+                raise ChildProcessError(
+                    f"Error validating WDL script: {res.stderr.decode()}"
+                )
+
         # update the gist with the new version of the WDL script
+        if self.gist is None:
+            self.find_or_create_gist()
+
         self.gist.edit(
             files={wdl_basename: github.InputFileContent(content=converted_wdl)}
         )
