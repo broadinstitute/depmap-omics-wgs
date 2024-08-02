@@ -12,6 +12,7 @@ version 1.0
 #   - `CheckContamination` task copied into this file.
 #   - `CheckContamination` and `collect_insert_size_metrics` made optional.
 #   - Remove `validation_report` and `unmapped_bams` workflow outputs.
+#   - Scatter BQSR tasks.
 #
 # Use this file as a base and manually implement changes in the upstream code in order
 # to retain these modifications.
