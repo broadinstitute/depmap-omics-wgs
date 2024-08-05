@@ -179,8 +179,8 @@ workflow preprocess_wgs_sample {
     if (perform_bqsr) {
         call prevent_double_bqsr {
             input:
-                bam = sort_and_index_markdup_bam.output_bam,
-                bam_index = sort_and_index_markdup_bam.output_bai
+                bam = input_cram_bam,
+                bam_index = input_crai_bai
         }
 
         if (prevent_double_bqsr.passed) {
