@@ -21,6 +21,7 @@ RUN apt-get -y dist-upgrade \
         google-cloud-cli \
         lbzip2 \
         libbz2-dev \
+        libcurl4-gnutls-dev \
         liblzma-dev \
         libncurses5-dev \
         libz-dev \

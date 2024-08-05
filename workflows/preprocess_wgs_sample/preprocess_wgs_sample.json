@@ -12,7 +12,7 @@
     "preprocess_wgs_sample.input_type": "this.delivery_file_format",
     "preprocess_wgs_sample.perform_bqsr": "true",
     "preprocess_wgs_sample.prevent_double_bqsr.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/samtools\"",
-    "preprocess_wgs_sample.prevent_double_bqsr.docker_image_hash_or_tag": "\"@sha256:5e6cdea9f824a089292d9110dc20b8556a2fb5b6358211ccaec46f397f692654\"",
+    "preprocess_wgs_sample.prevent_double_bqsr.docker_image_hash_or_tag": "\"@sha256:43c413dde9472748f58b2b6b089885fd5f968799666ce21e90edee10f68afb93\"",
     "preprocess_wgs_sample.ref_amb": "this.ref_amb",
     "preprocess_wgs_sample.ref_ann": "this.ref_ann",
     "preprocess_wgs_sample.ref_bwt": "this.ref_bwt",
