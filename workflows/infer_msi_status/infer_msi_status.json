@@ -2,8 +2,8 @@
   "deleted": false,
   "inputs": {
     "infer_msi_status.sample_id": "this.sample_id",
-    "infer_msi_status.bam": "this.bam",
-    "infer_msi_status.bai": "this.bai"
+    "infer_msi_status.bam": "this.analysis_ready_bam",
+    "infer_msi_status.bai": "this.analysis_ready_bai"
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {

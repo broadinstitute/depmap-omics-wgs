@@ -17,8 +17,8 @@
     "call_mutations.scatter_count": "30",
     "call_mutations.small_task_cpu": "1",
     "call_mutations.small_task_disk": "10",
-    "call_mutations.tumor_reads": "this.bam",
-    "call_mutations.tumor_reads_index": "this.bai"
+    "call_mutations.tumor_reads": "this.analysis_ready_bam",
+    "call_mutations.tumor_reads_index": "this.analysis_ready_bai"
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {

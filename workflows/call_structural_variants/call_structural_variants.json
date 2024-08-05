@@ -2,8 +2,8 @@
   "deleted": false,
   "inputs": {
     "call_structural_variants.sample_id": "this.sample_id",
-    "call_structural_variants.bam": "this.bam",
-    "call_structural_variants.bai": "this.bai",
+    "call_structural_variants.bam": "this.analysis_ready_bam",
+    "call_structural_variants.bai": "this.analysis_ready_bai",
     "call_structural_variants.ref_fasta": "this.ref_fasta",
     "call_structural_variants.ref_fasta_index": "this.ref_fasta_index"
   },

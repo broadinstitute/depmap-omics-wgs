@@ -13,8 +13,8 @@
     "call_cnvs.ref_fasta_dict": "this.ref_dict",
     "call_cnvs.ref_fasta_fai": "this.ref_fasta_index",
     "call_cnvs.sample_id": "this.sample_id",
-    "call_cnvs.tumor_bam": "this.bam",
-    "call_cnvs.tumor_bam_idx": "this.bai"
+    "call_cnvs.tumor_bam": "this.analysis_ready_bam",
+    "call_cnvs.tumor_bam_idx": "this.analysis_ready_bai"
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
