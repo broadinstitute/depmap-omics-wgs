@@ -174,51 +174,58 @@ workflow preprocess_wgs_sample {
         }
     }
 
-
     if (perform_bqsr) {
-        call CreateSequenceGroupingTSV {
+        call PreventDoubleBQSR {
             input:
-                ref_dict = ref_dict
+                bam = sort_and_index_markdup_bam.output_bam,
+                bam_index = sort_and_index_markdup_bam.output_bai
         }
 
-        Int n_bqsr_splits = length(CreateSequenceGroupingTSV.sequence_grouping_with_unmapped)
-
-        scatter (subgroup in CreateSequenceGroupingTSV.sequence_grouping) {
-            call BaseRecalibrator {
+        if (PreventDoubleBQSR.passed) {
+            call CreateSequenceGroupingTSV {
                 input:
-                    bqsr_regions = subgroup,
-                    n_bqsr_splits = n_bqsr_splits,
-                    bam = sort_and_index_markdup_bam.output_bam,
-                    bam_index = sort_and_index_markdup_bam.output_bai,
-                    ref_fasta = ref_fasta,
-                    ref_fasta_index = ref_fasta_index,
-                    ref_dict = ref_dict,
-                    dbsnp_vcf = dbsnp_vcf,
-                    dbsnp_vcf_index = dbsnp_vcf_index
+                    ref_dict = ref_dict
             }
-        }
 
-        call GatherBqsrReports {
-            input:
-                input_bqsr_reports = BaseRecalibrator.bqsr_recal_file,
-                output_report_filename = sample_id + ".bqsr.grp"
-        }
+            Int n_bqsr_splits = length(CreateSequenceGroupingTSV.sequence_grouping_with_unmapped)
 
-        scatter (subgroup in CreateSequenceGroupingTSV.sequence_grouping_with_unmapped) {
-            call ApplyBQSR {
+            scatter (subgroup in CreateSequenceGroupingTSV.sequence_grouping) {
+                call BaseRecalibrator {
+                    input:
+                        bqsr_regions = subgroup,
+                        n_bqsr_splits = n_bqsr_splits,
+                        bam = sort_and_index_markdup_bam.output_bam,
+                        bam_index = sort_and_index_markdup_bam.output_bai,
+                        ref_fasta = ref_fasta,
+                        ref_fasta_index = ref_fasta_index,
+                        ref_dict = ref_dict,
+                        dbsnp_vcf = dbsnp_vcf,
+                        dbsnp_vcf_index = dbsnp_vcf_index
+                }
+            }
+
+            call GatherBqsrReports {
                 input:
-                    bqsr_regions = subgroup,
-                    n_bqsr_splits = n_bqsr_splits,
-                    bam = sort_and_index_markdup_bam.output_bam,
-                    bam_index = sort_and_index_markdup_bam.output_bai,
-                    bqsr_recal_file = GatherBqsrReports.output_bqsr_report
+                    input_bqsr_reports = BaseRecalibrator.bqsr_recal_file,
+                    output_report_filename = sample_id + ".bqsr.grp"
             }
-        }
 
-        call GatherBamFiles as BqsrGatherBamFiles {
-            input:
-                input_bams = ApplyBQSR.recalibrated_bam,
-                output_bam_basename = sample_id + ".analysis_ready"
+            scatter (subgroup in CreateSequenceGroupingTSV.sequence_grouping_with_unmapped) {
+                call ApplyBQSR {
+                    input:
+                        bqsr_regions = subgroup,
+                        n_bqsr_splits = n_bqsr_splits,
+                        bam = sort_and_index_markdup_bam.output_bam,
+                        bam_index = sort_and_index_markdup_bam.output_bai,
+                        bqsr_recal_file = GatherBqsrReports.output_bqsr_report
+                }
+            }
+
+            call GatherBamFiles as BqsrGatherBamFiles {
+                input:
+                    input_bams = ApplyBQSR.recalibrated_bam,
+                    output_bam_basename = sample_id + ".analysis_ready"
+            }
         }
     }
 
@@ -876,6 +883,62 @@ task CreateSequenceGroupingTSV {
     }
 }
 
+task PreventDoubleBQSR {
+    input {
+        File bam
+        File bam_index
+
+        Int mem_gb = 4
+        Int cpu = 1
+        Int preemptible = 3
+        Int max_retries = 0
+        Int additional_disk_gb = 0
+    }
+
+    Int disk_space = ceil(size(bam, "GiB")) + 10 + additional_disk_gb
+
+    command <<<
+        set -euo pipefail
+
+        samtools head ~{bam} > head.txt
+        BQSR_PERFORMED=$(grep -q "ApplyBQSR" head.txt && echo "true" || echo "false")
+
+        HAS_OQ_TAGS=$(samtools view -d OQ ~{bam} | awk -F "\t" '
+            BEGIN {
+                found = 0
+            }
+            /OQ/ {
+                found = 1
+                print "true"
+                exit
+            }
+            END {
+                if (!found) {
+                    print "false"
+                }
+            }
+        ')
+
+        if [ "${BQSR_PERFORMED}" = "true" ] && [ "{$HAS_OQ_TAGS}" = "false" ]; then
+            echo "Error: BQSR already performed but reads are missing OQ tag"
+            exit 1
+        fi
+    >>>
+
+    output {
+        Boolean passed = true
+    }
+
+    runtime {
+        docker: "us.gcr.io/broad-gotc-prod/samtools:1.0.0-1.11-1624651616"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+}
+
 task BaseRecalibrator {
     input {
         Array[String] bqsr_regions
@@ -983,7 +1046,7 @@ task ApplyBQSR {
         File bam
         File bam_index
         File bqsr_recal_file
-        Boolean emit_original_quals = true
+        Boolean emit_original_quals = false
 
         Int cpu = 2
         Int preemptible = 2
