@@ -13,6 +13,8 @@ version 1.0
 #   - `CheckContamination` and `collect_insert_size_metrics` made optional.
 #   - Remove `validation_report` and `unmapped_bams` workflow outputs.
 #   - Scatter BQSR tasks.
+#   - Check to see if BQSR has already been run but the input BAM file is missing `OQ`
+#     tags, which would make re-running BQSR inappropriate.
 #
 # Use this file as a base and manually implement changes in the upstream code in order
 # to retain these modifications.
@@ -175,13 +177,13 @@ workflow preprocess_wgs_sample {
     }
 
     if (perform_bqsr) {
-        call PreventDoubleBQSR {
+        call prevent_double_bqsr {
             input:
                 bam = sort_and_index_markdup_bam.output_bam,
                 bam_index = sort_and_index_markdup_bam.output_bai
         }
 
-        if (PreventDoubleBQSR.passed) {
+        if (prevent_double_bqsr.passed) {
             call CreateSequenceGroupingTSV {
                 input:
                     ref_dict = ref_dict
@@ -883,11 +885,13 @@ task CreateSequenceGroupingTSV {
     }
 }
 
-task PreventDoubleBQSR {
+task prevent_double_bqsr {
     input {
         File bam
         File bam_index
 
+        String docker_image
+        String docker_image_hash_or_tag
         Int mem_gb = 4
         Int cpu = 1
         Int preemptible = 3
@@ -897,21 +901,41 @@ task PreventDoubleBQSR {
 
     Int disk_space = ceil(size(bam, "GiB")) + 10 + additional_disk_gb
 
+    parameter_meta {
+        bam: { localization_optional: true }
+        bam_index: { localization_optional: true }
+    }
+
     command <<<
         set -euo pipefail
 
+        export GCS_OAUTH_TOKEN=$(gcloud auth application-default print-access-token)
+
+        # cheack header for evidence of previous BQSR recalibration
         samtools head ~{bam} > head.txt
         BQSR_PERFORMED=$(grep -q "ApplyBQSR" head.txt && echo "true" || echo "false")
 
-        HAS_OQ_TAGS=$(samtools view -d OQ ~{bam} | awk -F "\t" '
+        if [ "${BQSR_PERFORMED}" = "false" ]; then
+            exit 0
+        fi
+
+        # BQSR has been done previously, so check reads for existence of OQ tag
+        HAS_OQ_TAGS=$(samtools view -d OQ ~{bam} | awk '
             BEGIN {
+                FS="\t"
                 found = 0
             }
-            /OQ/ {
-                found = 1
-                print "true"
-                exit
+
+            {
+                for (i=1; i<=NF; i++) {
+                    if ($i ~ /^OQ:/) {
+                        found = 1
+                        print "true"
+                        exit
+                    }
+                }
             }
+
             END {
                 if (!found) {
                     print "false"
@@ -919,7 +943,7 @@ task PreventDoubleBQSR {
             }
         ')
 
-        if [ "${BQSR_PERFORMED}" = "true" ] && [ "{$HAS_OQ_TAGS}" = "false" ]; then
+        if [ "{$HAS_OQ_TAGS}" = "false" ]; then
             echo "Error: BQSR already performed but reads are missing OQ tag"
             exit 1
         fi
@@ -930,12 +954,16 @@ task PreventDoubleBQSR {
     }
 
     runtime {
-        docker: "us.gcr.io/broad-gotc-prod/samtools:1.0.0-1.11-1624651616"
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
         memory: "~{mem_gb} GB"
         disks: "local-disk ~{disk_space} SSD"
         preemptible: preemptible
         maxRetries: max_retries
         cpu: cpu
+    }
+
+    meta {
+        allowNestedInputs: true
     }
 }
 
