@@ -870,11 +870,9 @@ task prevent_double_bqsr {
             }
         ')
 
-        echo "HAS_OQ_TAGS = '${HAS_OQ_TAGS}'"
-
         if [ "${HAS_OQ_TAGS}" = "false" ]; then
             >&2 echo "Error: BQSR already performed but reads are missing OQ tag"
-            exit 3
+            exit 1
         fi
 
         echo "Found OQ tags: BQSR can be performed again with --use-original-qualities"
