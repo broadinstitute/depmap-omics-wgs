@@ -183,51 +183,50 @@ workflow preprocess_wgs_sample {
                 bam_index = input_crai_bai
         }
 
-        if (prevent_double_bqsr.passed) {
-            call CreateSequenceGroupingTSV {
+        call CreateSequenceGroupingTSV {
+            input:
+                ref_dict = ref_dict,
+                passed = prevent_double_bqsr.passed
+        }
+
+        Int n_bqsr_splits = length(CreateSequenceGroupingTSV.sequence_grouping_with_unmapped)
+
+        scatter (subgroup in CreateSequenceGroupingTSV.sequence_grouping) {
+            call BaseRecalibrator {
                 input:
-                    ref_dict = ref_dict
+                    bqsr_regions = subgroup,
+                    n_bqsr_splits = n_bqsr_splits,
+                    bam = sort_and_index_markdup_bam.output_bam,
+                    bam_index = sort_and_index_markdup_bam.output_bai,
+                    ref_fasta = ref_fasta,
+                    ref_fasta_index = ref_fasta_index,
+                    ref_dict = ref_dict,
+                    dbsnp_vcf = dbsnp_vcf,
+                    dbsnp_vcf_index = dbsnp_vcf_index
             }
+        }
 
-            Int n_bqsr_splits = length(CreateSequenceGroupingTSV.sequence_grouping_with_unmapped)
+        call GatherBqsrReports {
+            input:
+                input_bqsr_reports = BaseRecalibrator.bqsr_recal_file,
+                output_report_filename = sample_id + ".bqsr.grp"
+        }
 
-            scatter (subgroup in CreateSequenceGroupingTSV.sequence_grouping) {
-                call BaseRecalibrator {
-                    input:
-                        bqsr_regions = subgroup,
-                        n_bqsr_splits = n_bqsr_splits,
-                        bam = sort_and_index_markdup_bam.output_bam,
-                        bam_index = sort_and_index_markdup_bam.output_bai,
-                        ref_fasta = ref_fasta,
-                        ref_fasta_index = ref_fasta_index,
-                        ref_dict = ref_dict,
-                        dbsnp_vcf = dbsnp_vcf,
-                        dbsnp_vcf_index = dbsnp_vcf_index
-                }
-            }
-
-            call GatherBqsrReports {
+        scatter (subgroup in CreateSequenceGroupingTSV.sequence_grouping_with_unmapped) {
+            call ApplyBQSR {
                 input:
-                    input_bqsr_reports = BaseRecalibrator.bqsr_recal_file,
-                    output_report_filename = sample_id + ".bqsr.grp"
+                    bqsr_regions = subgroup,
+                    n_bqsr_splits = n_bqsr_splits,
+                    bam = sort_and_index_markdup_bam.output_bam,
+                    bam_index = sort_and_index_markdup_bam.output_bai,
+                    bqsr_recal_file = GatherBqsrReports.output_bqsr_report
             }
+        }
 
-            scatter (subgroup in CreateSequenceGroupingTSV.sequence_grouping_with_unmapped) {
-                call ApplyBQSR {
-                    input:
-                        bqsr_regions = subgroup,
-                        n_bqsr_splits = n_bqsr_splits,
-                        bam = sort_and_index_markdup_bam.output_bam,
-                        bam_index = sort_and_index_markdup_bam.output_bai,
-                        bqsr_recal_file = GatherBqsrReports.output_bqsr_report
-                }
-            }
-
-            call GatherBamFiles as BqsrGatherBamFiles {
-                input:
-                    input_bams = ApplyBQSR.recalibrated_bam,
-                    output_bam_basename = sample_id + ".analysis_ready"
-            }
+        call GatherBamFiles as BqsrGatherBamFiles {
+            input:
+                input_bams = ApplyBQSR.recalibrated_bam,
+                output_bam_basename = sample_id + ".analysis_ready"
         }
     }
 
@@ -897,6 +896,7 @@ task prevent_double_bqsr {
 task CreateSequenceGroupingTSV {
     input {
         File ref_dict
+        Boolean passed # no way to manually define an upstream dependency
 
         Int mem_gb = 1
         Int cpu = 1
