@@ -180,7 +180,7 @@ workflow preprocess_wgs_sample {
         call prevent_double_bqsr {
             input:
                 bam = input_cram_bam,
-                bam_index = input_crai_bai
+                bai = input_crai_bai
         }
 
         call CreateSequenceGroupingTSV {
@@ -812,11 +812,11 @@ task CalculateSomaticContamination {
 task prevent_double_bqsr {
     input {
         File bam
-        File bam_index
+        File bai
 
         String docker_image
         String docker_image_hash_or_tag
-        Int mem_gb = 4
+        Int mem_gb = 2
         Int cpu = 1
         Int preemptible = 3
         Int max_retries = 0
@@ -827,24 +827,27 @@ task prevent_double_bqsr {
 
     parameter_meta {
         bam: { localization_optional: true }
-        bam_index: { localization_optional: true }
+        bai: { localization_optional: true }
     }
 
     command <<<
         set -euo pipefail
 
-        export GCS_OAUTH_TOKEN=$(gcloud auth application-default print-access-token)
+        # set up auth for samtools streaming from GCS buckets
+        export GCS_OAUTH_TOKEN="$(gcloud auth application-default print-access-token)"
+        export GCS_REQUESTER_PAYS_PROJECT="$(gcloud config get-value project -q)"
 
-        # cheack header for evidence of previous BQSR recalibration
-        samtools head ~{bam} > head.txt
+        # get header (and single read) to check for previous BQSR recalibration
+        samtools head "~{bam}" -n 1 > head.txt
         BQSR_PERFORMED=$(grep -q "ApplyBQSR" head.txt && echo "true" || echo "false")
 
         if [ "${BQSR_PERFORMED}" = "false" ]; then
+            echo "BQSR has not been performed on ~{bam} yet"
             exit 0
         fi
 
-        # BQSR has been done previously, so check reads for existence of OQ tag
-        HAS_OQ_TAGS=$(samtools view -d OQ ~{bam} | awk '
+        echo "BQSR has already been performed on ~{bam}, so checking for OQ tags"
+        HAS_OQ_TAGS=$(tail -n 1 head.txt | awk '
             BEGIN {
                 FS="\t"
                 found = 0
@@ -867,10 +870,14 @@ task prevent_double_bqsr {
             }
         ')
 
-        if [ "{$HAS_OQ_TAGS}" = "false" ]; then
-            echo "Error: BQSR already performed but reads are missing OQ tag"
-            exit 1
+        echo "HAS_OQ_TAGS = '${HAS_OQ_TAGS}'"
+
+        if [ "${HAS_OQ_TAGS}" = "false" ]; then
+            >&2 echo "Error: BQSR already performed but reads are missing OQ tag"
+            exit 3
         fi
+
+        echo "Found OQ tags: BQSR can be performed again with --use-original-qualities"
     >>>
 
     output {
