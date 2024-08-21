@@ -94,7 +94,22 @@ def type_data_frame(
 
     if len(df) == 0:
         # make an empty data frame that conforms to the Pandera schema
-        df = pd.DataFrame(pandera_schema.example(size=0))
+        s = pandera_schema.to_schema()
+
+        # `example` doesn't know how to instantiate dicts, so do that manually
+        dict_cols = []
+
+        for c in s.columns:
+            if s.columns[c].dtype.type is dict:
+                dict_cols.append(c)
+                s = s.remove_columns([c])
+
+        df = pd.DataFrame(s.example(size=0))
+
+        if len(dict_cols) > 0:
+            for c in dict_cols:
+                df[c] = {}
+
     elif remove_unknown_cols:
         df_cols = pandera_schema.to_schema().columns.keys()
         df = df.loc[:, df_cols]
@@ -217,12 +232,6 @@ def model_to_df(
     """
 
     records = model.model_dump()[records_key]
-
-    if len(records) == 0:
-        # make an empty data frame that conforms to the Pandera schema
-        return type_data_frame(
-            pd.DataFrame(pandera_schema.example(size=0)), pandera_schema
-        )
 
     df = pd.DataFrame(records)
     df = mutator(df)

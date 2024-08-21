@@ -122,6 +122,13 @@ def join_existing_results_to_samples(
     best_task_results = pick_best_task_results(task_results)
     samples = samples.merge(best_task_results, how="left", on="sample_id")
 
+    samples = samples.rename(
+        columns={
+            "bam_filepath": "analysis_ready_bam",
+            "bai_filepath": "analysis_ready_bai",
+        }
+    )
+
     return type_data_frame(samples, TerraSample, remove_unknown_cols=False)
 
 
@@ -253,7 +260,9 @@ def delta_preprocess_wgs_samples(
     """
 
     samples = terra_workspace.get_entities("sample", TerraSample)
-    samples = samples.loc[samples["bam"].isna() | samples["bai"].isna()].iloc[:2]
+    samples = samples.loc[
+        samples["analysis_ready_bam"].isna() | samples["analysis_ready_bai"].isna()
+    ]
 
     if len(samples) == 0:
         echo("No new samples to preprocess")

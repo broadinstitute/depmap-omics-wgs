@@ -77,8 +77,6 @@ def clean_and_annotate(
         ),
     )
 
-    echo("Done.")
-
 
 if __name__ == "__main__":
     app()
