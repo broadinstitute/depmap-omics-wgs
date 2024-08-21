@@ -238,37 +238,6 @@ def model_to_df(
     return type_data_frame(df, pandera_schema, remove_unknown_cols)
 
 
-def anti_join(
-    x: pd.DataFrame, y: pd.DataFrame, on: str | Iterable[str]
-) -> pd.DataFrame:
-    """
-    Anti join two data frames.
-
-    :param x: a base data frame
-    :param y: a data frame to use for filtering
-    :param on: the columns to anti-join on
-    :return: a data frame
-    """
-
-    if len(y) == 0:
-        return x
-
-    # make a data frame of just the join columns
-    dummy = y.loc[:, on]
-
-    # convert to data frame if `on` was a single column
-    if isinstance(dummy, pd.Series):
-        dummy = dummy.to_frame()
-
-    dummy.loc[:, "dummy_col"] = 1  # indicator variable
-
-    # attempt to join left data frame (`x`) to the dummy data frame
-    merged = x.merge(dummy, on=on, how="left")
-
-    # keep only the non-matches
-    return merged.loc[merged["dummy_col"].isna(), x.columns.tolist()]
-
-
 def get_gcs_object_metadata(
     urls: Iterable[str], gcp_project_id: str
 ) -> TypedDataFrame[GcsObject]:
