@@ -2,7 +2,7 @@ title = "omics-wgs-pipeline config"
 
 gcp_project_id = "depmap-omics"
 uuid_namespace = "00000000-0000-0000-0000-000000000000"
-ref_base_url = "gs://ccleparams/GIAB_hg38_patched_ref/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18"
+ref_base_url = "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38"
 delivery_ref_base_url = "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38"
 
 [terra]

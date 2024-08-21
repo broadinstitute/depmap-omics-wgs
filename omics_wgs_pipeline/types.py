@@ -56,7 +56,7 @@ class TerraSample(CoercedDataFrame):
     analysis_ready_bam: Series[pd.StringDtype] = pa.Field(nullable=True)
     analysis_ready_bai: Series[pd.StringDtype] = pa.Field(nullable=True)
     ref_0123: Series[pd.StringDtype] = pa.Field(nullable=True)
-    ref_amb: Series[pd.StringDtype]
+    ref_amb: Series[pd.StringDtype] = pa.Field(nullable=True)
     ref_ann: Series[pd.StringDtype]
     ref_bwt: Series[pd.StringDtype] = pa.Field(nullable=True)
     ref_bwt_2bit_64: Series[pd.StringDtype] = pa.Field(nullable=True)

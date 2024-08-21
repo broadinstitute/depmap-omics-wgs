@@ -17,7 +17,12 @@ from omics_wgs_pipeline.types import (
     TerraJobSubmissionKwargs,
     TypedDataFrame,
 )
-from omics_wgs_pipeline.utils import batch_evenly, expand_dict_columns, maybe_retry
+from omics_wgs_pipeline.utils import (
+    batch_evenly,
+    expand_dict_columns,
+    maybe_retry,
+    type_data_frame,
+)
 from omics_wgs_pipeline.wdl import GistedWdl
 
 
@@ -130,7 +135,7 @@ class TerraWorkspace:
 
         records = [{f"{entity_type}_id": x["name"], **x["attributes"]} for x in j]
 
-        return TypedDataFrame[pandera_schema](pd.DataFrame(records))
+        return type_data_frame(pd.DataFrame(records), pandera_schema)
 
     def upload_entities(self, df: pd.DataFrame) -> None:
         """
