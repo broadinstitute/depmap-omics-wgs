@@ -126,6 +126,20 @@ class model_condition_select_column(str, Enum):
     to_gpp = "to_gpp"
 
 
+class model_condition_select_column_model_condition_aggregate_bool_exp_bool_and_arguments_columns(
+    str, Enum
+):
+    contaminated = "contaminated"
+    to_gpp = "to_gpp"
+
+
+class model_condition_select_column_model_condition_aggregate_bool_exp_bool_or_arguments_columns(
+    str, Enum
+):
+    contaminated = "contaminated"
+    to_gpp = "to_gpp"
+
+
 class model_condition_update_column(str, Enum):
     batch_doubling_time = "batch_doubling_time"
     cell_characteristics = "cell_characteristics"
@@ -199,7 +213,7 @@ class model_select_column(str, Enum):
     date_model_derived = "date_model_derived"
     date_shared_in_dbgap = "date_shared_in_dbgap"
     dbgap = "dbgap"
-    depmap_model_type = "depmap_model_type"
+    depmap_model_type_id = "depmap_model_type_id"
     derived_outside_us = "derived_outside_us"
     engineered_model = "engineered_model"
     first_publication_link = "first_publication_link"
@@ -286,7 +300,7 @@ class model_update_column(str, Enum):
     date_model_derived = "date_model_derived"
     date_shared_in_dbgap = "date_shared_in_dbgap"
     dbgap = "dbgap"
-    depmap_model_type = "depmap_model_type"
+    depmap_model_type_id = "depmap_model_type_id"
     derived_outside_us = "derived_outside_us"
     engineered_model = "engineered_model"
     first_publication_link = "first_publication_link"
@@ -385,7 +399,7 @@ class omics_profile_select_column(str, Enum):
     line_received_by_gp = "line_received_by_gp"
     line_sent_to_gp = "line_sent_to_gp"
     main_sequencing_id = "main_sequencing_id"
-    model_condition = "model_condition"
+    model_condition_id = "model_condition_id"
     omics_order_date = "omics_order_date"
     omics_profile_flagship = "omics_profile_flagship"
     omics_profile_funding_source = "omics_profile_funding_source"
@@ -419,6 +433,32 @@ class omics_profile_select_column(str, Enum):
     workspace = "workspace"
 
 
+class omics_profile_select_column_omics_profile_aggregate_bool_exp_bool_and_arguments_columns(
+    str, Enum
+):
+    blacklist_omics = "blacklist_omics"
+    cell_available = "cell_available"
+    cell_pellet_needed = "cell_pellet_needed"
+    extraction_needed = "extraction_needed"
+    prioritized = "prioritized"
+    registered = "registered"
+    resubmit_for_extraction = "resubmit_for_extraction"
+    sample_is_on_risk = "sample_is_on_risk"
+
+
+class omics_profile_select_column_omics_profile_aggregate_bool_exp_bool_or_arguments_columns(
+    str, Enum
+):
+    blacklist_omics = "blacklist_omics"
+    cell_available = "cell_available"
+    cell_pellet_needed = "cell_pellet_needed"
+    extraction_needed = "extraction_needed"
+    prioritized = "prioritized"
+    registered = "registered"
+    resubmit_for_extraction = "resubmit_for_extraction"
+    sample_is_on_risk = "sample_is_on_risk"
+
+
 class omics_profile_update_column(str, Enum):
     actual_seq_technology = "actual_seq_technology"
     baits = "baits"
@@ -448,7 +488,7 @@ class omics_profile_update_column(str, Enum):
     line_received_by_gp = "line_received_by_gp"
     line_sent_to_gp = "line_sent_to_gp"
     main_sequencing_id = "main_sequencing_id"
-    model_condition = "model_condition"
+    model_condition_id = "model_condition_id"
     omics_order_date = "omics_order_date"
     omics_profile_flagship = "omics_profile_flagship"
     omics_profile_funding_source = "omics_profile_funding_source"
@@ -518,6 +558,24 @@ class omics_sequencing_select_column(str, Enum):
     update_time = "update_time"
     version = "version"
     year_sequencing_billed = "year_sequencing_billed"
+
+
+class omics_sequencing_select_column_omics_sequencing_aggregate_bool_exp_bool_and_arguments_columns(
+    str, Enum
+):
+    blacklist = "blacklist"
+    low_quality = "low_quality"
+    prioritized = "prioritized"
+    stranded = "stranded"
+
+
+class omics_sequencing_select_column_omics_sequencing_aggregate_bool_exp_bool_or_arguments_columns(
+    str, Enum
+):
+    blacklist = "blacklist"
+    low_quality = "low_quality"
+    prioritized = "prioritized"
+    stranded = "stranded"
 
 
 class omics_sequencing_update_column(str, Enum):

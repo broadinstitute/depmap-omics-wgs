@@ -10,6 +10,7 @@ from .input_types import (
 from .insert_task_entities import InsertTaskEntities
 from .insert_task_results import InsertTaskResults
 from .insert_terra_sync import InsertTerraSync
+from .sequencing_ids import SequencingIds
 from .sequencing_task_entities import SequencingTaskEntities
 from .wgs_sequencings import WgsSequencings
 
@@ -43,6 +44,23 @@ class GumboClient(BaseClient):
         )
         data = self.get_data(response)
         return WgsSequencings.model_validate(data)
+
+    def sequencing_ids(self, **kwargs: Any) -> SequencingIds:
+        query = gql(
+            """
+            query SequencingIds {
+              records: omics_sequencing {
+                sequencing_id
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {}
+        response = self.execute(
+            query=query, operation_name="SequencingIds", variables=variables, **kwargs
+        )
+        data = self.get_data(response)
+        return SequencingIds.model_validate(data)
 
     def sequencing_task_entities(self, **kwargs: Any) -> SequencingTaskEntities:
         query = gql(

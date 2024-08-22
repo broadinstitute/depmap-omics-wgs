@@ -12,7 +12,7 @@ class GetTaskResults(BaseModel):
 class GetTaskResultsRecords(BaseModel):
     id: str
     crc_32_c_hash: Optional[str] = Field(alias="crc32c_hash")
-    created_at: Any
+    created_at: Optional[Any]
     format: Optional[str]
     label: str
     size: Optional[int]

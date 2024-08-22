@@ -1,10 +1,10 @@
-from typing import Any, NotRequired, Optional, TypedDict, TypeVar
+from typing import Any, Optional, TypeVar
 
 import httpx
 import pandas as pd
 import pandera as pa
 import pandera.typing
-from pandera.api.pandas.model_config import BaseConfig as PaBaseConfig
+from nebelung.types import CoercedDataFrame
 from pandera.typing import Series
 from pydantic import BaseModel
 
@@ -21,29 +21,6 @@ class GumboClient(AriadneGumboClient):
     ):
         super().__init__(url=url, headers=headers, http_client=http_client)
         self.username = username  # store username on this object for use in mutations
-
-
-class PersistedWdl(TypedDict):
-    wdl: str
-    public_url: str
-    version: NotRequired[str | None]
-
-
-class TerraJobSubmissionKwargs(TypedDict):
-    entity: NotRequired[str | None]
-    etype: NotRequired[str | None]
-    expression: NotRequired[str | None]
-    use_callcache: NotRequired[bool | None]
-    delete_intermediate_output_files: NotRequired[bool | None]
-    use_reference_disks: NotRequired[bool | None]
-    memory_retry_multiplier: NotRequired[float | None]
-    workflow_failure_mode: NotRequired[str | None]
-    user_comment: NotRequired[str | None]
-
-
-class CoercedDataFrame(pa.DataFrameModel):
-    class Config(PaBaseConfig):
-        coerce = True  # convert to indicated dtype upon TypedDataFrame init
 
 
 class TerraSample(CoercedDataFrame):
@@ -102,3 +79,4 @@ class GcsObject(CoercedDataFrame):
 PydanticBaseModel = TypeVar("PydanticBaseModel", bound=BaseModel)
 PanderaBaseSchema = TypeVar("PanderaBaseSchema", bound=CoercedDataFrame)
 TypedDataFrame = pandera.typing.DataFrame
+T = TypeVar("T")

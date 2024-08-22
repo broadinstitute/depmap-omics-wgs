@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from typing import Annotated, Any
@@ -5,13 +6,14 @@ from typing import Annotated, Any
 import pandas as pd
 import tomllib
 import typer
+from nebelung.terra_workflow import TerraWorkflow
+from nebelung.terra_workspace import TerraWorkspace
 
 from omics_wgs_pipeline.data import (
     delta_preprocess_wgs_samples,
     make_terra_samples,
     put_task_results,
 )
-from omics_wgs_pipeline.terra import TerraWorkflow, TerraWorkspace
 from omics_wgs_pipeline.types import GumboClient
 
 pd.set_option("display.max_columns", 30)
@@ -39,6 +41,10 @@ def main(
     ctx: typer.Context,
     config_path: Annotated[Path, typer.Option(exists=True)],
 ):
+    logger = logging.getLogger()
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
+
     with open(config_path, "rb") as f:
         config.update(tomllib.load(f))
 

@@ -8,14 +8,13 @@ import pathlib
 
 import pandas as pd
 from firecloud import api as firecloud_api
+from nebelung.utils import batch_evenly, expand_dict_columns
 
 from gumbo_gql_client import task_entity_insert_input, task_result_insert_input
 from omics_wgs_pipeline.types import CoercedDataFrame, GumboClient, GumboTaskEntity
 from omics_wgs_pipeline.utils import (
-    batch_evenly,
     compute_uuidv3,
     df_to_model,
-    expand_dict_columns,
     get_gcs_object_metadata,
     model_to_df,
 )
@@ -41,7 +40,6 @@ def get_gumbo_samples():
     gumbo_samples = model_to_df(
         gumbo_client.wgs_sequencings(),
         CoercedDataFrame,
-        remove_unknown_cols=False,
         mutator=lambda df: df.rename(
             columns={
                 "hg_19_bai_filepath": "hg19_bai_filepath",
@@ -242,7 +240,9 @@ task_results = wgs_cn_samples.loc[
     wgs_cn_samples["sequencing_id"].isin(gumbo_samples["sequencing_id"])
 ]
 
-task_entities = model_to_df(gumbo_client.sequencing_task_entities(), GumboTaskEntity)
+task_entities = model_to_df(
+    gumbo_client.sequencing_task_entities(), GumboTaskEntity, remove_unknown_cols=True
+)
 task_entities = populate_task_entities(task_entities, task_results)
 
 task_results = make_task_results(task_results)

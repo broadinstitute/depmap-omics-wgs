@@ -4,11 +4,16 @@ import pathlib
 
 import pandas as pd
 from click import echo
+from nebelung.terra_workflow import TerraWorkflow
+from nebelung.terra_workspace import TerraWorkspace
+from nebelung.utils import expand_dict_columns, type_data_frame
 
-from gumbo_gql_client import task_entity_insert_input, task_result_bool_exp
-from omics_wgs_pipeline.terra import TerraWorkflow, TerraWorkspace
+from gumbo_gql_client import (
+    task_entity_insert_input,
+    task_result_bool_exp,
+    task_result_insert_input,
+)
 from omics_wgs_pipeline.types import (
-    CoercedDataFrame,
     GumboClient,
     GumboTaskEntity,
     GumboTaskResult,
@@ -18,10 +23,8 @@ from omics_wgs_pipeline.types import (
 )
 from omics_wgs_pipeline.utils import (
     compute_uuidv3,
-    expand_dict_columns,
     get_gcs_object_metadata,
     model_to_df,
-    type_data_frame,
 )
 
 
@@ -42,6 +45,7 @@ def make_terra_samples(
     wgs_sequencings = model_to_df(
         gumbo_client.wgs_sequencings(),
         GumboWgsSequencing,
+        remove_unknown_cols=True,
         mutator=lambda df: df.rename(
             columns={
                 "hg_19_bai_filepath": "hg19_bai_filepath",
@@ -61,6 +65,7 @@ def make_terra_samples(
             )
         ),
         GumboTaskResult,
+        remove_unknown_cols=True,
         mutator=lambda df: expand_dict_columns(df).rename(
             columns={"task_entity__sequencing_id": "sample_id"}
         ),
@@ -129,7 +134,7 @@ def join_existing_results_to_samples(
         }
     )
 
-    return type_data_frame(samples, TerraSample, remove_unknown_cols=False)
+    return type_data_frame(samples, TerraSample)
 
 
 def assign_ref_urls(
@@ -301,17 +306,43 @@ def put_task_results(
     :param since: don't collect outputs for job submissions before this `datetime`
     """
 
+    # get all current omics_sequencing IDs
+    valid_seq_ids = set(x.sequencing_id for x in gumbo_client.sequencing_ids().records)
+
     # get the outputs from the workspace's completed jobs
-    outputs = terra_workspace.collect_workflow_outputs(since)
+    all_outputs = terra_workspace.collect_workflow_outputs(since)
+    outputs = []
+
+    for x in all_outputs:
+        if (
+            x.terra_entity_type != "sample"
+            or "sample_id" not in x.terra_workflow_inputs
+            or x.terra_workflow_inputs["sample_id"] not in valid_seq_ids
+        ):
+            # not persisting outputs for jobs that didn't operate on samples or for
+            # unknown sequencing/sample IDs
+            continue
+
+        o = x.copy()
+
+        # replace the entity name with the more reliable `sample_id` workflow input
+        o.terra_entity_name = o.terra_workflow_inputs["sample_id"]
+
+        # do trivial conversion from `TaskResult` to `task_result_insert_input` type
+        outputs.append(task_result_insert_input(**o.model_dump()))
 
     echo("Getting existing task entity records for sequencings")
     task_entities = model_to_df(
-        gumbo_client.sequencing_task_entities(), GumboTaskEntity
+        gumbo_client.sequencing_task_entities(),
+        GumboTaskEntity,
+        remove_unknown_cols=True,
     )
 
     # check if any need to be created (a new `task_result` record must belong to one)
     req_seq_ids = set([x.terra_entity_name for x in outputs])
-    missing_seq_ids = req_seq_ids.difference(task_entities["sequencing_id"])
+    missing_seq_ids = req_seq_ids.intersection(valid_seq_ids).difference(
+        task_entities["sequencing_id"]
+    )
 
     if len(missing_seq_ids) > 0:
         echo(f"Creating {len(missing_seq_ids)} missing task entity records")
@@ -324,9 +355,7 @@ def put_task_results(
 
         # get the records again
         task_entities = model_to_df(
-            gumbo_client.sequencing_task_entities(),
-            CoercedDataFrame,
-            remove_unknown_cols=False,
+            gumbo_client.sequencing_task_entities(), GumboTaskEntity
         )
 
     # create a mapping from sequencing to task entity IDs
@@ -351,7 +380,7 @@ def put_task_results(
 
         if outputs[i].url in object_metadata.index:
             om = object_metadata.loc[outputs[i].url]
-            outputs[i].size = om["size"]
+            outputs[i].size = int(om["size"])
             outputs[i].crc_32_c_hash = om["crc32c_hash"]
 
         # assign a persistent UUID based on the record's values
