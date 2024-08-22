@@ -120,7 +120,7 @@ class GumboClient(BaseClient):
               records: task_result(where: $where) {
                 id
                 crc32c_hash
-                created_at
+                completed_at
                 format
                 label
                 size
@@ -186,7 +186,6 @@ class GumboClient(BaseClient):
     def insert_terra_sync(
         self,
         username: str,
-        created_at: Any,
         terra_workspace_namespace: str,
         terra_workspace_name: str,
         task_results: List[task_result_insert_input],
@@ -194,12 +193,12 @@ class GumboClient(BaseClient):
     ) -> InsertTerraSync:
         query = gql(
             """
-            mutation InsertTerraSync($username: String!, $created_at: timestamptz!, $terra_workspace_namespace: String!, $terra_workspace_name: String!, $task_results: [task_result_insert_input!]!) {
+            mutation InsertTerraSync($username: String!, $terra_workspace_namespace: String!, $terra_workspace_name: String!, $task_results: [task_result_insert_input!]!) {
               set_username(args: {_username: $username}) {
                 username
               }
               insert_terra_sync(
-                objects: {created_at: $created_at, terra_workspace_name: $terra_workspace_name, terra_workspace_namespace: $terra_workspace_namespace, task_results: {data: $task_results, on_conflict: {constraint: task_result_pkey, update_columns: []}}}
+                objects: {terra_workspace_name: $terra_workspace_name, terra_workspace_namespace: $terra_workspace_namespace, task_results: {data: $task_results, on_conflict: {constraint: task_result_pkey, update_columns: []}}}
               ) {
                 returning {
                   id
@@ -210,7 +209,6 @@ class GumboClient(BaseClient):
         )
         variables: Dict[str, object] = {
             "username": username,
-            "created_at": created_at,
             "terra_workspace_namespace": terra_workspace_namespace,
             "terra_workspace_name": terra_workspace_name,
             "task_results": task_results,

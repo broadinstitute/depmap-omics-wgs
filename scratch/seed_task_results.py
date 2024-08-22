@@ -206,7 +206,7 @@ def make_task_result_input(x):
         # use all fields with known values
         keys={
             "crc32c_hash",
-            "created_at",
+            "completed_at",
             "format",
             "label",
             "size",
@@ -249,10 +249,6 @@ task_results = make_task_results(task_results)
 
 object_metadata = get_gcs_object_metadata(task_results["url"].dropna(), "depmap-omics")
 task_results = task_results.merge(object_metadata, how="left", on="url")
-
-# set `created_at` to beginnning of UNIX epoch for values since we don't have them from
-# GCS
-task_results["created_at"] = task_results["created_at"].fillna(pd.Timestamp(0))
 
 task_result_inserts = [make_task_result_input(x) for _, x in task_results.iterrows()]
 

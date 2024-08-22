@@ -821,6 +821,7 @@ class task_result_constraint(str, Enum):
 
 
 class task_result_select_column(str, Enum):
+    completed_at = "completed_at"
     crc32c_hash = "crc32c_hash"
     created_at = "created_at"
     format = "format"
@@ -848,6 +849,7 @@ class task_result_select_column(str, Enum):
 
 
 class task_result_update_column(str, Enum):
+    completed_at = "completed_at"
     crc32c_hash = "crc32c_hash"
     created_at = "created_at"
     format = "format"

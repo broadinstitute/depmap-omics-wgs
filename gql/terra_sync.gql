@@ -1,6 +1,5 @@
 mutation InsertTerraSync(
   $username: String!
-  $created_at: timestamptz!
   $terra_workspace_namespace: String!
   $terra_workspace_name: String!
   $task_results: [task_result_insert_input!]!
@@ -10,7 +9,6 @@ mutation InsertTerraSync(
   }
   insert_terra_sync(
     objects: {
-      created_at: $created_at
       terra_workspace_name: $terra_workspace_name
       terra_workspace_namespace: $terra_workspace_namespace
       task_results: {

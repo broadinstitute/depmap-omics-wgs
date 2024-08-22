@@ -2035,13 +2035,13 @@ test = ["pep440", "pre-commit", "pytest", "testpath"]
 
 [[package]]
 name = "nebelung"
-version = "0.1.1"
+version = "0.1.2"
 description = "Firecloud API Wrapper"
 optional = false
 python-versions = ">=3.11"
 files = [
-    {file = "nebelung-0.1.1-py3-none-any.whl", hash = "sha256:9635ca4787b8e10d302208f5823af6ced76648874b9359ab5bf2c09397901ed0"},
-    {file = "nebelung-0.1.1.tar.gz", hash = "sha256:c9e42b5ac42c2b2cf0e1aec4e47545d12647b0535e2b390c8dd326274b79a507"},
+    {file = "nebelung-0.1.2-py3-none-any.whl", hash = "sha256:d24f42ccc427f5e36b8d592d2224f1a1d89fb46a2dc98cd1d455ce2094995aa8"},
+    {file = "nebelung-0.1.2.tar.gz", hash = "sha256:943f082921131dfcf48b5f290eb001c1530ce07dbdec5f22545ed91b1e36189d"},
 ]
 
 [package.dependencies]
@@ -3650,17 +3650,6 @@ files = [
 
 [[package]]
 name = "typing-extensions"
-version = "4.11.0"
-description = "Backported and Experimental Type Hints for Python 3.8+"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "typing_extensions-4.11.0-py3-none-any.whl", hash = "sha256:c1f94d72897edaf4ce775bb7558d5b79d8126906a14ea5ed1635921406c0387a"},
-    {file = "typing_extensions-4.11.0.tar.gz", hash = "sha256:83f085bd5ca59c80295fc2a82ab5dac679cbe02b9f33f7d83af68e241bea51b0"},
-]
-
-[[package]]
-name = "typing-extensions"
 version = "4.12.2"
 description = "Backported and Experimental Type Hints for Python 3.8+"
 optional = false
@@ -3931,4 +3920,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "c217a22bb9ba991c42f0d4ac8711e3a12e6c04d0e956e5c2eb49ac5db901b88b"
+content-hash = "75e1c88d64553f0827df78636a5472f24793338f80fb8ca0bc7c143697287121"

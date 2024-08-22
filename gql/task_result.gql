@@ -2,7 +2,7 @@ query GetTaskResults($where: task_result_bool_exp!) {
   records: task_result(where: $where) {
     id
     crc32c_hash
-    created_at
+    completed_at
     format
     label
     size

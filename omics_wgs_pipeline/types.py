@@ -66,7 +66,7 @@ class GumboTaskResult(CoercedDataFrame):
     value: Series[dict[str, Any]] = pa.Field(nullable=True)
     workflow_name: Series[pd.StringDtype] = pa.Field(nullable=True)
     workflow_version: Series[pd.StringDtype] = pa.Field(nullable=True)
-    created_at: Series[pd.Timestamp]
+    completed_at: Series[pd.Timestamp]
 
 
 class GcsObject(CoercedDataFrame):

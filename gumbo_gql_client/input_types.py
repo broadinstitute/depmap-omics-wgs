@@ -757,11 +757,6 @@ class model_condition_min_order_by(BaseModel):
     thaw_date: Optional[order_by] = None
 
 
-class model_condition_obj_rel_insert_input(BaseModel):
-    data: "model_condition_insert_input"
-    on_conflict: Optional["model_condition_on_conflict"] = None
-
-
 class model_condition_on_conflict(BaseModel):
     constraint: model_condition_constraint
     update_columns: List[model_condition_update_column]
@@ -1459,7 +1454,6 @@ class omics_profile_bool_exp(BaseModel):
     smid_ordered: Optional["String_comparison_exp"] = None
     smid_returned: Optional["String_comparison_exp"] = None
     status: Optional["String_comparison_exp"] = None
-    the_model_condition: Optional["model_condition_bool_exp"] = None
     version: Optional["String_comparison_exp"] = None
     wgs_delivery_date: Optional["date_comparison_exp"] = None
     workspace: Optional["String_comparison_exp"] = None
@@ -1524,7 +1518,6 @@ class omics_profile_insert_input(BaseModel):
     smid_ordered: Optional[str] = None
     smid_returned: Optional[str] = None
     status: Optional[str] = None
-    the_model_condition: Optional["model_condition_obj_rel_insert_input"] = None
     version: Optional[str] = None
     wgs_delivery_date: Optional[Any] = None
     workspace: Optional[str] = None
@@ -1710,7 +1703,6 @@ class omics_profile_order_by(BaseModel):
     smid_ordered: Optional[order_by] = None
     smid_returned: Optional[order_by] = None
     status: Optional[order_by] = None
-    the_model_condition: Optional["model_condition_order_by"] = None
     version: Optional[order_by] = None
     wgs_delivery_date: Optional[order_by] = None
     workspace: Optional[order_by] = None
@@ -3076,6 +3068,7 @@ class task_result_bool_exp(BaseModel):
     and_: Optional[List["task_result_bool_exp"]] = Field(alias="_and", default=None)
     not_: Optional["task_result_bool_exp"] = Field(alias="_not", default=None)
     or_: Optional[List["task_result_bool_exp"]] = Field(alias="_or", default=None)
+    completed_at: Optional["timestamptz_comparison_exp"] = None
     crc_32_c_hash: Optional["String_comparison_exp"] = Field(
         alias="crc32c_hash", default=None
     )
@@ -3128,6 +3121,7 @@ class task_result_inc_input(BaseModel):
 
 
 class task_result_insert_input(BaseModel):
+    completed_at: Optional[Any] = None
     crc_32_c_hash: Optional[str] = Field(alias="crc32c_hash", default=None)
     created_at: Optional[Any] = None
     format: Optional[str] = None
@@ -3157,6 +3151,7 @@ class task_result_insert_input(BaseModel):
 
 
 class task_result_max_order_by(BaseModel):
+    completed_at: Optional[order_by] = None
     crc_32_c_hash: Optional[order_by] = Field(alias="crc32c_hash", default=None)
     created_at: Optional[order_by] = None
     format: Optional[order_by] = None
@@ -3182,6 +3177,7 @@ class task_result_max_order_by(BaseModel):
 
 
 class task_result_min_order_by(BaseModel):
+    completed_at: Optional[order_by] = None
     crc_32_c_hash: Optional[order_by] = Field(alias="crc32c_hash", default=None)
     created_at: Optional[order_by] = None
     format: Optional[order_by] = None
@@ -3213,6 +3209,7 @@ class task_result_on_conflict(BaseModel):
 
 
 class task_result_order_by(BaseModel):
+    completed_at: Optional[order_by] = None
     crc_32_c_hash: Optional[order_by] = Field(alias="crc32c_hash", default=None)
     created_at: Optional[order_by] = None
     format: Optional[order_by] = None
@@ -3251,6 +3248,7 @@ class task_result_prepend_input(BaseModel):
 
 
 class task_result_set_input(BaseModel):
+    completed_at: Optional[Any] = None
     crc_32_c_hash: Optional[str] = Field(alias="crc32c_hash", default=None)
     created_at: Optional[Any] = None
     format: Optional[str] = None
@@ -3301,6 +3299,7 @@ class task_result_stream_cursor_input(BaseModel):
 
 
 class task_result_stream_cursor_value_input(BaseModel):
+    completed_at: Optional[Any] = None
     crc_32_c_hash: Optional[str] = Field(alias="crc32c_hash", default=None)
     created_at: Optional[Any] = None
     format: Optional[str] = None

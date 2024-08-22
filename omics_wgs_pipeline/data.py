@@ -197,7 +197,7 @@ def pick_best_task_results(
 
     # get unique file outputs for each sample+label
     task_result_files = (
-        task_results[["sample_id", "label", "url", "workflow_version", "created_at"]]
+        task_results[["sample_id", "label", "url", "workflow_version", "completed_at"]]
         .dropna(subset=["sample_id", "label", "url"])
         .drop_duplicates(subset=["sample_id", "label", "url"])
     )
@@ -205,7 +205,7 @@ def pick_best_task_results(
     # pick the most recent file based on workflow version and date
     best_task_result_files = (
         task_result_files.sort_values(
-            ["workflow_version", "created_at"], ascending=False
+            ["workflow_version", "completed_at"], ascending=False
         )
         .groupby(["sample_id", "label"])
         .nth(0)
@@ -215,7 +215,7 @@ def pick_best_task_results(
 
     # get unique value outputs for each sample+label
     task_result_values = task_results[
-        ["sample_id", "label", "value", "workflow_version", "created_at"]
+        ["sample_id", "label", "value", "workflow_version", "completed_at"]
     ].dropna(subset=["sample_id", "label", "value"])
 
     # need to temporarily convert values to JSON strings so that they can be de-deduped
@@ -230,7 +230,7 @@ def pick_best_task_results(
     # pick the most recent value based on workflow version and date
     best_task_result_values = (
         task_result_values.sort_values(
-            ["workflow_version", "created_at"], ascending=False
+            ["workflow_version", "completed_at"], ascending=False
         )
         .groupby(["sample_id", "label"])
         .nth(0)
@@ -368,10 +368,6 @@ def put_task_results(
         [str(x.url) for x in outputs if x.url is not None], gcp_project_id
     ).set_index("url")
 
-    # instead of the object's creation date, we'll use the date from the workflow so
-    # that it's consistent among all output files and values from that run
-    object_metadata = object_metadata.drop(columns="created_at")
-
     for i in range(len(outputs)):
         # assign final missing task result values
         outputs[i].task_entity_id = task_entities.loc[
@@ -390,7 +386,7 @@ def put_task_results(
             # use all fields with known values
             keys={
                 "crc32c_hash",
-                "created_at",
+                "completed_at",
                 "format",
                 "label",
                 "size",
@@ -417,7 +413,6 @@ def put_task_results(
     echo(f"Upserting {len(outputs)} task results into Gumbo")
     res = gumbo_client.insert_terra_sync(
         username=gumbo_client.username,
-        created_at=datetime.datetime.now(datetime.UTC),
         terra_workspace_namespace=str(outputs[0].terra_workspace_namespace),
         terra_workspace_name=str(outputs[0].terra_workspace_name),
         task_results=outputs,
