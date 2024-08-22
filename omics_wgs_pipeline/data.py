@@ -97,7 +97,7 @@ def join_existing_results_to_samples(
 
     samples = samples.rename(columns={"sequencing_id": "sample_id"})
 
-    # pick the best available option for the alignment files
+    # pick the best available option for the alignment files (TODO: wrong?)
     samples["delivery_cram_bam"] = (
         samples["hg38_cram_filepath"]
         .fillna(samples["bam_filepath"])

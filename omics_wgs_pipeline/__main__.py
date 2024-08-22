@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from pathlib import Path
@@ -52,7 +53,7 @@ def main(
         "terra_workspace": TerraWorkspace(
             workspace_namespace=config["terra"]["workspace_namespace"],
             workspace_name=config["terra"]["workspace_name"],
-            firecloud_owners=config["terra"]["firecloud_owners"],
+            owners=json.loads(os.environ["FIRECLOUD_OWNERS"]),
         ),
         "gumbo_client": GumboClient(
             url=os.environ["HASURA_URL"],
@@ -67,8 +68,6 @@ def update_workflow(
     ctx: typer.Context, workflow_name: Annotated[str, typer.Option()]
 ) -> None:
     terra_workflow = TerraWorkflow(
-        github_pat=os.environ["GITHUB_PAT"],
-        pipelines_bucket_name=config["terra"]["pipelines_bucket_name"],
         repo_namespace=config["terra"]["repo_namespace"],
         repo_method_name=config["terra"][workflow_name]["repo_method_name"],
         method_config_name=config["terra"][workflow_name]["method_config_name"],
@@ -99,8 +98,6 @@ def run_workflow(
     ctx: typer.Context, workflow_name: Annotated[str, typer.Option()]
 ) -> None:
     terra_workflow = TerraWorkflow(
-        github_pat=os.environ["GITHUB_PAT"],
-        pipelines_bucket_name=config["terra"]["pipelines_bucket_name"],
         repo_namespace=config["terra"]["repo_namespace"],
         repo_method_name=config["terra"][workflow_name]["repo_method_name"],
         method_config_name=config["terra"][workflow_name]["method_config_name"],

@@ -146,13 +146,13 @@ test = ["dateparser (==1.*)", "pre-commit", "pytest", "pytest-cov", "pytest-mock
 
 [[package]]
 name = "astroid"
-version = "3.1.0"
+version = "3.2.4"
 description = "An abstract syntax tree for Python with inference support."
 optional = false
 python-versions = ">=3.8.0"
 files = [
-    {file = "astroid-3.1.0-py3-none-any.whl", hash = "sha256:951798f922990137ac090c53af473db7ab4e70c770e6d7fae0cec59f74411819"},
-    {file = "astroid-3.1.0.tar.gz", hash = "sha256:ac248253bfa4bd924a0de213707e7ebeeb3138abeb48d798784ead1e56d419d4"},
+    {file = "astroid-3.2.4-py3-none-any.whl", hash = "sha256:413658a61eeca6202a59231abb473f932038fbcbf1666587f66d482083413a25"},
+    {file = "astroid-3.2.4.tar.gz", hash = "sha256:0e14202810b30da1b735827f78f5157be2bbd4a7a59b7707ca0bfc2fb4c0063a"},
 ]
 
 [[package]]
@@ -2035,13 +2035,13 @@ test = ["pep440", "pre-commit", "pytest", "testpath"]
 
 [[package]]
 name = "nebelung"
-version = "0.1.2"
+version = "1.0.1"
 description = "Firecloud API Wrapper"
 optional = false
 python-versions = ">=3.11"
 files = [
-    {file = "nebelung-0.1.2-py3-none-any.whl", hash = "sha256:d24f42ccc427f5e36b8d592d2224f1a1d89fb46a2dc98cd1d455ce2094995aa8"},
-    {file = "nebelung-0.1.2.tar.gz", hash = "sha256:943f082921131dfcf48b5f290eb001c1530ce07dbdec5f22545ed91b1e36189d"},
+    {file = "nebelung-1.0.1-py3-none-any.whl", hash = "sha256:a249a9e6bbd43094f4b43194d4deae5dfb3c4346387aaef199c3f4d7ed409453"},
+    {file = "nebelung-1.0.1.tar.gz", hash = "sha256:7877f941e43542d1a6dd1d4d02c9f280441eeda87369df0b82f169c61849c0b4"},
 ]
 
 [package.dependencies]
@@ -2695,22 +2695,22 @@ typing-extensions = ">=4.6.0,<4.7.0 || >4.7.0"
 
 [[package]]
 name = "pydot"
-version = "2.0.0"
+version = "3.0.1"
 description = "Python interface to Graphviz's Dot"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "pydot-2.0.0-py3-none-any.whl", hash = "sha256:408a47913ea7bd5d2d34b274144880c1310c4aee901f353cf21fe2e526a4ea28"},
-    {file = "pydot-2.0.0.tar.gz", hash = "sha256:60246af215123fa062f21cd791be67dda23a6f280df09f68919e637a1e4f3235"},
+    {file = "pydot-3.0.1-py3-none-any.whl", hash = "sha256:43f1e878dc1ff7c1c2e3470a6999d4e9e97771c5c862440c2f0af0ba844c231f"},
+    {file = "pydot-3.0.1.tar.gz", hash = "sha256:e18cf7f287c497d77b536a3d20a46284568fea390776dface6eabbdf1b1b5efc"},
 ]
 
 [package.dependencies]
-pyparsing = ">=3"
+pyparsing = ">=3.0.9"
 
 [package.extras]
-dev = ["black", "chardet"]
+dev = ["chardet", "parameterized", "ruff"]
 release = ["zest.releaser[recommended]"]
-tests = ["black", "chardet", "tox"]
+tests = ["chardet", "parameterized", "ruff", "tox", "unittest-parallel"]
 
 [[package]]
 name = "pyflakes"
@@ -2807,17 +2807,17 @@ files = [
 
 [[package]]
 name = "pylint"
-version = "3.1.0"
+version = "3.2.6"
 description = "python code static checker"
 optional = false
 python-versions = ">=3.8.0"
 files = [
-    {file = "pylint-3.1.0-py3-none-any.whl", hash = "sha256:507a5b60953874766d8a366e8e8c7af63e058b26345cfcb5f91f89d987fd6b74"},
-    {file = "pylint-3.1.0.tar.gz", hash = "sha256:6a69beb4a6f63debebaab0a3477ecd0f559aa726af4954fc948c51f7a2549e23"},
+    {file = "pylint-3.2.6-py3-none-any.whl", hash = "sha256:03c8e3baa1d9fb995b12c1dbe00aa6c4bcef210c2a2634374aedeb22fb4a8f8f"},
+    {file = "pylint-3.2.6.tar.gz", hash = "sha256:a5d01678349454806cff6d886fb072294f56a58c4761278c97fb557d708e1eb3"},
 ]
 
 [package.dependencies]
-astroid = ">=3.1.0,<=3.2.0-dev0"
+astroid = ">=3.2.4,<=3.3.0-dev0"
 colorama = {version = ">=0.4.5", markers = "sys_platform == \"win32\""}
 dill = {version = ">=0.3.7", markers = "python_version >= \"3.12\""}
 isort = ">=4.2.5,<5.13.0 || >5.13.0,<6"
@@ -3554,13 +3554,13 @@ files = [
 
 [[package]]
 name = "tomlkit"
-version = "0.12.4"
+version = "0.13.2"
 description = "Style preserving TOML library"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "tomlkit-0.12.4-py3-none-any.whl", hash = "sha256:5cd82d48a3dd89dee1f9d64420aa20ae65cfbd00668d6f094d7578a78efbb77b"},
-    {file = "tomlkit-0.12.4.tar.gz", hash = "sha256:7ca1cfc12232806517a8515047ba66a19369e71edf2439d0f5824f91032b6cc3"},
+    {file = "tomlkit-0.13.2-py3-none-any.whl", hash = "sha256:7a974427f6e119197f670fbbbeae7bef749a6c14e793db934baefc1b5f03efde"},
+    {file = "tomlkit-0.13.2.tar.gz", hash = "sha256:fff5fe59a87295b278abd31bec92c15d9bc4a06885ab12bcea52c71119392e79"},
 ]
 
 [[package]]
@@ -3920,4 +3920,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "75e1c88d64553f0827df78636a5472f24793338f80fb8ca0bc7c143697287121"
+content-hash = "923c3a06feb95fb490753943e1aa138bfeac699263da5f04c8f1a6052c7df454"
