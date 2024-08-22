@@ -14,7 +14,7 @@ version 1.0
 workflow call_mutations {
     input {
         String workflow_version = "1.0"
-        String workflow_url # populate this with the public URL of this script
+        String workflow_source_url # populated automatically with URL of this script
 
         # basic inputs
         File? intervals

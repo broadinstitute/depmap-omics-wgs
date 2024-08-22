@@ -15,7 +15,7 @@ import "./include/cnv_somatic_oncotator_workflow.wdl" as CNVOncotator
 workflow call_cnvs {
     input {
         String workflow_version = "1.0" # internal semver not tied to WARP releases
-        String workflow_url # populate this with the public URL of this script
+        String workflow_source_url # populated automatically with URL of this script
 
         ##################################
         #### required basic arguments ####
