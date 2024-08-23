@@ -2035,13 +2035,13 @@ test = ["pep440", "pre-commit", "pytest", "testpath"]
 
 [[package]]
 name = "nebelung"
-version = "1.0.1"
+version = "1.0.4"
 description = "Firecloud API Wrapper"
 optional = false
 python-versions = ">=3.11"
 files = [
-    {file = "nebelung-1.0.1-py3-none-any.whl", hash = "sha256:a249a9e6bbd43094f4b43194d4deae5dfb3c4346387aaef199c3f4d7ed409453"},
-    {file = "nebelung-1.0.1.tar.gz", hash = "sha256:7877f941e43542d1a6dd1d4d02c9f280441eeda87369df0b82f169c61849c0b4"},
+    {file = "nebelung-1.0.4-py3-none-any.whl", hash = "sha256:5847fe4e2bb4d3ab784cad4e525ebdc04cdf9317bb675d46ee0b9cd422163721"},
+    {file = "nebelung-1.0.4.tar.gz", hash = "sha256:bcc18c888536094f6f31eaf22a2f4cd99f2a18262c9141b2fa838857004f03fd"},
 ]
 
 [package.dependencies]
@@ -3920,4 +3920,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "923c3a06feb95fb490753943e1aa138bfeac699263da5f04c8f1a6052c7df454"
+content-hash = "03f450e6ddd068a0f08c61c9a4402fbe7e1ba746bea08629f20c9153f63cf947"

@@ -29,16 +29,14 @@ from omics_wgs_pipeline.utils import (
 
 
 def make_terra_samples(
-    gumbo_client: GumboClient, ref_base_url: str, delivery_ref_base_url: str
+    gumbo_client: GumboClient, ref_urls: dict[str, dict[str, str]]
 ) -> TypedDataFrame[TerraSample]:
     """
     Make a data frame to use as a Terra `sample` data table using ground truth data from
     Gumbo.
 
     :param gumbo_client: a `GumboClient` instance
-    :param ref_base_url: the `gs://` URL basename for the reference genome files
-    :param delivery_ref_base_url: the `gs://` URL basename for the reference genome
-    files used to generate the delivery CRAM/BAM files
+    :param ref_urls: a nested dictionary of genomes and their reference file URLs
     :return: a data frame to use as a Terra `sample` data table
     """
 
@@ -67,105 +65,113 @@ def make_terra_samples(
         GumboTaskResult,
         remove_unknown_cols=True,
         mutator=lambda df: expand_dict_columns(df).rename(
-            columns={"task_entity__sequencing_id": "sample_id"}
+            columns={"task_entity__sequencing_id": "sample_id", "value__value": "value"}
         ),
     )
 
-    return join_existing_results_to_samples(
-        wgs_sequencings, task_results, ref_base_url, delivery_ref_base_url
-    )
+    return join_existing_results_to_samples(wgs_sequencings, task_results, ref_urls)
 
 
 def join_existing_results_to_samples(
     wgs_sequencings: TypedDataFrame[GumboWgsSequencing],
     task_results: TypedDataFrame[GumboTaskResult],
-    ref_base_url: str,
-    delivery_ref_base_url: str,
+    ref_urls: dict[str, dict[str, str]],
 ) -> TypedDataFrame[TerraSample]:
     """
     Make a data frame to upload to Terra as the `sample` data table.
 
     :param wgs_sequencings: data frame of Gumbo `omics_sequencing` records
     :param task_results: data frame of Gumbo `task_result` records
-    :param ref_base_url: the `gs://` URL basename for the reference genome files
-    :param delivery_ref_base_url: the `gs://` URL basename for the reference genome
-    files used to generate the delivery CRAM/BAM files
+    :param ref_urls: a nested dictionary of genomes and their reference file URLs
     :return: a data frame for the `sample` data table in Terra
     """
 
+    # set up genome ref URLs as data frames
+    hg38_urls = pd.DataFrame([ref_urls["hg38"]])
+    hg38_urls["ref"] = "hg38"
+
+    hg19_urls = pd.DataFrame([ref_urls["hg19"]])
+    hg19_urls["ref"] = "hg19"
+
+    # start constructing samples data frame
     samples = wgs_sequencings.copy()
 
-    samples = samples.rename(columns={"sequencing_id": "sample_id"})
-
-    # pick the best available option for the alignment files (TODO: wrong?)
-    samples["delivery_cram_bam"] = (
-        samples["hg38_cram_filepath"]
-        .fillna(samples["bam_filepath"])
-        .fillna(samples["hg19_bam_filepath"])
+    samples = samples.rename(
+        columns={
+            "bai_filepath": "analysis_ready_bai",
+            "bam_filepath": "analysis_ready_bam",
+            "sequencing_id": "sample_id",
+        }
     )
 
-    samples["delivery_crai_bai"] = (
-        samples["hg38_crai_filepath"]
-        .fillna(samples["bai_filepath"])
-        .fillna(samples["hg19_bai_filepath"])
-    )
+    # indicate whether GP-delivered alignmnent files are hg19 or hg38
+    samples["delivery_ref"] = pd.NA
+    samples.loc[samples["hg38_cram_filepath"].notna(), "delivery_ref"] = "hg38"
+    samples.loc[
+        samples["delivery_ref"].isna() & samples["hg19_bam_filepath"].notna(),
+        "delivery_ref",
+    ] = "hg19"
+
+    is_hg38 = samples["delivery_ref"].eq("hg38")
+    is_hg19 = samples["delivery_ref"].eq("hg19")
+
+    dfs = []
+
+    if is_hg38.any():
+        samples_sub = (
+            samples.loc[is_hg38]
+            .drop(columns=["hg19_bam_filepath", "hg19_bai_filepath"])
+            .rename(
+                columns={
+                    "hg38_cram_filepath": "delivery_cram_bam",
+                    "hg38_crai_filepath": "delivery_crai_bai",
+                }
+            )
+        )
+
+        hg38_delivery_urls = hg38_urls.copy()
+        hg38_delivery_urls.columns = "delivery_" + hg38_delivery_urls.columns
+
+        samples_sub = samples_sub.merge(
+            hg38_delivery_urls, on="delivery_ref", how="left"
+        )
+        dfs.append(samples_sub)
+
+    if is_hg19.any():
+        samples_sub = (
+            samples.loc[is_hg19]
+            .drop(columns=["hg38_cram_filepath", "hg38_crai_filepath"])
+            .rename(
+                columns={
+                    "hg19_bam_filepath": "delivery_cram_bam",
+                    "hg19_bai_filepath": "delivery_crai_bai",
+                }
+            )
+        )
+
+        hg19_delivery_urls = hg19_urls.copy()
+        hg19_delivery_urls.columns = "delivery_" + hg19_delivery_urls.columns
+
+        samples_sub = samples_sub.merge(
+            hg19_delivery_urls, on="delivery_ref", how="left"
+        )
+        dfs.append(samples_sub)
+
+    samples = pd.concat(dfs, ignore_index=True)
 
     samples["delivery_file_format"] = samples["delivery_cram_bam"].apply(
         lambda x: pathlib.Path(x).suffix[1:].upper()
     )
 
-    # all new samples should be hg38, but this removes hg19 ones if necessary
-    samples = samples.loc[
-        ~(samples["delivery_cram_bam"].eq(samples["hg19_bam_filepath"]).fillna(False))
-    ]
-
-    # assign URLs for reference genome files
-    samples = assign_ref_urls(samples, ref_base_url)
-    samples = assign_ref_urls(samples, delivery_ref_base_url, prefix="delivery_")
+    # hardcoding the desired reference for now
+    samples["ref"] = "hg38"
+    samples = samples.merge(hg38_urls, on="ref", how="left")
 
     # collect file and value outputs and pick most recent version of each
     best_task_results = pick_best_task_results(task_results)
     samples = samples.merge(best_task_results, how="left", on="sample_id")
 
-    samples = samples.rename(
-        columns={
-            "bam_filepath": "analysis_ready_bam",
-            "bai_filepath": "analysis_ready_bai",
-        }
-    )
-
     return type_data_frame(samples, TerraSample)
-
-
-def assign_ref_urls(
-    samples: pd.DataFrame, ref_base_url: str, prefix: str = ""
-) -> pd.DataFrame:
-    """
-    Assign URLs for the reference genome files.
-
-    :param samples: a data frame of Terra samples
-    :param ref_base_url: the `gs://` URL basename for the reference genome files
-    :param prefix: an optional prefix to use for the new column names
-    :return: a data frame of Terra samples with URLs for the reference genome files
-    """
-
-    ref_exts = {
-        "ref_0123": "fasta.amb.0123",
-        "ref_amb": "fasta.amb",
-        "ref_ann": "fasta.ann",
-        "ref_bwt": "fasta.bwt",
-        "ref_bwt_2bit_64": "fasta.bwt.2bit.64",
-        "ref_dict": "dict",
-        "ref_fasta": "fasta",
-        "ref_fasta_index": "fasta.fai",
-        "ref_pac": "fasta.pac",
-        "ref_sa": "fasta.sa",
-    }
-
-    for k, v in ref_exts.items():
-        samples[f"{prefix}{k}"] = ".".join([ref_base_url, v])
-
-    return samples
 
 
 def pick_best_task_results(

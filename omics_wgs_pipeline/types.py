@@ -25,18 +25,26 @@ class GumboClient(AriadneGumboClient):
 
 class TerraSample(CoercedDataFrame):
     sample_id: Series[pd.StringDtype]
+    delivery_cram_bam: Series[pd.StringDtype] = pa.Field(nullable=True)
+    delivery_crai_bai: Series[pd.StringDtype] = pa.Field(nullable=True)
     delivery_file_format: Series[pd.StringDtype] = pa.Field(
         isin={"CRAM", "BAM"}, nullable=True
     )
-    delivery_cram_bam: Series[pd.StringDtype] = pa.Field(nullable=True)
-    delivery_crai_bai: Series[pd.StringDtype] = pa.Field(nullable=True)
+    delivery_ref: Series[pd.StringDtype]
+    delivery_ref_amb: Series[pd.StringDtype]
+    delivery_ref_ann: Series[pd.StringDtype]
+    delivery_ref_bwt: Series[pd.StringDtype]
+    delivery_ref_dict: Series[pd.StringDtype]
+    delivery_ref_fasta: Series[pd.StringDtype]
+    delivery_ref_fasta_index: Series[pd.StringDtype]
+    delivery_ref_pac: Series[pd.StringDtype]
+    delivery_ref_sa: Series[pd.StringDtype]
     analysis_ready_bam: Series[pd.StringDtype] = pa.Field(nullable=True)
     analysis_ready_bai: Series[pd.StringDtype] = pa.Field(nullable=True)
-    ref_0123: Series[pd.StringDtype] = pa.Field(nullable=True)
-    ref_amb: Series[pd.StringDtype] = pa.Field(nullable=True)
+    ref: Series[pd.StringDtype]
+    ref_amb: Series[pd.StringDtype]
     ref_ann: Series[pd.StringDtype]
-    ref_bwt: Series[pd.StringDtype] = pa.Field(nullable=True)
-    ref_bwt_2bit_64: Series[pd.StringDtype] = pa.Field(nullable=True)
+    ref_bwt: Series[pd.StringDtype]
     ref_dict: Series[pd.StringDtype]
     ref_fasta: Series[pd.StringDtype]
     ref_fasta_index: Series[pd.StringDtype]
@@ -63,7 +71,7 @@ class GumboTaskResult(CoercedDataFrame):
     sample_id: Series[pd.StringDtype]
     label: Series[pd.StringDtype]
     url: Series[pd.StringDtype] = pa.Field(nullable=True)
-    value: Series[dict[str, Any]] = pa.Field(nullable=True)
+    value: Series = pa.Field(nullable=True)
     workflow_name: Series[pd.StringDtype] = pa.Field(nullable=True)
     workflow_version: Series[pd.StringDtype] = pa.Field(nullable=True)
     completed_at: Series[pd.Timestamp]
