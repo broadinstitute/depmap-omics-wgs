@@ -64,7 +64,7 @@ def make_terra_samples(
         ),
         GumboTaskResult,
         remove_unknown_cols=True,
-        mutator=lambda df: expand_dict_columns(df).rename(
+        mutator=lambda df: expand_dict_columns(df, except_cols=["value"]).rename(
             columns={"task_entity__sequencing_id": "sample_id", "value__value": "value"}
         ),
     )
