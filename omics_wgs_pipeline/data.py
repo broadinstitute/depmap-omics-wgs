@@ -117,6 +117,7 @@ def join_existing_results_to_samples(
 
     dfs = []
 
+    # set delivery_* columns for hg38 samples
     if is_hg38.any():
         samples_sub = (
             samples.loc[is_hg38]
@@ -137,6 +138,7 @@ def join_existing_results_to_samples(
         )
         dfs.append(samples_sub)
 
+    # set delivery_* columns for hg19 samples
     if is_hg19.any():
         samples_sub = (
             samples.loc[is_hg19]
@@ -157,13 +159,14 @@ def join_existing_results_to_samples(
         )
         dfs.append(samples_sub)
 
+    # recombine hg38/19 samples
     samples = pd.concat(dfs, ignore_index=True)
 
     samples["delivery_file_format"] = samples["delivery_cram_bam"].apply(
         lambda x: pathlib.Path(x).suffix[1:].upper()
     )
 
-    # hardcoding the desired reference for now
+    # for now, hardcoding the desired reference (for preprocessing/alignment workflow)
     samples["ref"] = "hg38"
     samples = samples.merge(hg38_urls, on="ref", how="left")
 
@@ -185,18 +188,23 @@ def pick_best_task_results(
     :return: a wide data frame of samples and their outputs
     """
 
-    # check that output labels don't come from different workflows
-    workflow_label_counts = (
-        task_results[["workflow_name", "label"]].drop_duplicates().value_counts()
+    # check that distinct output labels (i.e. data table columns) don't come from
+    # different workflows
+    workflow_names_per_label = (
+        task_results[["workflow_name", "label"]]
+        .drop_duplicates()["label"]
+        .value_counts()
     )
 
-    if not workflow_label_counts.eq(1).all():
+    bad_labels = workflow_names_per_label.loc[workflow_names_per_label.gt(1)]
+
+    if len(bad_labels) > 0:
         raise ValueError(
             "\n".join(
                 [
                     "Cannot sync task results back to Terra. "
                     "Inconsistent workflow name and label combinations:",
-                    str(workflow_label_counts.to_frame().reset_index()),
+                    str(bad_labels.to_frame().reset_index()),
                 ]
             )
         )
