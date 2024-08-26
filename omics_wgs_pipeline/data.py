@@ -76,6 +76,7 @@ def join_existing_results_to_samples(
     wgs_sequencings: TypedDataFrame[GumboWgsSequencing],
     task_results: TypedDataFrame[GumboTaskResult],
     ref_urls: dict[str, dict[str, str]],
+    join_task_results: bool = False,
 ) -> TypedDataFrame[TerraSample]:
     """
     Make a data frame to upload to Terra as the `sample` data table.
@@ -83,6 +84,7 @@ def join_existing_results_to_samples(
     :param wgs_sequencings: data frame of Gumbo `omics_sequencing` records
     :param task_results: data frame of Gumbo `task_result` records
     :param ref_urls: a nested dictionary of genomes and their reference file URLs
+    :param join_task_results: whether to join canonical task results to upserted samples
     :return: a data frame for the `sample` data table in Terra
     """
 
@@ -170,9 +172,8 @@ def join_existing_results_to_samples(
     samples["ref"] = "hg38"
     samples = samples.merge(hg38_urls, on="ref", how="left")
 
-    # collect file and value outputs and pick most recent version of each
-    best_task_results = pick_best_task_results(task_results)
-    samples = samples.merge(best_task_results, how="left", on="sample_id")
+    if join_task_results:
+        raise NotImplementedError
 
     return type_data_frame(samples, TerraSample)
 
@@ -209,7 +210,7 @@ def pick_best_task_results(
             )
         )
 
-    # get unique file outputs for each sample+label
+    # get unique file (URL) outputs for each sample+label
     task_result_files = (
         task_results[["sample_id", "label", "url", "workflow_version", "completed_at"]]
         .dropna(subset=["sample_id", "label", "url"])
@@ -232,6 +233,11 @@ def pick_best_task_results(
         ["sample_id", "label", "value", "workflow_version", "completed_at"]
     ].dropna(subset=["sample_id", "label", "value"])
 
+    # drop NA values
+    task_result_values = task_result_values.loc[
+        task_result_values["value"].ne({"value": None})
+    ]
+
     # need to temporarily convert values to JSON strings so that they can be de-deduped
     task_result_values["value"] = task_result_values["value"].apply(json.dumps)
 
@@ -251,12 +257,15 @@ def pick_best_task_results(
         .pivot(index="sample_id", columns="label", values="value")
         .reset_index()
         .set_index("sample_id")
+        .fillna(pd.NA)
     )
 
     # extract the values from the dictionaries
-    best_task_result_values = best_task_result_values.map(
-        lambda x: x["value"]
-    ).reset_index()
+    best_task_result_values = (
+        best_task_result_values.map(lambda x: x["value"] if x is not pd.NA else pd.NA)
+        .reset_index()
+        .fillna(pd.NA)
+    )
 
     # join files and values and guess their dtypes
     best_task_results = best_task_result_files.merge(
