@@ -200,7 +200,6 @@ task CollectCounts {
         Boolean? enable_indexing
         String? format
         File? gatk4_jar_override
-        String? gcs_project_for_requester_pays
 
         # Runtime parameters
         String gatk_docker
@@ -252,6 +251,7 @@ task CollectCounts {
     command <<<
         set -eu
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" gatk4_jar_override}
+        export GCS_REQUESTER_PAYS_PROJECT="$(gcloud config get-value project -q)"
 
         case ~{format_} in
             HDF5 | TSV | TSV_GZ)
@@ -280,7 +280,7 @@ task CollectCounts {
             --format ~{default="HDF5" hdf5_or_tsv_or_null_format} \
             --interval-merging-rule OVERLAPPING_ONLY \
             --output ~{counts_filename_for_collect_read_counts} \
-            ~{"--gcs-project-for-requester-pays " + gcs_project_for_requester_pays} \
+            --gcs-project-for-requester-pays "${GCS_REQUESTER_PAYS_PROJECT}" \
             ~{sep=' ' disabled_read_filters_arr}
 
         if [ ~{do_block_compression} = "true" ]; then
@@ -317,7 +317,6 @@ task CollectAllelicCounts {
         File ref_fasta_dict
         Int? minimum_base_quality
         File? gatk4_jar_override
-        String? gcs_project_for_requester_pays
 
         # Runtime parameters
         String gatk_docker
@@ -348,6 +347,7 @@ task CollectAllelicCounts {
     command <<<
         set -eu
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" gatk4_jar_override}
+        export GCS_REQUESTER_PAYS_PROJECT="$(gcloud config get-value project -q)"
 
         gatk --java-options "-Xmx~{command_mem_mb}m" CollectAllelicCounts \
             -L ~{common_sites} \
@@ -356,7 +356,7 @@ task CollectAllelicCounts {
             --reference ~{ref_fasta} \
             --minimum-base-quality ~{default="20" minimum_base_quality} \
             --output ~{allelic_counts_filename} \
-            ~{"--gcs-project-for-requester-pays " + gcs_project_for_requester_pays}
+            --gcs-project-for-requester-pays "${GCS_REQUESTER_PAYS_PROJECT}"
     >>>
 
     runtime {

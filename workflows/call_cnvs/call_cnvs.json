@@ -5,7 +5,6 @@
     "call_cnvs.common_sites": "\"gs://ccleparams/references/intervals/common_sites_hg38_lifted.list\"",
     "call_cnvs.gatk_docker": "\"broadinstitute/gatk:4.5.0.0\"",
     "call_cnvs.intervals": "\"gs://ccleparams/references/references_wgs_xy.intervals\"",
-    "call_cnvs.gcs_project_for_requester_pays": "\"depmap-omics\"",
     "call_cnvs.is_run_oncotator": "true",
     "call_cnvs.num_changepoints_penalty_factor": "5",
     "call_cnvs.read_count_pon": "\"gs://ccleparams/pons/hg38_GIABv3_tiny.pon.hdf5\"",

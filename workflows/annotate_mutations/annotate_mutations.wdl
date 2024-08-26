@@ -76,7 +76,6 @@ workflow annotate_mutations {
         Array[String]? funcotator_annotation_overrides
         String? funcotator_data_sources_url
         String? funcotator_extra_args
-        String? gcs_project_for_requester_pays
     }
 
     call compress_vcf {
@@ -200,8 +199,7 @@ workflow annotate_mutations {
                 transcript_selection_list = transcript_selection_list,
                 funcotator_annotation_defaults = funcotator_annotation_defaults,
                 funcotator_annotation_overrides = funcotator_annotation_overrides,
-                extra_args = funcotator_extra_args,
-                gcs_project_for_requester_pays = gcs_project_for_requester_pays
+                extra_args = funcotator_extra_args
         }
     }
 
@@ -998,7 +996,6 @@ task funcotator {
         File? interval_list
 
         String? extra_args
-        String? gcs_project_for_requester_pays
 
         String docker_image
         String docker_image_hash_or_tag
@@ -1043,6 +1040,7 @@ task funcotator {
     command <<<
         set -e
         export GATK_LOCAL_JAR="/root/gatk.jar"
+        export GCS_REQUESTER_PAYS_PROJECT="$(gcloud config get-value project -q)"
 
         # Hack to validate our WDL inputs:
         #
@@ -1097,7 +1095,7 @@ task funcotator {
             ~{excluded_fields_args}~{default="" sep=" --exclude-field " funcotator_excluded_fields} \
             ~{filter_funcotations_args} \
             ~{extra_args_arg} \
-            ~{"--gcs-project-for-requester-pays " + gcs_project_for_requester_pays}
+            --gcs-project-for-requester-pays "${GCS_REQUESTER_PAYS_PROJECT}"
 
         # Make sure we have a placeholder index for MAF files so this workflow doesn't fail:
         if [[ "~{output_format}" == "MAF" ]] ; then

@@ -61,7 +61,6 @@ workflow call_mutations {
         Int boot_disk_size = 12
         Int learn_read_orientation_mem = 8000
         Int filter_alignment_artifacts_mem = 9000
-        String? gcs_project_for_requester_pays
 
         # Use as a last resort to increase the disk given to every task in case of ill behaving data
         Int emergency_extra_disk = 0
@@ -126,8 +125,7 @@ workflow call_mutations {
                 gga_vcf_idx = gga_vcf_idx,
                 gatk_override = gatk_override,
                 gatk_docker = gatk_docker,
-                disk_space = m2_per_scatter_size,
-                gcs_project_for_requester_pays = gcs_project_for_requester_pays
+                disk_space = m2_per_scatter_size
         }
     }
 
@@ -224,8 +222,7 @@ workflow call_mutations {
                 input_vcf = Filter.filtered_vcf,
                 input_vcf_idx = Filter.filtered_vcf_idx,
                 runtime_params = standard_runtime,
-                mem = filter_alignment_artifacts_mem,
-                gcs_project_for_requester_pays = gcs_project_for_requester_pays
+                mem = filter_alignment_artifacts_mem
         }
     }
 
@@ -323,8 +320,6 @@ task M2 {
 
         File? gatk_override
 
-        String? gcs_project_for_requester_pays
-
         # runtime
         String gatk_docker
         Int? mem
@@ -367,6 +362,7 @@ task M2 {
         set -e
 
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" gatk_override}
+        export GCS_REQUESTER_PAYS_PROJECT="$(gcloud config get-value project -q)"
 
         # We need to create these files regardless, even if they stay empty
         touch bamout.bam
@@ -375,12 +371,12 @@ task M2 {
         echo "" > normal_name.txt
 
         gatk --java-options "-Xmx~{command_mem}m" GetSampleName -R ~{ref_fasta} -I ~{tumor_reads} -O tumor_name.txt -encode \
-        ~{"--gcs-project-for-requester-pays " + gcs_project_for_requester_pays}
+        --gcs-project-for-requester-pays "${GCS_REQUESTER_PAYS_PROJECT}"
         tumor_command_line="-I ~{tumor_reads} -tumor `cat tumor_name.txt`"
 
         if [[ ! -z "~{normal_reads}" ]]; then
             gatk --java-options "-Xmx~{command_mem}m" GetSampleName -R ~{ref_fasta} -I ~{normal_reads} -O normal_name.txt -encode \
-            ~{"--gcs-project-for-requester-pays " + gcs_project_for_requester_pays}
+            --gcs-project-for-requester-pays "${GCS_REQUESTER_PAYS_PROJECT}"
             normal_command_line="-I ~{normal_reads} -normal `cat normal_name.txt`"
         fi
 
@@ -396,7 +392,7 @@ task M2 {
             ~{true='--bam-output bamout.bam' false='' make_bamout} \
             ~{true='--f1r2-tar-gz f1r2.tar.gz' false='' run_ob_filter} \
             ~{m2_extra_args} \
-            ~{"--gcs-project-for-requester-pays " + gcs_project_for_requester_pays}
+            --gcs-project-for-requester-pays "${GCS_REQUESTER_PAYS_PROJECT}"
 
         m2_exit_code=$?
 
@@ -411,13 +407,13 @@ task M2 {
         if [[ ! -z "~{variants_for_contamination}" ]]; then
             gatk --java-options "-Xmx~{command_mem}m" GetPileupSummaries -R ~{ref_fasta} -I ~{tumor_reads} ~{"--interval-set-rule INTERSECTION -L " + intervals} \
                 -V ~{variants_for_contamination} -L ~{variants_for_contamination} -O tumor-pileups.table ~{getpileupsummaries_extra_args} \
-                ~{"--gcs-project-for-requester-pays " + gcs_project_for_requester_pays}
+                --gcs-project-for-requester-pays "${GCS_REQUESTER_PAYS_PROJECT}"
 
 
             if [[ ! -z "~{normal_reads}" ]]; then
                 gatk --java-options "-Xmx~{command_mem}m" GetPileupSummaries -R ~{ref_fasta} -I ~{normal_reads} ~{"--interval-set-rule INTERSECTION -L " + intervals} \
                     -V ~{variants_for_contamination} -L ~{variants_for_contamination} -O normal-pileups.table ~{getpileupsummaries_extra_args} \
-                    ~{"--gcs-project-for-requester-pays " + gcs_project_for_requester_pays}
+                    --gcs-project-for-requester-pays "${GCS_REQUESTER_PAYS_PROJECT}"
             fi
         fi
 
@@ -755,7 +751,6 @@ task FilterAlignmentArtifacts {
       Boolean compress_vcfs
       File realignment_index_bundle
       String? realignment_extra_args
-      String? gcs_project_for_requester_pays
       Runtime runtime_params
       Int mem
     }
@@ -776,10 +771,11 @@ task FilterAlignmentArtifacts {
       reads_index: {localization_optional: true}
     }
 
-    command {
+    command <<<
         set -e
 
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" runtime_params.gatk_override}
+        export GCS_REQUESTER_PAYS_PROJECT="$(gcloud config get-value project -q)"
 
         gatk --java-options "-Xmx~{command_mem}m" FilterAlignmentArtifacts \
             -R ~{ref_fasta} \
@@ -788,8 +784,8 @@ task FilterAlignmentArtifacts {
             --bwa-mem-index-image ~{realignment_index_bundle} \
             ~{realignment_extra_args} \
             -O ~{output_vcf} \
-            ~{"--gcs-project-for-requester-pays " + gcs_project_for_requester_pays}
-    }
+            --gcs-project-for-requester-pays "${GCS_REQUESTER_PAYS_PROJECT}"
+    >>>
 
     runtime {
         docker: runtime_params.gatk_docker
