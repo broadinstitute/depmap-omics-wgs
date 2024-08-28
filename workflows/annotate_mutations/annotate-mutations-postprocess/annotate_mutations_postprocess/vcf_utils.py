@@ -156,7 +156,7 @@ def expand_info_value_filters(df: pd.DataFrame) -> pd.DataFrame:
     return df.drop(columns=["format", "values"])
 
 
-def parse_vcf_info(info: str) -> dict[str, str]:
+def parse_vcf_info(info: str) -> dict[str, str | None]:
     parts = info.split(";")
     kv = [x.split("=") for x in parts]
     return dict(zip([x[0] for x in kv], [x[1] if len(x) == 2 else None for x in kv]))

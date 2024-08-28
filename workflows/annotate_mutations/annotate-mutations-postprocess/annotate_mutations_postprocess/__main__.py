@@ -1,3 +1,4 @@
+import logging
 import re
 from pathlib import Path
 from typing import Annotated, Any, List
@@ -5,9 +6,9 @@ from typing import Annotated, Any, List
 import pandas as pd
 import tomllib
 import typer
+from vcf_info_merger import info_merge_vcfs
 
 from annotate_mutations_postprocess.conversion import convert
-from annotate_mutations_postprocess.merging import do_merge
 from annotate_mutations_postprocess.utils import echo
 
 pd.set_option("display.max_columns", 30)
@@ -35,6 +36,9 @@ def main(
     ctx: typer.Context,
     config_path: Annotated[Path, typer.Option(exists=True)],
 ):
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.INFO)
+
     with open(config_path, "rb") as f:
         config.update(tomllib.load(f))
 
@@ -46,7 +50,7 @@ def merge_info(
     vcf: Annotated[List[Path], typer.Option(exists=True)],
     out: Annotated[Path, typer.Option()],
 ) -> None:
-    do_merge(vcf_paths=vcf, out_path=out)
+    info_merge_vcfs(vcf_paths=vcf, out_path=out)
 
 
 @app.command()
