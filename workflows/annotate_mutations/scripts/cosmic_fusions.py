@@ -3,6 +3,7 @@ Download the most recent hg38 data set available from (e.g.)
 https://cancer.sanger.ac.uk/cosmic/download/cosmic/v99/fusion
 """
 
+import datetime
 import re
 from collections import OrderedDict
 
@@ -54,4 +55,6 @@ fusions_df = pd.DataFrame(
     }
 )
 
-fusions_df.to_csv("./data/cmc/cosmic_fusions.csv", index=False)
+today = datetime.datetime.today().strftime("%Y-%m-%d")
+
+fusions_df.to_csv(f"./data/cosmic_fusions_{today}.csv", index=False)
