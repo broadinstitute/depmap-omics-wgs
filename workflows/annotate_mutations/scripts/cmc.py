@@ -8,7 +8,7 @@ import pandas as pd
 VERSION = "99"
 
 cmc = pd.read_csv(
-    f"./data/CancerMutationCensus_AllData_v{VERSION}_GRCh38.tsv.gz",
+    f"./data/cmc/CancerMutationCensus_AllData_v{VERSION}_GRCh38.tsv.gz",
     sep="\t",
     low_memory=False,
     usecols=[
@@ -94,7 +94,7 @@ cmc_fixed = cmc_fixed.sort_values(["chrom", "pos"])
 cmc_fixed["chrom"] = cmc_fixed["chrom"].astype("string").replace({"23": "X", "24": "Y"})
 cmc_fixed["chrom"] = "chr" + cmc_fixed["chrom"]
 
-cmc_fixed.to_csv(f"./data/cmc/cosmic_cmc.tsv", sep="\t", index=False, header=False)
+cmc_fixed.to_csv("./data/cmc/cosmic_cmc.tsv", sep="\t", index=False, header=False)
 
 """
 echo '##INFO=<ID=CMC_TIER,Number=1,Type=String,Description="COSMIC CMC Mutation Significance Tier">' \
