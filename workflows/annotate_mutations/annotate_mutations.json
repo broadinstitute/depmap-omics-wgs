@@ -46,7 +46,7 @@
     "annotate_mutations.interval_list": "\"gs://ccleparams/region_file_wgs.list\"",
     "annotate_mutations.loftool_scores": "\"gs://cds-vep-data/LoFtool_scores.txt\"",
     "annotate_mutations.merge_info.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/annotate_mutations_postprocess\"",
-    "annotate_mutations.merge_info.docker_image_hash_or_tag": "\"@sha256:4bddb0ee94bdd56cd77112f0a7611fe3f678fceb48089de9849d70ac050de513\"",
+    "annotate_mutations.merge_info.docker_image_hash_or_tag": "\"@sha256:81bf83ee20811fa59872345c83e044e65fa2ae63732e069e5965b77be276f49f\"",
     "annotate_mutations.normalize_indels": "true",
     "annotate_mutations.oncokb_annotation": "\"gs://cds-oncokb-data/OncoKB_Annotated_Final_2024-03-19_08-12-54.csv\"",
     "annotate_mutations.open_cravat.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/open_cravat\"",

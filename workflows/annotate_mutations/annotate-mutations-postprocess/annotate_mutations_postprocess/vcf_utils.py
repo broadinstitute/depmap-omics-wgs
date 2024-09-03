@@ -3,10 +3,11 @@ from csv import QUOTE_NONE
 from pathlib import Path
 from urllib.parse import unquote
 
+import bgzip
 import numpy as np
 import pandas as pd
-from bgzip import BGZipReader
 from caseconverter import snakecase
+from vcf_info_merger.merge import get_header_lines
 
 from annotate_mutations_postprocess.utils import echo, expand_dict_columns
 
@@ -14,16 +15,10 @@ from annotate_mutations_postprocess.utils import echo, expand_dict_columns
 def get_vcf_info_and_format_dtypes(
     path: Path, compound_info_fields: set[str]
 ) -> pd.DataFrame:
-    header_lines = []
-
-    with open(path, "r") as f:
-        while True:
-            line = f.readline()
-
-            if line.startswith("##FORMAT") or line.startswith("##INFO"):
-                header_lines.append(line.strip())
-            elif not line.startswith("#"):
-                break
+    header_lines = get_header_lines([path])
+    header_lines = [
+        x for x in header_lines if x.startswith("##FORMAT") or x.startswith("##INFO")
+    ]
 
     arr = []
 
@@ -64,30 +59,32 @@ def get_vcf_info_and_format_dtypes(
     return df
 
 
-def read_vcf(path: Path | BGZipReader) -> pd.DataFrame:
-    df = pd.read_csv(
-        path,
-        sep="\t",
-        header=None,
-        names=[
-            "chromosome",
-            "position",
-            "id",
-            "ref",
-            "alt",
-            "qual",
-            "filter",
-            "info",
-            "format",
-            "values",
-        ],
-        dtype="string",
-        na_values=".",
-        keep_default_na=False,
-        quoting=QUOTE_NONE,
-        # nrows=1000,
-        encoding_errors="backslashreplace",
-    )
+def read_vcf(path: Path | bgzip.BGZipReader) -> pd.DataFrame:
+    with open(path, "rb") as raw:
+        with bgzip.BGZipReader(raw) as f:
+            df = pd.read_csv(
+                f,
+                sep="\t",
+                header=None,
+                names=[
+                    "chromosome",
+                    "position",
+                    "id",
+                    "ref",
+                    "alt",
+                    "qual",
+                    "filter",
+                    "info",
+                    "format",
+                    "values",
+                ],
+                dtype="string",
+                na_values=".",
+                keep_default_na=False,
+                quoting=QUOTE_NONE,
+                nrows=100000,
+                encoding_errors="backslashreplace",
+            )
 
     header_line = (
         df.loc[df["chromosome"].eq("#CHROM")]
@@ -112,7 +109,7 @@ def read_vcf(path: Path | BGZipReader) -> pd.DataFrame:
     df["position"] = df["position"].astype("int64")
 
     assert ~df[["chromosome", "position", "ref", "alt"]].duplicated().any()
-    assert df.notna().all().all()
+    assert df.notna().all(axis=None)
 
     return df.reset_index(drop=True)
 
