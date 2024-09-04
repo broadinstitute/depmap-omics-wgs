@@ -113,6 +113,6 @@ def expand_dict_columns(
     return df
 
 
-def cs(df: pd.DataFrame, prefix: str) -> list[str]:
-    regex = re.compile(rf"^{re.escape(prefix)}(_\d+)?$")
-    return list(df.columns[df.columns.str.match(regex)])
+def cs(df: pd.DataFrame, s: str) -> list[str]:
+    regex = re.compile(rf"{re.escape(s)}")
+    return list(df.columns[df.columns.str.contains(regex)])
