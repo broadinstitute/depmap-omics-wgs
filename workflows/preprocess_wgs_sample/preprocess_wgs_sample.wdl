@@ -177,56 +177,57 @@ workflow preprocess_wgs_sample {
     }
 
     if (perform_bqsr) {
-        call prevent_double_bqsr {
+        call check_bqsr_and_oq_tags {
             input:
                 bam = input_cram_bam,
                 bai = input_crai_bai
         }
 
-        call CreateSequenceGroupingTSV {
-            input:
-                ref_dict = ref_dict,
-                passed = prevent_double_bqsr.passed
-        }
-
-        Int n_bqsr_splits = length(CreateSequenceGroupingTSV.sequence_grouping_with_unmapped)
-
-        scatter (subgroup in CreateSequenceGroupingTSV.sequence_grouping) {
-            call BaseRecalibrator {
+        if (!check_bqsr_and_oq_tags.bqsr_performed || check_bqsr_and_oq_tags.has_oq_tags) {
+            call CreateSequenceGroupingTSV {
                 input:
-                    bqsr_regions = subgroup,
-                    n_bqsr_splits = n_bqsr_splits,
-                    bam = sort_and_index_markdup_bam.output_bam,
-                    bam_index = sort_and_index_markdup_bam.output_bai,
-                    ref_fasta = ref_fasta,
-                    ref_fasta_index = ref_fasta_index,
-                    ref_dict = ref_dict,
-                    dbsnp_vcf = dbsnp_vcf,
-                    dbsnp_vcf_index = dbsnp_vcf_index
+                    ref_dict = ref_dict
             }
-        }
 
-        call GatherBqsrReports {
-            input:
-                input_bqsr_reports = BaseRecalibrator.bqsr_recal_file,
-                output_report_filename = sample_id + ".bqsr.grp"
-        }
+            Int n_bqsr_splits = length(CreateSequenceGroupingTSV.sequence_grouping_with_unmapped)
 
-        scatter (subgroup in CreateSequenceGroupingTSV.sequence_grouping_with_unmapped) {
-            call ApplyBQSR {
+            scatter (subgroup in CreateSequenceGroupingTSV.sequence_grouping) {
+                call BaseRecalibrator {
+                    input:
+                        bqsr_regions = subgroup,
+                        n_bqsr_splits = n_bqsr_splits,
+                        bam = sort_and_index_markdup_bam.output_bam,
+                        bam_index = sort_and_index_markdup_bam.output_bai,
+                        ref_fasta = ref_fasta,
+                        ref_fasta_index = ref_fasta_index,
+                        ref_dict = ref_dict,
+                        dbsnp_vcf = dbsnp_vcf,
+                        dbsnp_vcf_index = dbsnp_vcf_index
+                }
+            }
+
+            call GatherBqsrReports {
                 input:
-                    bqsr_regions = subgroup,
-                    n_bqsr_splits = n_bqsr_splits,
-                    bam = sort_and_index_markdup_bam.output_bam,
-                    bam_index = sort_and_index_markdup_bam.output_bai,
-                    bqsr_recal_file = GatherBqsrReports.output_bqsr_report
+                    input_bqsr_reports = BaseRecalibrator.bqsr_recal_file,
+                    output_report_filename = sample_id + ".bqsr.grp"
             }
-        }
 
-        call GatherBamFiles as BqsrGatherBamFiles {
-            input:
-                input_bams = ApplyBQSR.recalibrated_bam,
-                output_bam_basename = sample_id + ".analysis_ready"
+            scatter (subgroup in CreateSequenceGroupingTSV.sequence_grouping_with_unmapped) {
+                call ApplyBQSR {
+                    input:
+                        bqsr_regions = subgroup,
+                        n_bqsr_splits = n_bqsr_splits,
+                        bam = sort_and_index_markdup_bam.output_bam,
+                        bam_index = sort_and_index_markdup_bam.output_bai,
+                        bqsr_recal_file = GatherBqsrReports.output_bqsr_report
+                }
+            }
+
+            call GatherBamFiles as BqsrGatherBamFiles {
+                input:
+                    input_bams = ApplyBQSR.recalibrated_bam,
+                    output_bam_basename = sample_id + ".analysis_ready"
+            }
         }
     }
 
@@ -809,7 +810,7 @@ task CalculateSomaticContamination {
     }
 }
 
-task prevent_double_bqsr {
+task check_bqsr_and_oq_tags {
     input {
         File bam
         File bai
@@ -839,14 +840,16 @@ task prevent_double_bqsr {
 
         # get header (and single read) to check for previous BQSR recalibration
         samtools head "~{bam}" -n 1 > head.txt
-        BQSR_PERFORMED=$(grep -q "ApplyBQSR" head.txt && echo "true" || echo "false")
 
-        if [ "${BQSR_PERFORMED}" = "false" ]; then
+        BQSR_PERFORMED=$(grep -q "ApplyBQSR" head.txt && echo "true" || echo "false") && \
+            echo "${BQSR_PERFORMED}" > bqsr_performed.txt
+
+        if [ "${BQSR_PERFORMED}" = "true" ]; then
+            echo "BQSR has already been performed on ~{bam}"
+        else
             echo "BQSR has not been performed on ~{bam} yet"
-            exit 0
         fi
 
-        echo "BQSR has already been performed on ~{bam}, so checking for OQ tags"
         HAS_OQ_TAGS=$(tail -n 1 head.txt | awk '
             BEGIN {
                 FS="\t"
@@ -868,18 +871,18 @@ task prevent_double_bqsr {
                     print "false"
                 }
             }
-        ')
+        ') && echo "${HAS_OQ_TAGS}" > has_oq_tags.txt
 
-        if [ "${HAS_OQ_TAGS}" = "false" ]; then
-            >&2 echo "Error: BQSR already performed but reads are missing OQ tag"
-            exit 1
+        if [ "${HAS_OQ_TAGS}" = "true" ]; then
+            echo "Found OQ tags; BQSR can be performed again with --use-original-qualities"
+        else
+            echo "Reads are missing OQ tag; BQSR cannot be performed again"
         fi
-
-        echo "Found OQ tags: BQSR can be performed again with --use-original-qualities"
     >>>
 
     output {
-        Boolean passed = true
+        Boolean bqsr_performed = read_boolean("bqsr_performed.txt")
+        Boolean has_oq_tags = read_boolean("has_oq_tags.txt")
     }
 
     runtime {
@@ -901,7 +904,6 @@ task prevent_double_bqsr {
 task CreateSequenceGroupingTSV {
     input {
         File ref_dict
-        Boolean passed # no way to manually define an upstream dependency
 
         Int mem_gb = 1
         Int cpu = 1
