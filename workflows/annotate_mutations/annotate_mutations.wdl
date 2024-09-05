@@ -660,7 +660,7 @@ task annot_with_bcftools {
         if ~{annot_cosmic_cmc}; then
             echo "Annotating COSMIC Cancer Mutation Census tiers"
 
-            echo '##INFO=<ID=CMC_TIER,Number=1,Type=String,Description="COSMIC CMC Mutation Significance Tier">' \
+            echo '##INFO=<ID=CMC_TIER,Number=1,Type=Integer,Description="COSMIC CMC Mutation Significance Tier">' \
                 > cosmic_cmc.hdr.vcf
 
             bcftools index "~{vcf}"
@@ -677,7 +677,7 @@ task annot_with_bcftools {
         if ~{annot_civic}; then
             echo "Annotating CIVIC variants"
 
-            echo '##INFO=<ID=CIVIC_SCORE,Number=1,Type=String,Description="CIVIC evidence score">' \
+            echo '##INFO=<ID=CIVIC_SCORE,Number=1,Type=Float,Description="CIVIC evidence score">' \
                 > civic.hdr.vcf
             echo '##INFO=<ID=CIVIC_DESC,Number=1,Type=String,Description="CIVIC variant description">' \
                 >> civic.hdr.vcf
