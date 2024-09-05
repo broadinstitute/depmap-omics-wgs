@@ -52,7 +52,8 @@ workflow preprocess_wgs_sample {
         Boolean do_collect_insert_size_metrics = false
         File? contamination_vcf
         File? contamination_vcf_index
-        Boolean perform_bqsr = true
+        Boolean run_bqsr = true
+        Boolean rerun_bqsr = true
         File dbsnp_vcf
         File dbsnp_vcf_index
 
@@ -176,14 +177,14 @@ workflow preprocess_wgs_sample {
         }
     }
 
-    if (perform_bqsr) {
+    if (run_bqsr) {
         call check_bqsr_and_oq_tags {
             input:
                 bam = input_cram_bam,
                 bai = input_crai_bai
         }
 
-        if (!check_bqsr_and_oq_tags.bqsr_performed || check_bqsr_and_oq_tags.has_oq_tags) {
+        if (!check_bqsr_and_oq_tags.bqsr_performed || (rerun_bqsr && check_bqsr_and_oq_tags.has_oq_tags)) {
             call CreateSequenceGroupingTSV {
                 input:
                     ref_dict = ref_dict
