@@ -61,6 +61,8 @@ def convert(
         dna_repair_genes=dna_repair_genes,
         oncogenes=oncogenes,
         tumor_suppressor_genes=tumor_suppressor_genes,
+        cosmic_fusions=cosmic_fusions,
+        cosmic_translocation_partners=cosmic_translocation_partners,
     )
 
     pass
