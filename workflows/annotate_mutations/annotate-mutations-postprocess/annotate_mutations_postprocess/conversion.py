@@ -14,8 +14,10 @@ from annotate_mutations_postprocess.vcf_utils import (
 def convert(
     vcf_path: Path,
     dna_repair_genes_path: Path,
-    oncogenes_list_path: Path,
-    tsg_list_path: Path,
+    oncogenes_path: Path,
+    tumor_suppressor_genes_path: Path,
+    cosmic_fusions_path: Path,
+    cosmic_translocation_partners_path: Path,
     out_path: Path,
     drop_cols: set[str],
     na_cols: set[str],
@@ -25,13 +27,18 @@ def convert(
     url_encoded_col_name_regex: re.Pattern,
     funco_sanitized_col_name_regex: re.Pattern,
 ):
-    dna_repair_genes = pd.read_csv(dna_repair_genes_path)
+    dna_repair_genes = pd.read_csv(dna_repair_genes_path, dtype="string")
 
-    with open(oncogenes_list_path, "r") as f:
+    with open(oncogenes_path, "r") as f:
         oncogenes = set(line.strip() for line in f)
 
-    with open(tsg_list_path, "r") as f:
+    with open(tumor_suppressor_genes_path, "r") as f:
         tumor_suppressor_genes = set(line.strip() for line in f)
+
+    cosmic_fusions = pd.read_csv(cosmic_fusions_path, dtype="string")
+    cosmic_translocation_partners = pd.read_csv(
+        cosmic_translocation_partners_path, dtype="string"
+    )
 
     info_and_format_dtypes = get_vcf_info_and_format_dtypes(
         vcf_path, compound_info_fields
