@@ -239,7 +239,7 @@ task SplitOutUbamByReadGroup {
         File input_bam
         File rg_to_ubam_file
         Int disk_size
-        Int memory_in_MiB = 30000
+        Int memory_in_MiB = 3000
     }
 
     Array[Array[String]] tmp = read_tsv(rg_to_ubam_file)
