@@ -126,28 +126,40 @@ def clean_vcf(
     cols_to_drop = list(drop_cols)
     df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
 
+    echo("Expanding nested columns")
     df = expand_info_value_filters(df)
     df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
 
+    echo("Expanding nested columns")
     df = expand_and_cast(df, info_and_format_dtypes)
     df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
 
     df.replace({"": pd.NA}, inplace=True)
     df.replace({"": pd.NA, ".": pd.NA}, inplace=True)
 
+    echo("URL-decoding columns")
     df = urldecode_cols(df, url_encoded_col_name_regex, funco_sanitized_col_name_regex)
     # df = remove_na_cols(df, na_cols)
+
+    echo("Casting boolean columns")
     df = convert_booleans(df, bool_cols)
 
     return df
 
 
 def expand_info_value_filters(df: pd.DataFrame) -> pd.DataFrame:
+    echo("Expanding INFO")
     df["info"] = df["info"].apply(parse_vcf_info)
+
+    echo("Expanding values")
     df["value"] = df.apply(
         lambda x: dict(zip(x["format"].split(":"), x["values"].split(":"))), axis=1
     )
+
+    echo("Expanding filters")
     df = expand_filters(df)
+
+    echo("Expanding dict columns")
     df = expand_dict_columns(df, col_name_formatter=snakecase)
 
     return df.drop(columns=["format", "values"])
@@ -182,6 +194,8 @@ def expand_and_cast(df, info_and_format_dtypes):
     ]
 
     for _, r in obs_info_formats.iterrows():
+        echo(f"Expanding {r['id']}")
+
         if r["type"] == "boolean":
             df[r["id"]] = df[r["id"]].astype("boolean")
             df[r["id"]] = df[r["id"]].fillna(False)
