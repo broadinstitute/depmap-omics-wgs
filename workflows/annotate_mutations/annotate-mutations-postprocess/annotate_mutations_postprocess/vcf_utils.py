@@ -12,6 +12,36 @@ from vcf_info_merger.merge import get_header_lines
 from annotate_mutations_postprocess.utils import echo, expand_dict_columns
 
 
+def vcf_to_wide(
+    vcf_path: Path,
+    drop_cols: set[str],
+    na_cols: set[str],
+    bool_cols: set[str],
+    compound_info_fields: set[str],
+    url_encoded_col_name_regex: re.Pattern,
+    funco_sanitized_col_name_regex: re.Pattern,
+):
+    info_and_format_dtypes = get_vcf_info_and_format_dtypes(
+        vcf_path, compound_info_fields
+    )
+
+    echo(f"Reading {vcf_path}")
+    df = read_vcf(vcf_path)
+
+    echo(f"Cleaning {vcf_path}")
+    df = clean_vcf(
+        df=df,
+        info_and_format_dtypes=info_and_format_dtypes,
+        drop_cols=drop_cols,
+        na_cols=na_cols,
+        bool_cols=bool_cols,
+        url_encoded_col_name_regex=url_encoded_col_name_regex,
+        funco_sanitized_col_name_regex=funco_sanitized_col_name_regex,
+    )
+
+    return df
+
+
 def get_vcf_info_and_format_dtypes(
     path: Path, compound_info_fields: set[str]
 ) -> pd.DataFrame:
@@ -63,7 +93,7 @@ def read_vcf(path: Path | bgzip.BGZipReader) -> pd.DataFrame:
     with open(path, "rb") as raw:
         with bgzip.BGZipReader(raw) as f:
             df = pd.read_csv(
-                f,
+                f.fileobj,
                 sep="\t",
                 header=None,
                 names=[
@@ -82,7 +112,7 @@ def read_vcf(path: Path | bgzip.BGZipReader) -> pd.DataFrame:
                 na_values=".",
                 keep_default_na=False,
                 quoting=QUOTE_NONE,
-                nrows=100000,
+                # nrows=100000,
                 encoding_errors="backslashreplace",
             )
 

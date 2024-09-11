@@ -8,8 +8,9 @@ import tomllib
 import typer
 from vcf_info_merger import info_merge_vcfs
 
-from annotate_mutations_postprocess.conversion import convert
+from annotate_mutations_postprocess.annotation import annotate_vcf
 from annotate_mutations_postprocess.utils import echo
+from annotate_mutations_postprocess.vcf_utils import vcf_to_wide
 
 pd.set_option("display.max_columns", 30)
 pd.set_option("display.max_colwidth", 50)
@@ -57,25 +58,15 @@ def merge_info(
 def clean_and_annotate(
     ctx: typer.Context,
     vcf: Annotated[Path, typer.Option(exists=True)],
-    dna_repair_genes: Annotated[Path, typer.Option(exists=True)],
     oncogenes: Annotated[Path, typer.Option(exists=True)],
     tumor_suppressor_genes: Annotated[Path, typer.Option(exists=True)],
-    cosmic_fusions: Annotated[Path, typer.Option(exists=True)],
-    cosmic_translocation_partners: Annotated[Path, typer.Option(exists=True)],
     out: Annotated[Path, typer.Option()],
 ) -> None:
-    convert(
+    df = vcf_to_wide(
         vcf_path=vcf,
-        dna_repair_genes_path=dna_repair_genes,
-        oncogenes_path=oncogenes,
-        tumor_suppressor_genes_path=tumor_suppressor_genes,
-        cosmic_fusions_path=cosmic_fusions,
-        cosmic_translocation_partners_path=cosmic_translocation_partners,
-        out_path=out,
         drop_cols=set(ctx.obj["settings"]["drop_cols"]),
         na_cols=set(ctx.obj["settings"]["na_cols"]),
         bool_cols=set(ctx.obj["settings"]["bool_cols"]),
-        force_keep=set(ctx.obj["settings"]["force_keep"]),
         compound_info_fields=set(ctx.obj["settings"]["compound_info_fields"]),
         url_encoded_col_name_regex=re.compile(
             "|".join(ctx.obj["settings"]["url_encoded_col_name_regexes"])
@@ -83,6 +74,16 @@ def clean_and_annotate(
         funco_sanitized_col_name_regex=re.compile(
             "|".join(ctx.obj["settings"]["funco_sanitized_col_name_regexes"])
         ),
+    )
+
+    with open(oncogenes, "r") as f:
+        oncogenes_list = set(line.strip() for line in f)
+
+    with open(tumor_suppressor_genes, "r") as f:
+        tumor_suppressor_genes_list = set(line.strip() for line in f)
+
+    df = annotate_vcf(
+        df, oncogenes=oncogenes_list, tumor_suppressor_genes=tumor_suppressor_genes_list
     )
 
 

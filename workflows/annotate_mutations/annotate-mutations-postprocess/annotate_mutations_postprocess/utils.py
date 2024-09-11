@@ -1,7 +1,6 @@
 import datetime
 import re
-from typing import IO, Any, Callable, Optional, Union
-from unicodedata import normalize
+from typing import IO, Any, Callable, Optional
 
 import pandas as pd
 from click import echo as click_echo
@@ -117,12 +116,3 @@ def expand_dict_columns(
 def cs(df: pd.DataFrame, s: str) -> list[str]:
     regex = re.compile(rf"{re.escape(s)}")
     return list(df.columns[df.columns.str.contains(regex)])
-
-
-def normalize_text(x: Union[str, pd.NA]) -> Union[str, pd.NA]:
-    if x is pd.NA:
-        return pd.NA
-
-    x = normalize("NFD", x)
-    x = x.lower().strip()
-    return re.sub(r"\s{2,}", " ", x)
