@@ -52,6 +52,30 @@ files = [
 ]
 
 [[package]]
+name = "cattrs"
+version = "24.1.1"
+description = "Composable complex class support for attrs and dataclasses."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "cattrs-24.1.1-py3-none-any.whl", hash = "sha256:ec8ce8fdc725de9d07547cd616f968670687c6fa7a2e263b088370c46d834d97"},
+    {file = "cattrs-24.1.1.tar.gz", hash = "sha256:16e94a13f9aaf6438bd5be5df521e072b1b00481b4cf807bcb1acbd49f814c08"},
+]
+
+[package.dependencies]
+attrs = ">=23.1.0"
+
+[package.extras]
+bson = ["pymongo (>=4.4.0)"]
+cbor2 = ["cbor2 (>=5.4.6)"]
+msgpack = ["msgpack (>=1.0.5)"]
+msgspec = ["msgspec (>=0.18.5)"]
+orjson = ["orjson (>=3.9.2)"]
+pyyaml = ["pyyaml (>=6.0)"]
+tomlkit = ["tomlkit (>=0.11.8)"]
+ujson = ["ujson (>=5.7.0)"]
+
+[[package]]
 name = "click"
 version = "8.1.7"
 description = "Composable command line interface toolkit"
@@ -107,6 +131,21 @@ pytest = ["pytest (>=4.6)"]
 pytz = ["pytz (>=2014.1)"]
 redis = ["redis (>=3.0.0)"]
 zoneinfo = ["backports.zoneinfo (>=0.2.1)", "tzdata (>=2024.1)"]
+
+[[package]]
+name = "lsprotocol"
+version = "2023.0.1"
+description = "Python implementation of the Language Server Protocol."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "lsprotocol-2023.0.1-py3-none-any.whl", hash = "sha256:c75223c9e4af2f24272b14c6375787438279369236cd568f596d4951052a60f2"},
+    {file = "lsprotocol-2023.0.1.tar.gz", hash = "sha256:cc5c15130d2403c18b734304339e51242d3018a05c4f7d0f198ad6e0cd21861d"},
+]
+
+[package.dependencies]
+attrs = ">=21.3.0"
+cattrs = "!=23.2.1"
 
 [[package]]
 name = "multimethod"
@@ -415,6 +454,24 @@ files = [
 typing-extensions = ">=4.6.0,<4.7.0 || >4.7.0"
 
 [[package]]
+name = "pygls"
+version = "1.3.1"
+description = "A pythonic generic language server (pronounced like 'pie glass')"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "pygls-1.3.1-py3-none-any.whl", hash = "sha256:6e00f11efc56321bdeb6eac04f6d86131f654c7d49124344a9ebb968da3dd91e"},
+    {file = "pygls-1.3.1.tar.gz", hash = "sha256:140edceefa0da0e9b3c533547c892a42a7d2fd9217ae848c330c53d266a55018"},
+]
+
+[package.dependencies]
+cattrs = ">=23.1.2"
+lsprotocol = "2023.0.1"
+
+[package.extras]
+ws = ["websockets (>=11.0.3)"]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 description = "Extensions to the standard Python datetime module"
@@ -464,6 +521,27 @@ files = [
     {file = "ruff-0.4.8-py3-none-win_arm64.whl", hash = "sha256:14019a06dbe29b608f6b7cbcec300e3170a8d86efaddb7b23405cb7f7dcaf780"},
     {file = "ruff-0.4.8.tar.gz", hash = "sha256:16d717b1d57b2e2fd68bd0bf80fb43931b79d05a7131aa477d66fc40fbd86268"},
 ]
+
+[[package]]
+name = "ruff-lsp"
+version = "0.0.56"
+description = "A Language Server Protocol implementation for Ruff."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "ruff_lsp-0.0.56-py3-none-any.whl", hash = "sha256:96b2bea6e3cae75ad40bf470041cbeb06c0125a228e05d3aef47b8622a38b900"},
+    {file = "ruff_lsp-0.0.56.tar.gz", hash = "sha256:5d2622d22032944d54b0a0e84e16048d081d3c8716bf2bac5a155227ffe1d78a"},
+]
+
+[package.dependencies]
+lsprotocol = ">=2023.0.0"
+packaging = ">=23.1"
+pygls = ">=1.1.0"
+ruff = ">=0.0.274"
+typing-extensions = "*"
+
+[package.extras]
+dev = ["mypy (==1.4.1)", "pip-tools (>=6.13.0,<7.0.0)", "pytest (>=7.3.1,<8.0.0)", "pytest-asyncio (==0.21.2)", "python-lsp-jsonrpc (==1.0.0)"]
 
 [[package]]
 name = "six"
@@ -665,4 +743,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "74ca015b4dcc358cccc2ea5fdbada4db2e797f2fea0f311286f2f8720bc100d6"
+content-hash = "6f7c3be4d2b5f720cc53cd5e9ce35acb27ea08f035f51305c2ea3855d869a617"

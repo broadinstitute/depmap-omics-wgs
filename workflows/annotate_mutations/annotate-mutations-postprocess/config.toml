@@ -47,9 +47,12 @@ compound_info_fields = [
 
 url_encoded_col_name_regexes = [
     "^info__civic_desc",
+    "^info__clndn_3",
     "^info__csq__hgvsp",
     "^info__oc_base_achange",
     "^info__oc_base_all_mappings",
+    "^info__oc_gwas_catalog_ci",
+    "^info__oc_gwas_catalog_disease",
     "^info__oc_gwas_catalog_init_samp",
     "^info__oc_gwas_catalog_rep_samp",
     "^info__oc_pharmgkb_chemicals",
@@ -58,6 +61,8 @@ url_encoded_col_name_regexes = [
     "^info__oc_provean_all",
     "^info__oc_revel_all",
     "^info__oc_revel_transcript",
+    "^info__oncokb_muteff",
+    "^info__oncokb_onco",
 ]
 
 funco_sanitized_col_name_regexes = ["^info__funcotation"]

@@ -273,7 +273,9 @@ def urldecode_cols(
     url_encoded_col_name_regex: re.Pattern,
     funco_sanitized_col_name_regex: re.Pattern,
 ) -> pd.DataFrame:
-    col_has_percent = df.apply(lambda x: x.str.contains("%"), axis=1).any(axis=0)
+    col_has_percent = (
+        df.select_dtypes("string").map(lambda x: "%" in str(x)).any(axis=0)
+    )
     obs_percent_cols = col_has_percent[col_has_percent].index
 
     url_encoded_col_names = df.columns[df.columns.str.match(url_encoded_col_name_regex)]
@@ -288,6 +290,7 @@ def urldecode_cols(
         others = set(obs_percent_cols).difference(set(either_col_names))
         echo(f"Check VCF for additional URL-encoded info in {others}")
 
+    # Funcotator wraps %-escaped values with underscores
     for c in funco_sanitized_col_names:
         df[c] = df[c].str.replace(
             r"_(%[A-Za-z0-9]{2})_", lambda x: x.group(1), regex=True

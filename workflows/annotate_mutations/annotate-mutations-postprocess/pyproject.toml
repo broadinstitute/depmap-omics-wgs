@@ -18,6 +18,7 @@ vcf-info-merger = {git = "https://github.com/broadinstitute/vcf-info-merger.git"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.8"
+ruff-lsp = "^0.0.56"
 
 [tool.ruff]
 select = [
