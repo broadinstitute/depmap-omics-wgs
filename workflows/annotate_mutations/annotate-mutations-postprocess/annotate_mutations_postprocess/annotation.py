@@ -2,7 +2,7 @@ from pprint import pprint as pp
 
 import pandas as pd
 
-from annotate_mutations_postprocess.utils import cs
+from annotate_mutations_postprocess.utils import cs, echo, normalize_text
 
 
 def annotate_vcf(
@@ -38,7 +38,9 @@ def annotate_vcf(
     df.loc[has_structural_relation, "structural_relation"] = df.loc[
         has_structural_relation, "fusion_genes"
     ].str.extract(r"^.+::.+\(([A-Z 0-9]+)\):", expand=False)
+    df["structural_relation"] = df["structural_relation"].astype("string")
 
+    # dna repair
     dna_repair_genes = prep_dna_repair_df(dna_repair_genes)
 
     df = df.merge(
@@ -46,6 +48,13 @@ def annotate_vcf(
     )
 
     # TODO: oncokb
+    df["associated_with"] = pd.NA
+    df["info__oncokb_muteff"] = df["info__oncokb_muteff"].apply(normalize_text)
+
+    df["lof"] = df["info__oncokb_muteff"].eq("loss-of-function")
+    df["likely_lof"] = df["info__oncokb_muteff"].eq("likely loss-of-function")
+    df["gof"] = df["info__oncokb_muteff"].eq("gain-of-function")
+    df["likely_gof"] = df["info__oncokb_muteff"].eq("likely gain-of-function")
 
     df["driver"] = ~df["filter__multiallelic"] & df["info__civic_score"].ge(8)
 
