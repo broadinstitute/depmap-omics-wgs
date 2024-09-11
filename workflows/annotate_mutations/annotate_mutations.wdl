@@ -641,7 +641,7 @@ task annot_with_bcftools {
 
             echo '##INFO=<ID=ONCOKB_PROT,Number=1,Type=String,Description="OncoKB protein change">' \
                 > oncokb.hdr.vcf
-            echo '##INFO=<ID=ONCOKB_ONCO,Number=1,Type=String,Description="OncoKB oncogenic">' \
+            echo '##INFO=<ID=ONCOKB_ONCOGENIC,Number=1,Type=String,Description="OncoKB oncogenic">' \
                 >> oncokb.hdr.vcf
             echo '##INFO=<ID=ONCOKB_MUTEFF,Number=1,Type=String,Description="OncoKB mutation effect">' \
                 >> oncokb.hdr.vcf
