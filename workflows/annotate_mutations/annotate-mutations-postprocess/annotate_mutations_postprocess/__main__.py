@@ -60,6 +60,7 @@ def clean_and_annotate(
     vcf: Annotated[Path, typer.Option(exists=True)],
     oncogenes: Annotated[Path, typer.Option(exists=True)],
     tumor_suppressor_genes: Annotated[Path, typer.Option(exists=True)],
+    fasta: Annotated[Path, typer.Option(exists=True)],
     out: Annotated[Path, typer.Option()],
 ) -> None:
     df = vcf_to_wide(
