@@ -35,6 +35,7 @@ def annotate_vcf(
     df["custom__oncogene_high_impact"] = df["info__csq__impact"].eq("HIGH") & df[
         "info__csq__symbol"
     ].isin(oncogenes)
+
     df["custom__tumor_suppressor_high_impact"] = df["info__csq__impact"].eq(
         "HIGH"
     ) & df["info__csq__symbol"].isin(tumor_suppressor_genes)

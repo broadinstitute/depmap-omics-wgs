@@ -61,12 +61,9 @@ def clean_and_annotate(
     oncogenes: Annotated[Path, typer.Option(exists=True)],
     tumor_suppressor_genes: Annotated[Path, typer.Option(exists=True)],
     fasta: Annotated[Path, typer.Option(exists=True)],
-    out: Annotated[Path, typer.Option()],
 ) -> None:
     df = vcf_to_wide(
         vcf_path=vcf,
-        drop_cols=set(ctx.obj["settings"]["drop_cols"]),
-        na_cols=set(ctx.obj["settings"]["na_cols"]),
         bool_cols=set(ctx.obj["settings"]["bool_cols"]),
         compound_info_fields=set(ctx.obj["settings"]["compound_info_fields"]),
         url_encoded_col_name_regex=re.compile(

@@ -67,38 +67,6 @@ url_encoded_col_name_regexes = [
 
 funco_sanitized_col_name_regexes = ["^info__funcotation"]
 
-na_cols = [
-    "info__csq__mane_plus_clinical",
-    "info__csq__mi_rna",
-    "info__funcotation__clin_var_vcf_af_esp",
-    "info__funcotation__clin_var_vcf_af_exac",
-    "info__funcotation__clin_var_vcf_af_tgp",
-    "info__funcotation__clin_var_vcf_alleleid",
-    "info__funcotation__clin_var_vcf_clndisdb",
-    "info__funcotation__clin_var_vcf_clndisdbincl",
-    "info__funcotation__clin_var_vcf_clndn",
-    "info__funcotation__clin_var_vcf_clndnincl",
-    "info__funcotation__clin_var_vcf_clnhgvs",
-    "info__funcotation__clin_var_vcf_clnrevstat",
-    "info__funcotation__clin_var_vcf_clnsig",
-    "info__funcotation__clin_var_vcf_clnsigconf",
-    "info__funcotation__clin_var_vcf_clnsigincl",
-    "info__funcotation__clin_var_vcf_clnvc",
-    "info__funcotation__clin_var_vcf_clnvcso",
-    "info__funcotation__clin_var_vcf_clnvi",
-    "info__funcotation__clin_var_vcf_dbvarid",
-    "info__funcotation__clin_var_vcf_filter",
-    "info__funcotation__clin_var_vcf_geneinfo",
-    "info__funcotation__clin_var_vcf_id",
-    "info__funcotation__clin_var_vcf_origin",
-    "info__funcotation__clin_var_vcf_rs",
-    "info__funcotation__cosmic_fusion_fusion_genes",
-    "info__funcotation__cosmic_fusion_fusion_id",
-    "info__funcotation__cosmic_overlapping_mutations",
-    "info__funcotation__gnom_ad_exome_filter",
-    "info__funcotation__gnom_ad_genome_original_alleles",
-]
-
 bool_cols = [
     "info__csq__high_inf_pos",
     "info__funcotation__gnom_ad_genome_reverse_complemented_alleles",

@@ -14,8 +14,6 @@ from annotate_mutations_postprocess.utils import echo, expand_dict_columns
 
 def vcf_to_wide(
     vcf_path: Path,
-    drop_cols: set[str],
-    na_cols: set[str],
     bool_cols: set[str],
     compound_info_fields: set[str],
     url_encoded_col_name_regex: re.Pattern,
@@ -32,8 +30,6 @@ def vcf_to_wide(
     df = clean_vcf(
         df=df,
         info_and_format_dtypes=info_and_format_dtypes,
-        drop_cols=drop_cols,
-        na_cols=na_cols,
         bool_cols=bool_cols,
         url_encoded_col_name_regex=url_encoded_col_name_regex,
         funco_sanitized_col_name_regex=funco_sanitized_col_name_regex,
@@ -92,8 +88,9 @@ def get_vcf_info_and_format_dtypes(
 def read_vcf(path: Path | bgzip.BGZipReader) -> pd.DataFrame:
     with open(path, "rb") as raw:
         with bgzip.BGZipReader(raw) as f:
+            # noinspection PyTypeChecker
             df = pd.read_csv(
-                f.fileobj,
+                f,
                 sep="\t",
                 header=None,
                 names=[
@@ -147,29 +144,21 @@ def read_vcf(path: Path | bgzip.BGZipReader) -> pd.DataFrame:
 def clean_vcf(
     df: pd.DataFrame,
     info_and_format_dtypes: pd.DataFrame,
-    drop_cols: set[str],
-    na_cols: set[str],
     bool_cols: set[str],
     url_encoded_col_name_regex: re.Pattern,
     funco_sanitized_col_name_regex: re.Pattern,
 ) -> pd.DataFrame:
-    cols_to_drop = list(drop_cols)
-    df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
-
     echo("Expanding nested columns")
     df = expand_info_value_filters(df)
-    df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
 
     echo("Expanding nested columns")
     df = expand_and_cast(df, info_and_format_dtypes)
-    df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
 
     df.replace({"": pd.NA}, inplace=True)
     df.replace({"": pd.NA, ".": pd.NA}, inplace=True)
 
     echo("URL-decoding columns")
     df = urldecode_cols(df, url_encoded_col_name_regex, funco_sanitized_col_name_regex)
-    # df = remove_na_cols(df, na_cols)
 
     echo("Casting boolean columns")
     df = convert_booleans(df, bool_cols)
@@ -331,14 +320,6 @@ def urldecode_cols(
     )
 
     return df
-
-
-def remove_na_cols(df: pd.DataFrame, na_cols: set[str]) -> pd.DataFrame:
-    col_is_na = df.isna().all(axis=0)
-    obs_na_cols = col_is_na[col_is_na].index
-    # assert set(obs_na_cols).issubset(na_cols)
-
-    return df.drop(columns=col_is_na[col_is_na].index)
 
 
 def convert_booleans(df: pd.DataFrame, bool_cols: set[str]) -> pd.DataFrame:
