@@ -4,13 +4,13 @@ from os import PathLike
 import pysam
 
 
-def gc_percentage(
+def calc_gc_percentage(
     chrom: str,
     pos: int,
     ref: str,
     variant_class: str,
     window_size: int,
-    fasta: PathLike,
+    fasta_handle: pysam.FastaFile,
 ) -> float:
     if variant_class == "deletion":
         # shift to the right to account for ref/alt alleles containing left bp context
@@ -25,9 +25,8 @@ def gc_percentage(
     start = max(1, pos - half_window)
     end = pos + half_window
 
-    with pysam.FastaFile(fasta) as fasta_handle:
-        # extract the sequence from the fasta file
-        window_seq = fasta_handle.fetch(chrom, start - 1, end)
+    # extract the sequence from the fasta file
+    window_seq = fasta_handle.fetch(chrom, start - 1, end)
 
     # calculate GC percentage
     return (window_seq.count("G") + window_seq.count("C")) / len(window_seq)

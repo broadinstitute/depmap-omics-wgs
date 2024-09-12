@@ -84,7 +84,10 @@ def clean_and_annotate(
         tumor_suppressor_genes_list = set(line.strip() for line in f)
 
     df = annotate_vcf(
-        df, oncogenes=oncogenes_list, tumor_suppressor_genes=tumor_suppressor_genes_list
+        df,
+        oncogenes=oncogenes_list,
+        tumor_suppressor_genes=tumor_suppressor_genes_list,
+        fasta_path=str(fasta),
     )
 
 
