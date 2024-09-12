@@ -181,7 +181,8 @@ workflow preprocess_wgs_sample {
         call check_bqsr_and_oq_tags {
             input:
                 bam = input_cram_bam,
-                bai = input_crai_bai
+                bai = input_crai_bai,
+                ref_fasta = ref_fasta
         }
 
         if (!check_bqsr_and_oq_tags.bqsr_performed || (rerun_bqsr && check_bqsr_and_oq_tags.has_oq_tags)) {
@@ -815,6 +816,7 @@ task check_bqsr_and_oq_tags {
     input {
         File bam
         File bai
+        File ref_fasta
 
         String docker_image
         String docker_image_hash_or_tag
@@ -830,6 +832,7 @@ task check_bqsr_and_oq_tags {
     parameter_meta {
         bam: { localization_optional: true }
         bai: { localization_optional: true }
+        ref_fasta: { localization_optional: true }
     }
 
     command <<<
@@ -840,7 +843,7 @@ task check_bqsr_and_oq_tags {
         export GCS_REQUESTER_PAYS_PROJECT="$(gcloud config get-value project -q)"
 
         # get header (and single read) to check for previous BQSR recalibration
-        samtools head "~{bam}" -n 1 > head.txt
+        samtools head "~{bam}" -n 1 --reference "~{ref_fasta}" > head.txt
 
         BQSR_PERFORMED=$(grep -q "ApplyBQSR" head.txt && echo "true" || echo "false") && \
             echo "${BQSR_PERFORMED}" > bqsr_performed.txt
