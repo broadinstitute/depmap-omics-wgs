@@ -1,5 +1,4 @@
 from math import floor
-from os import PathLike
 
 import pysam
 

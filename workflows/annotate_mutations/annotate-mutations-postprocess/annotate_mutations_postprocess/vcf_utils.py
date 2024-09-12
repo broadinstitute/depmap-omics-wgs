@@ -1,3 +1,4 @@
+import logging
 import re
 from csv import QUOTE_NONE
 from pathlib import Path
@@ -9,7 +10,7 @@ import pandas as pd
 from caseconverter import snakecase
 from vcf_info_merger.merge import get_header_lines
 
-from annotate_mutations_postprocess.utils import echo, expand_dict_columns
+from annotate_mutations_postprocess.utils import expand_dict_columns
 
 
 def vcf_to_wide(
@@ -23,10 +24,10 @@ def vcf_to_wide(
         vcf_path, compound_info_fields
     )
 
-    echo(f"Reading {vcf_path}")
+    logging.info(f"Reading {vcf_path}")
     df = read_vcf(vcf_path)
 
-    echo(f"Cleaning {vcf_path}")
+    logging.info(f"Cleaning {vcf_path}")
     df = clean_vcf(
         df=df,
         info_and_format_dtypes=info_and_format_dtypes,
@@ -148,37 +149,37 @@ def clean_vcf(
     url_encoded_col_name_regex: re.Pattern,
     funco_sanitized_col_name_regex: re.Pattern,
 ) -> pd.DataFrame:
-    echo("Expanding nested columns")
+    logging.info("Expanding nested columns")
     df = expand_info_value_filters(df)
 
-    echo("Expanding nested columns")
+    logging.info("Expanding nested columns")
     df = expand_and_cast(df, info_and_format_dtypes)
 
     df.replace({"": pd.NA}, inplace=True)
     df.replace({"": pd.NA, ".": pd.NA}, inplace=True)
 
-    echo("URL-decoding columns")
+    logging.info("URL-decoding columns")
     df = urldecode_cols(df, url_encoded_col_name_regex, funco_sanitized_col_name_regex)
 
-    echo("Casting boolean columns")
+    logging.info("Casting boolean columns")
     df = convert_booleans(df, bool_cols)
 
     return df
 
 
 def expand_info_value_filters(df: pd.DataFrame) -> pd.DataFrame:
-    echo("Expanding INFO")
+    logging.info("Expanding INFO")
     df["info"] = df["info"].apply(parse_vcf_info)
 
-    echo("Expanding values")
+    logging.info("Expanding values")
     df["value"] = df.apply(
         lambda x: dict(zip(x["format"].split(":"), x["values"].split(":"))), axis=1
     )
 
-    echo("Expanding filters")
+    logging.info("Expanding filters")
     df = expand_filters(df)
 
-    echo("Expanding dict columns")
+    logging.info("Expanding dict columns")
     df = expand_dict_columns(df, col_name_formatter=snakecase)
 
     return df.drop(columns=["format", "values"])
@@ -232,7 +233,7 @@ def expand_and_cast(df, info_and_format_dtypes):
                 df = df.drop(columns=[r["id"]])
 
             if r["has_subfields"]:
-                echo(f"Expanding {r['id']}")
+                logging.info(f"Expanding {r['id']}")
 
                 for c in new_col_names:
                     df[c] = df[c].str.strip("[]()").str.split("|")
@@ -307,7 +308,7 @@ def urldecode_cols(
         # if this happens, we might need another CLI option to specify cols that have
         # percent signs but aren't actually URL-encoded
         others = set(obs_percent_cols).difference(set(either_col_names))
-        echo(f"Check VCF for additional URL-encoded info in {others}")
+        logging.warning(f"Check VCF for additional URL-encoded info in {others}")
 
     # Funcotator wraps %-escaped values with underscores
     for c in funco_sanitized_col_names:
@@ -335,7 +336,7 @@ def convert_booleans(df: pd.DataFrame, bool_cols: set[str]) -> pd.DataFrame:
 
     if not set(obs_bool_cols).issubset(bool_cols):
         others = set(obs_bool_cols).difference(bool_cols)
-        echo(f"Check VCF for additional booleans: {others}")
+        logging.warning(f"Check VCF for additional booleans: {others}")
 
     df[obs_bool_cols] = df[obs_bool_cols].astype("object")
 

@@ -1,21 +1,7 @@
-import datetime
 import re
-from typing import IO, Any, Callable, Optional
+from typing import Callable
 
 import pandas as pd
-from click import echo as click_echo
-
-
-def echo(
-    message: Optional[Any] = None,
-    file: Optional[IO[Any]] = None,
-    nl: bool = True,
-    err: bool = False,
-    color: Optional[bool] = None,
-) -> None:
-    timestamp = datetime.datetime.now().isoformat(sep=" ", timespec="seconds")
-    timestamped_message = f"{timestamp} {message}"
-    click_echo(timestamped_message, file, nl, err, color)
 
 
 def expand_dict_columns(

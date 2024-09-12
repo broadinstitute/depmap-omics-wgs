@@ -6,10 +6,10 @@ from typing import Annotated, Any, List
 import pandas as pd
 import tomllib
 import typer
+from click import echo
 from vcf_info_merger import info_merge_vcfs
 
 from annotate_mutations_postprocess.annotation import annotate_vcf
-from annotate_mutations_postprocess.utils import echo
 from annotate_mutations_postprocess.vcf_utils import vcf_to_wide
 
 pd.set_option("display.max_columns", 30)
@@ -37,8 +37,11 @@ def main(
     ctx: typer.Context,
     config_path: Annotated[Path, typer.Option(exists=True)],
 ):
-    logging.basicConfig()
-    logging.getLogger().setLevel(logging.INFO)
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)-8s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        level=logging.INFO,
+    )
 
     with open(config_path, "rb") as f:
         config.update(tomllib.load(f))
