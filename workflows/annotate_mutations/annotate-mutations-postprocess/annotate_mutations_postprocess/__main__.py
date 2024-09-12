@@ -38,7 +38,7 @@ def main(
     config_path: Annotated[Path, typer.Option(exists=True)],
 ):
     logging.basicConfig(
-        format="%(asctime)s %(levelname)-8s %(message)s",
+        format="%(asctime)s %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
         level=logging.INFO,
     )
@@ -70,11 +70,9 @@ def clean_and_annotate(
         vcf_path=vcf,
         bool_cols=set(ctx.obj["settings"]["bool_cols"]),
         compound_info_fields=set(ctx.obj["settings"]["compound_info_fields"]),
+        drop_cols=set(ctx.obj["settings"]["drop_cols_cleaning"]),
         url_encoded_col_name_regex=re.compile(
             "|".join(ctx.obj["settings"]["url_encoded_col_name_regexes"])
-        ),
-        funco_sanitized_col_name_regex=re.compile(
-            "|".join(ctx.obj["settings"]["funco_sanitized_col_name_regexes"])
         ),
     )
 

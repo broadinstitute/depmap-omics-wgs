@@ -41,7 +41,6 @@ compound_info_fields = [
     "ANN",
     "EFF",
     "CSQ",
-    "FUNCOTATION",
     "LOF",
     "NMD",
 ]
@@ -66,30 +65,13 @@ url_encoded_col_name_regexes = [
     "^info__oncokb_onco",
 ]
 
-funco_sanitized_col_name_regexes = ["^info__funcotation"]
-
 bool_cols = [
     "info__csq__high_inf_pos",
-    "info__funcotation__gnom_ad_genome_reverse_complemented_alleles",
-    "info__funcotation__gnom_ad_genome_swapped_alleles",
+    "info__oncokb_hotspot",
     "info__rm",
     "info__segdup",
 ]
 
-drop_cols = [
-    "info__dp",
-    "info__funcotation__clin_var_vcf_mc",
-    "info__funcotation__gencode_34_chromosome",
-    "info__funcotation__oreganno_build",
-    "value__ad",
-    "value__af",
-    "value__f1r2",
-    "value__f2r1",
-    "value__fad",
-    "value__gt",
-    "value__pgt",
-    "value__pid",
-    "value__pl",
-    "value__ps",
-    "value__sb",
+drop_cols_cleaning = [
+    "info__funcotation"
 ]

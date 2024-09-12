@@ -17,8 +17,8 @@ def vcf_to_wide(
     vcf_path: Path,
     bool_cols: set[str],
     compound_info_fields: set[str],
+    drop_cols: set[str],
     url_encoded_col_name_regex: re.Pattern,
-    funco_sanitized_col_name_regex: re.Pattern,
 ):
     info_and_format_dtypes = get_vcf_info_and_format_dtypes(
         vcf_path, compound_info_fields
@@ -31,9 +31,9 @@ def vcf_to_wide(
     df = clean_vcf(
         df=df,
         info_and_format_dtypes=info_and_format_dtypes,
+        drop_cols=drop_cols,
         bool_cols=bool_cols,
         url_encoded_col_name_regex=url_encoded_col_name_regex,
-        funco_sanitized_col_name_regex=funco_sanitized_col_name_regex,
     )
 
     return df
@@ -146,20 +146,23 @@ def clean_vcf(
     df: pd.DataFrame,
     info_and_format_dtypes: pd.DataFrame,
     bool_cols: set[str],
+    drop_cols: set[str],
     url_encoded_col_name_regex: re.Pattern,
-    funco_sanitized_col_name_regex: re.Pattern,
 ) -> pd.DataFrame:
-    logging.info("Expanding nested columns")
-    df = expand_info_value_filters(df)
+    cols_to_drop = list(drop_cols)
+    df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
 
-    logging.info("Expanding nested columns")
+    df = expand_info_value_filters(df)
+    df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
+
     df = expand_and_cast(df, info_and_format_dtypes)
+    df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
 
     df.replace({"": pd.NA}, inplace=True)
     df.replace({"": pd.NA, ".": pd.NA}, inplace=True)
 
     logging.info("URL-decoding columns")
-    df = urldecode_cols(df, url_encoded_col_name_regex, funco_sanitized_col_name_regex)
+    df = urldecode_cols(df, url_encoded_col_name_regex)
 
     logging.info("Casting boolean columns")
     df = convert_booleans(df, bool_cols)
@@ -208,7 +211,9 @@ def expand_filters(df: pd.DataFrame) -> pd.DataFrame:
     return df.join(filters_long, how="left").drop(columns="filter")
 
 
-def expand_and_cast(df, info_and_format_dtypes):
+def expand_and_cast(
+    df: pd.DataFrame, info_and_format_dtypes: pd.DataFrame
+) -> pd.DataFrame:
     obs_info_formats = info_and_format_dtypes.loc[
         info_and_format_dtypes["id"].isin(df.columns)
     ]
@@ -230,10 +235,9 @@ def expand_and_cast(df, info_and_format_dtypes):
                 ]
 
                 df[new_col_names] = expanded.values
-                df = df.drop(columns=[r["id"]])
 
             if r["has_subfields"]:
-                logging.info(f"Expanding {r['id']}")
+                logging.info(f"Expanding {r['id']} subfields")
 
                 for c in new_col_names:
                     df[c] = df[c].str.strip("[]()").str.split("|")
@@ -271,7 +275,7 @@ def expand_and_cast(df, info_and_format_dtypes):
             else:
                 df[new_col_names] = df[new_col_names].astype(r["type"])
 
-    assert np.dtype("O") not in list(df.dtypes)
+    # assert np.dtype("O") not in list(df.dtypes)
 
     df = df[
         [
@@ -289,9 +293,7 @@ def expand_and_cast(df, info_and_format_dtypes):
 
 
 def urldecode_cols(
-    df: pd.DataFrame,
-    url_encoded_col_name_regex: re.Pattern,
-    funco_sanitized_col_name_regex: re.Pattern,
+    df: pd.DataFrame, url_encoded_col_name_regex: re.Pattern
 ) -> pd.DataFrame:
     col_has_percent = (
         df.select_dtypes("string").map(lambda x: "%" in str(x)).any(axis=0)
@@ -299,24 +301,14 @@ def urldecode_cols(
     obs_percent_cols = col_has_percent[col_has_percent].index
 
     url_encoded_col_names = df.columns[df.columns.str.match(url_encoded_col_name_regex)]
-    funco_sanitized_col_names = df.columns[
-        df.columns.str.match(funco_sanitized_col_name_regex)
-    ]
-    either_col_names = set(url_encoded_col_names).union(set(funco_sanitized_col_names))
 
-    if not set(either_col_names).issuperset(set(obs_percent_cols)):
+    if not set(url_encoded_col_names).issuperset(set(obs_percent_cols)):
         # if this happens, we might need another CLI option to specify cols that have
         # percent signs but aren't actually URL-encoded
-        others = set(obs_percent_cols).difference(set(either_col_names))
+        others = set(obs_percent_cols).difference(set(url_encoded_col_names))
         logging.warning(f"Check VCF for additional URL-encoded info in {others}")
 
-    # Funcotator wraps %-escaped values with underscores
-    for c in funco_sanitized_col_names:
-        df[c] = df[c].str.replace(
-            r"_(%[A-Za-z0-9]{2})_", lambda x: x.group(1), regex=True
-        )
-
-    df.loc[:, list(either_col_names)] = df.loc[:, list(either_col_names)].map(
+    df.loc[:, list(url_encoded_col_names)] = df.loc[:, list(url_encoded_col_names)].map(
         lambda x: unquote(x) if x is not pd.NA else pd.NA
     )
 

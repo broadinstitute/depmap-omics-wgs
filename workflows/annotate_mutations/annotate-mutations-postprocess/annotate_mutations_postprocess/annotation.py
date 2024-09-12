@@ -1,4 +1,5 @@
 import json
+import logging
 
 import pandas as pd
 import pysam
@@ -12,8 +13,7 @@ def annotate_vcf(
     tumor_suppressor_genes: set[str],
     fasta_path: str,
 ) -> pd.DataFrame:
-    df_orig = df.copy()
-    df = df_orig.copy()
+    logging.info("Annotating VCF")
 
     # todo: brca1
     # transcript_likely_lof
@@ -39,6 +39,8 @@ def annotate_vcf(
     df["custom__tumor_suppressor_high_impact"] = df["info__csq__impact"].eq(
         "HIGH"
     ) & df["info__csq__symbol"].isin(tumor_suppressor_genes)
+
+    logging.info("Calculating GC content")
 
     with pysam.FastaFile(fasta_path) as fasta_handle:
         df["custom__gc_percentage"] = df.apply(
