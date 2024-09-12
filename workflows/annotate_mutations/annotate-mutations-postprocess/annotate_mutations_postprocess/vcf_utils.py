@@ -213,8 +213,6 @@ def expand_and_cast(df, info_and_format_dtypes):
     ]
 
     for _, r in obs_info_formats.iterrows():
-        echo(f"Expanding {r['id']}")
-
         if r["type"] == "boolean":
             df[r["id"]] = df[r["id"]].astype("boolean")
             df[r["id"]] = df[r["id"]].fillna(False)
@@ -234,6 +232,8 @@ def expand_and_cast(df, info_and_format_dtypes):
                 df = df.drop(columns=[r["id"]])
 
             if r["has_subfields"]:
+                echo(f"Expanding {r['id']}")
+
                 for c in new_col_names:
                     df[c] = df[c].str.strip("[]()").str.split("|")
                     df.loc[~df[c].isna(), c] = df.loc[~df[c].isna(), c].apply(
@@ -324,6 +324,7 @@ def urldecode_cols(
 
 def convert_booleans(df: pd.DataFrame, bool_cols: set[str]) -> pd.DataFrame:
     df_strings = df.select_dtypes(include="string")
+    df_strings = df_strings.loc[:, df_strings.notna().any(axis=0)]
 
     true_vals = {"True", "true", "Y", "y"}
     false_vals = {"False", "false", "N", "n"}
@@ -331,7 +332,10 @@ def convert_booleans(df: pd.DataFrame, bool_cols: set[str]) -> pd.DataFrame:
     col_is_boollike = df_strings.isin({*true_vals, *false_vals, pd.NA}).all(axis=0)
 
     obs_bool_cols = col_is_boollike[col_is_boollike].index
-    # assert set(obs_bool_cols) == bool_cols
+
+    if not set(obs_bool_cols).issubset(bool_cols):
+        others = set(obs_bool_cols).difference(bool_cols)
+        echo(f"Check VCF for additional booleans: {others}")
 
     df[obs_bool_cols] = df[obs_bool_cols].astype("object")
 
