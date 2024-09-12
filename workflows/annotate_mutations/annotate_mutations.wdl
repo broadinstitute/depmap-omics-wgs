@@ -744,6 +744,7 @@ task snpeff_snpsift {
             java -Xmx14g -jar /app/snpEff.jar \
                 ann \
                 -noStats \
+                -formatEff \
                 GRCh38.mane.1.2.ensembl \
                 "~{vcf}" \
                 > "snpeff_out.vcf"
