@@ -21,29 +21,29 @@ def annotate_vcf(
 
     # extract transcript IDs (field 1) given score cutoff (field 2) from values like
     # `[["ENST00000379410",0.042,0.11227],["ENST00000...`
-    df.loc[has_revel, "custom__transcript_likely_lof"] = (
+    df.loc[has_revel, "post__transcript_likely_lof"] = (
         df.loc[has_revel, "info__oc_revel_all"]
         .apply(json.loads)
         .apply(lambda x: ";".join([y[0] for y in x if y[1] >= 0.7]))
     ).replace({"": pd.NA})
 
-    df["custom__transcript_likely_lof"] = df["custom__transcript_likely_lof"].astype(
+    df["post__transcript_likely_lof"] = df["post__transcript_likely_lof"].astype(
         "string"
     )
 
     # oncogenes and tumor suppressors
-    df["custom__oncogene_high_impact"] = df["info__csq__impact"].eq("HIGH") & df[
+    df["post__oncogene_high_impact"] = df["info__csq__impact"].eq("HIGH") & df[
         "info__csq__symbol"
     ].isin(oncogenes)
 
-    df["custom__tumor_suppressor_high_impact"] = df["info__csq__impact"].eq(
-        "HIGH"
-    ) & df["info__csq__symbol"].isin(tumor_suppressor_genes)
+    df["post__tumor_suppressor_high_impact"] = df["info__csq__impact"].eq("HIGH") & df[
+        "info__csq__symbol"
+    ].isin(tumor_suppressor_genes)
 
     logging.info("Calculating GC content")
 
     with pysam.FastaFile(fasta_path) as fasta_handle:
-        df["custom__gc_percentage"] = df.apply(
+        df["post__gc_percentage"] = df.apply(
             lambda x: calc_gc_percentage(
                 chrom=x["chromosome"],
                 pos=x["position"],

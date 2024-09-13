@@ -66,6 +66,11 @@ def expand_dict_columns(
                     for col in nested_df.columns
                 ]
 
+            else:
+                nested_df.columns = [
+                    col_name_formatter(str(col)) for col in nested_df.columns
+                ]
+
             # recurse on the nested data
             flattened_dict.update(
                 expand_dict_columns(

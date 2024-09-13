@@ -68,9 +68,9 @@ def clean_and_annotate(
 ) -> None:
     df = vcf_to_wide(
         vcf_path=vcf,
-        bool_cols=set(ctx.obj["settings"]["bool_cols"]),
         compound_info_fields=set(ctx.obj["settings"]["compound_info_fields"]),
-        drop_cols=set(ctx.obj["settings"]["drop_cols_cleaning"]),
+        info_cols_ignored=set(ctx.obj["settings"]["info_cols_ignored"]),
+        info_subfield_types=ctx.obj["settings"]["info_subfield_types"],
         url_encoded_col_name_regex=re.compile(
             "|".join(ctx.obj["settings"]["url_encoded_col_name_regexes"])
         ),
@@ -88,6 +88,10 @@ def clean_and_annotate(
         tumor_suppressor_genes=tumor_suppressor_genes_list,
         fasta_path=str(fasta),
     )
+
+    import pickle
+
+    pickle.dump(df, open("/Users/dmccabe/Desktop/df.p", "wb"))
 
 
 if __name__ == "__main__":
