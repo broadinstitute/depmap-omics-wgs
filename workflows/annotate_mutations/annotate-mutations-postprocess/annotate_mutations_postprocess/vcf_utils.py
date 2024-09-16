@@ -1,3 +1,4 @@
+import concurrent.futures
 import logging
 import os
 import re
@@ -189,64 +190,77 @@ def populate_db(
     path: Path | bgzip.BGZipReader,
     info_and_format_dtypes: pd.DataFrame,
 ) -> None:
-    total_size_bytes = os.path.getsize(path)
-    memoryview_batch_size = 2**32
-    read_bytes = 0
+    memoryview_batch_size = 2**24
+    chunk_size = 2**18
 
     with open(path, "rb") as raw:
         seen_header = False
         batch = ""
 
-        with bgzip.BGZipReader(raw) as f:
-            while True:
-                # read a block of bytes
-                if not (d := f.read(memoryview_batch_size)):
-                    break
+        with bgzip.BGZipReader(
+            raw,
+            buffer_size=memoryview_batch_size * 3,
+            num_threads=1,
+            raw_read_chunk_size=chunk_size,
+        ) as f:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = []
 
-                read_bytes += len(d)
-                logging.info(
-                    "Read {0} bytes ({1:.0%})".format(
-                        read_bytes, read_bytes / total_size_bytes
+                while True:
+                    # read a block of bytes
+                    if not (d := f.read(memoryview_batch_size)):
+                        break
+
+                    # concat the latest chunk of text
+                    text = d.tobytes().decode()
+                    d.release()
+                    batch += text
+
+                    if not seen_header:
+                        m = re.search(r"\n(#CHROM[^\n]+)\n", batch, re.MULTILINE)
+
+                        if m is not None:
+                            logging.info("Found column header. Reading variants.")
+
+                            # done with VCF header, confirm col header format
+                            assert m[1].split("\t")[:-1] == [
+                                "#CHROM",
+                                "POS",
+                                "ID",
+                                "REF",
+                                "ALT",
+                                "QUAL",
+                                "FILTER",
+                                "INFO",
+                                "FORMAT",
+                            ]
+
+                            batch = batch[m.end() :]
+                            seen_header = True
+
+                        else:
+                            continue  # still looking for col header
+
+                    batch_lines, batch = batch.rsplit("\n", 1)
+
+                    logging.info(
+                        "\t".join(batch_lines.split("\n", 1)[0].split("\t", 5)[:5])
                     )
-                )
 
-                # concat the latest chunk of text
-                text = d.tobytes().decode()
-                d.release()
-                batch += text
+                    futures.append(
+                        executor.submit(
+                            insert_batch, db, batch_lines, info_and_format_dtypes
+                        )
+                    )
 
-                if not seen_header:
-                    m = re.search(r"\n(#CHROM[^\n]+)\n", batch, re.MULTILINE)
-
-                    if m is not None:
-                        logging.info("Found column header. Reading variants.")
-
-                        # done with VCF header, confirm col header format
-                        assert m[1].split("\t")[:-1] == [
-                            "#CHROM",
-                            "POS",
-                            "ID",
-                            "REF",
-                            "ALT",
-                            "QUAL",
-                            "FILTER",
-                            "INFO",
-                            "FORMAT",
-                        ]
-
-                        batch = batch[m.end() :]
-                        seen_header = True
-
-                    else:
-                        continue  # still looking for col header
-
-                batch_lines, batch = batch.rsplit("\n", 1)
-                insert_batch(db, batch_lines, info_and_format_dtypes)
+                concurrent.futures.wait(futures)
 
 
 def insert_batch(
     db: DuckDBPyConnection, batch_lines: str, info_and_format_dtypes: pd.DataFrame
 ) -> None:
+    cur = db.cursor()
+
     df = pd.read_csv(
         StringIO(batch_lines),
         sep="\t",
@@ -280,7 +294,7 @@ def insert_batch(
 
     variants_df["filters"] = variants_df["filters"].apply(lambda x: x.split(";"))
 
-    db.sql("INSERT INTO variants BY NAME SELECT * FROM variants_df")
+    cur.sql("INSERT INTO variants BY NAME SELECT * FROM variants_df")
 
     vals_df = df.loc[:, ["vid", "format", "values"]].set_index("vid")
 
@@ -305,7 +319,7 @@ def insert_batch(
 
     vals_df = vals_df.reset_index()
 
-    db.sql("INSERT INTO vals BY NAME SELECT * FROM vals_df")
+    cur.sql("INSERT INTO vals BY NAME SELECT * FROM vals_df")
 
     info_df = df.loc[:, ["vid", "info"]].set_index("vid")
     info_df["info"] = info_df["info"].apply(parse_vcf_info)
@@ -358,7 +372,7 @@ def insert_batch(
 
     info_df = info_df.reset_index()
 
-    db.sql("INSERT INTO info BY NAME SELECT * FROM info_df")
+    cur.sql("INSERT INTO info BY NAME SELECT * FROM info_df")
 
 
 def clean_vcf(

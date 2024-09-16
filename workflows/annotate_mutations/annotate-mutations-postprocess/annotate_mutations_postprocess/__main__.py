@@ -29,7 +29,7 @@ config: dict[str, Any] = {}
 
 # noinspection PyUnusedLocal
 def done(*args, **kwargs):
-    echo("Done.")
+    logging.info("Done.")
 
 
 @app.callback(result_callback=done)
@@ -82,16 +82,12 @@ def clean_and_annotate(
     with open(tumor_suppressor_genes, "r") as f:
         tumor_suppressor_genes_list = set(line.strip() for line in f)
 
-    df = annotate_vcf(
-        df,
-        oncogenes=oncogenes_list,
-        tumor_suppressor_genes=tumor_suppressor_genes_list,
-        fasta_path=str(fasta),
-    )
-
-    import pickle
-
-    pickle.dump(df, open("/Users/dmccabe/Desktop/df.p", "wb"))
+    # df = annotate_vcf(
+    #     df,
+    #     oncogenes=oncogenes_list,
+    #     tumor_suppressor_genes=tumor_suppressor_genes_list,
+    #     fasta_path=str(fasta),
+    # )
 
 
 if __name__ == "__main__":
