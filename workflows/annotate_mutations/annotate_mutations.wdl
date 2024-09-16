@@ -651,7 +651,7 @@ task annot_with_bcftools {
             bcftools annotate \
                 "~{vcf}" \
                 --annotations="${ONCOKB_TAB_BASENAME}.tsv.gz" \
-                --columns="CHROM,POS,REF,ALT,ONCOKB_PROT,ONCOKB_ONCO,ONCOKB_MUTEFF,ONCOKB_HOTSPOT" \
+                --columns="CHROM,POS,REF,ALT,ONCOKB_PROT,ONCOKB_ONCOGENIC,ONCOKB_MUTEFF,ONCOKB_HOTSPOT" \
                 --header-lines="oncokb.hdr.vcf" \
                 --output="${TMP_VCF}"
             rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"

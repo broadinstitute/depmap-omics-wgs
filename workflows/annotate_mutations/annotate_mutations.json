@@ -7,7 +7,7 @@
     "annotate_mutations.annot_cosmic_cmc": "true",
     "annotate_mutations.annot_ensembl_vep": "true",
     "annotate_mutations.annot_hess_drivers": "true",
-    "annotate_mutations.annot_funcotator": "true",
+    "annotate_mutations.annot_funcotator": "false",
     "annotate_mutations.annot_oncokb": "true",
     "annotate_mutations.annot_open_cravat": "true",
     "annotate_mutations.annot_repeat_masker": "true",
