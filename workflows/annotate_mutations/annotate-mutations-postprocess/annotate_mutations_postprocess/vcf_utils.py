@@ -1,4 +1,3 @@
-import concurrent.futures
 import logging
 import os
 import re
@@ -8,7 +7,6 @@ from io import StringIO
 from pathlib import Path
 from urllib.parse import unquote
 
-import bgzip
 import duckdb
 import numpy as np
 import pandas as pd
@@ -40,14 +38,20 @@ def create_and_populate_db(
         set_up_db(db, info_and_format_dtypes)
 
         tab_path = vcf_path.with_suffix("").with_suffix(".tsv")
-        # write_tab_vcf(vcf_gz_path=vcf_path, tab_path=tab_path)
+        write_tab_vcf(vcf_gz_path=vcf_path, tab_path=tab_path)
 
         logging.info(f"Reading {vcf_path} into {db_path}")
         populate_db(db, tab_path, info_and_format_dtypes)
 
 
+def make_snakecase(x: str) -> str:
+    return snakecase(x)
+
+
 def set_up_db(db: DuckDBPyConnection, info_and_format_dtypes: pd.DataFrame) -> None:
-    db.sql("SET GLOBAL pandas_analyze_sample=100000")
+    # db.sql("SET GLOBAL pandas_analyze_sample=100000")
+
+    db.create_function(name="snakecase", function=make_snakecase)
 
     db.sql("""
         CREATE TABLE IF NOT EXISTS vcf_lines (
@@ -153,7 +157,8 @@ def get_vcf_info_and_format_dtypes(
 
         if d["id"] in compound_info_fields:
             d["has_children"] = True
-            d["type"] = f"info_{d['id_db']}"
+            d["type"] = "JSON"
+            # d["type"] = f"info_{d['id_db']}"
 
             desc = re.search(r"^.+:['\s]*([^']+)['\s]*$", d["description"]).group(1)
             subfields = re.split(r"\s*\|\s*", desc)
@@ -173,7 +178,7 @@ def get_vcf_info_and_format_dtypes(
                     "kind": "sub_info",
                     "parent_id": d["id"],
                     "parent_id_db": d["id_db"],
-                    "ix": ix,
+                    "ix": ix + 1,
                 }
 
                 sub_arr.append(dsub)
@@ -207,12 +212,15 @@ def get_vcf_info_and_format_dtypes(
 
 def write_tab_vcf(vcf_gz_path: Path, tab_path: Path) -> None:
     logging.info(f"Converting {vcf_gz_path} to TSV")
-    subprocess.run(["bcftools", "view", vcf_gz_path, "--no-header", "-o", tab_path])
+    subprocess.run(
+        ["bcftools", "view", vcf_gz_path, "-r", "chr21", "--no-header", "-o", tab_path]
+    )
 
 
 def populate_db(
     db: DuckDBPyConnection, tab_path: Path, info_and_format_dtypes: pd.DataFrame
 ) -> None:
+    logging.info("copy")
     db.sql(f"""
         COPY
             vcf_lines
@@ -220,14 +228,13 @@ def populate_db(
             '{tab_path}' (DELIMITER '\\t', AUTO_DETECT false);
     """)
 
-    db.sql("""
-        delete from vcf_lines where chrom != 'chr21';
-        ALTER TABLE
-            vcf_lines
-        ADD COLUMN
-            vid VARCHAR;    
-    """)
+    # logging.info("delete")
+    # db.sql("delete from vcf_lines where chrom != 'chr1';")
 
+    # logging.info("checkpoint")
+    # db.sql("FORCE CHECKPOINT")
+
+    logging.info("updates")
     db.sql("""
         UPDATE vcf_lines SET id = NULL where id = '.';
         UPDATE vcf_lines SET ref = NULL where ref = '.';
@@ -239,6 +246,15 @@ def populate_db(
         UPDATE vcf_lines SET values = NULL where values = '.';
     """)
 
+    logging.info("alter")
+    db.sql("""
+        ALTER TABLE
+            vcf_lines
+        ADD COLUMN
+            vid VARCHAR;
+    """)
+
+    logging.info("vid")
     db.sql("""
         UPDATE
             vcf_lines
@@ -251,6 +267,7 @@ def populate_db(
             )
     """)
 
+    logging.info("variants")
     db.sql("""
         INSERT INTO
             variants (
@@ -271,7 +288,7 @@ def populate_db(
             ref,
             alt,
             qual,
-            string_split(filters, ';')
+            str_split(filters, ';')
         FROM
             vcf_lines;
     """)
@@ -280,19 +297,16 @@ def populate_db(
         WITH format_values_long AS (
             SELECT
                 vid,
-                unnest(string_split(lower(format), ':')) as k,
-                unnest(string_split(lower(values), ':')) as v
+                snakecase(unnest(str_split(format, ':'))) as k,
+                unnest(str_split(values, ':')) as v
             FROM
                 vcf_lines
         )
         PIVOT format_values_long ON k USING first(v);
     """)
 
-    db.register("format_values_wide", format_values_wide)
-
     val_cols = info_and_format_dtypes.loc[
-        info_and_format_dtypes["kind"].eq("value"),
-        ["id_db", "number"],
+        info_and_format_dtypes["kind"].eq("value"), ["id_db", "number"]
     ]
 
     val_cols["obs"] = info_and_format_dtypes["id_db"].isin(format_values_wide.columns)
@@ -306,7 +320,7 @@ def populate_db(
         if col["obs"]:
             if col["multi"]:
                 colex = duckdb.FunctionExpression(
-                    "string_split",
+                    "str_split",
                     duckdb.ColumnExpression(col["id_db"]),
                     duckdb.ConstantExpression(","),
                 ).alias(col["id_db"])
@@ -318,9 +332,215 @@ def populate_db(
 
         cols_expr.append(colex)
 
-    db.table("format_values_wide").select(*cols_expr).insert_into("vals")
-    db.unregister("format_values_wide")
-    pass
+    format_values_wide.select(*cols_expr).insert_into("vals")
+
+    simple_info_fields = info_and_format_dtypes.loc[
+        info_and_format_dtypes["kind"].eq("info")
+        & ~info_and_format_dtypes["has_children"]
+    ]
+
+    simple_info_fields_expr = ", ".join("'" + simple_info_fields["id_db"] + "'")
+
+    compound_info_fields = info_and_format_dtypes.loc[
+        info_and_format_dtypes["kind"].eq("info")
+        & info_and_format_dtypes["has_children"]
+    ]
+
+    compound_info_fields_expr = ", ".join("'" + compound_info_fields["id_db"] + "'")
+
+    sub_fields = info_and_format_dtypes.loc[
+        info_and_format_dtypes["parent_id_db"].isin(compound_info_fields["id_db"]),
+        ["ix", "parent_id_db", "id_db"],
+    ].rename(columns={"parent_id_db": "annot_k"})
+
+    db.register("sub_fields", sub_fields)
+
+    db.sql("""
+        CREATE TABLE IF NOT EXISTS info_long (
+            vid VARCHAR NOT NULL,
+            annot_k VARCHAR NOT NULL,
+            annot_v VARCHAR
+        );
+    """)
+
+    logging.info("start info")
+    db.sql(f"""
+        WITH annots AS (
+            SELECT
+                vid,
+                str_split(unnest(str_split(info, ';')), '=') AS annot
+            FROM
+                vcf_lines
+        ),
+        annots_exploded AS (
+            SELECT
+                vid,
+                snakecase(annot[1]) as annot_k,
+                annot[2] as annot_v
+            FROM
+                annots
+        ),
+        simple_info AS (
+            SELECT
+                vid,
+                annot_k,
+                annot_v
+            FROM
+                annots_exploded
+            WHERE
+                annot_k IN ({simple_info_fields_expr})
+        ),
+        compound_info AS (
+            SELECT
+                vid,
+                annot_k,
+                str_split_regex(annot_v, '\\s*\\|\\s*') AS annot_v
+            FROM
+                annots_exploded
+            WHERE
+                annot_k IN ({compound_info_fields_expr})
+        ),
+        compound_info_exploded AS (
+            SELECT
+                vid,
+                annot_k,
+                unnest(annot_v) AS annot_v,
+                generate_subscripts(annot_v, 1) AS ix
+            FROM
+                compound_info
+        ),
+        compound_info_with_ids AS (
+            SELECT
+                vid,
+                annot_k,
+                CASE
+                    WHEN annot_v IN ('', '.')
+                THEN
+                    NULL
+                ELSE
+                    annot_v
+                END AS annot_v,
+                ix,
+                sub_fields.id_db
+            FROM
+                compound_info_exploded
+            NATURAL JOIN
+                sub_fields
+            where annot_k='ann'
+        ),
+        compound_info_maps AS (
+            SELECT
+                vid,
+                annot_k,
+                MAP(
+                    list(id_db ORDER BY ix),
+                    list(annot_v ORDER BY ix)
+                )::JSON::VARCHAR AS annot_v
+            FROM
+                compound_info_with_ids
+            GROUP BY
+                vid,
+                annot_k
+        ),
+        compound_info_concat AS (
+            SELECT
+                vid,
+                annot_k,
+                '[' || string_agg(annot_v, ',') || ']' AS annot_v
+            FROM
+                compound_info_maps
+            GROUP BY
+                vid,
+                annot_k
+        )
+        SELECT
+            vid,
+            annot_k,
+            annot_v
+        FROM simple_info
+        UNION ALL
+        SELECT
+            vid,
+            annot_k,
+            annot_v
+        FROM compound_info_concat
+    """).insert_into("info_long")
+
+    flag_fields = info_and_format_dtypes["id_db"].loc[
+        info_and_format_dtypes["kind"].eq("info")
+        & info_and_format_dtypes["number"].eq("0")
+    ]
+
+    db.sql(f"""
+        UPDATE
+            info_long
+        SET
+            annot_v = 'true'
+        WHERE
+            annot_k in ({', '.join(["'" + x + "'" for x in flag_fields])})
+    """)
+
+    logging.info("widen info")
+    info_wide = db.sql("""
+        PIVOT
+            info_long
+        ON
+            annot_k
+        USING first(annot_v)
+    """)
+
+    info_fields = info_and_format_dtypes.loc[
+        info_and_format_dtypes["kind"].eq("info"), ["id_db", "number", "has_children"]
+    ]
+
+    info_fields["obs"] = info_and_format_dtypes["id_db"].isin(info_wide.columns)
+    info_fields["multi"] = (
+        ~info_fields["number"].isin({"0", "1"}) & ~info_fields["has_children"]
+    )
+
+    cols_expr = [duckdb.ColumnExpression("vid")]
+
+    for c in filter(lambda x: x != "vid", db.table("info").columns):
+        col = info_fields.loc[info_fields["id_db"].eq(c)].iloc[0].to_dict()
+
+        if col["obs"]:
+            if col["multi"]:
+                colex = duckdb.FunctionExpression(
+                    "str_split",
+                    duckdb.ColumnExpression(col["id_db"]),
+                    duckdb.ConstantExpression(","),
+                ).alias(col["id_db"])
+            else:
+                colex = duckdb.ColumnExpression(col["id_db"])
+
+        else:
+            colex = duckdb.ConstantExpression(None).alias(col["id_db"])
+
+        cols_expr.append(colex)
+
+    logging.info("insert info")
+    info_wide.select(*cols_expr).insert_into("info")
+
+    for _, c in compound_info_fields.iterrows():
+        if c["id_db"] not in info_wide.columns:
+            continue
+
+        new_type = f"info_{c['id_db']}"
+
+        if not (c["number"] == "0" or c["number"] == "1"):
+            new_type += "[]"
+
+        db.sql(f"""
+            ALTER TABLE
+                info
+            ALTER
+                {c['id_db']}
+            SET DATA TYPE
+                {new_type}
+        """)
+
+    db.sql("DROP TABLE IF EXISTS info_long")
+    db.sql("DROP TABLE IF EXISTS vcf_lines")
 
 
 def insert_batch(
