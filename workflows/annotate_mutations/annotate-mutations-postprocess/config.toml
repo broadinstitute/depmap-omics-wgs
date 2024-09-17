@@ -39,7 +39,6 @@ force_keep = [
 
 compound_info_fields = [
     "ANN",
-    "EFF",
     "CSQ",
     "LOF",
     "NMD",

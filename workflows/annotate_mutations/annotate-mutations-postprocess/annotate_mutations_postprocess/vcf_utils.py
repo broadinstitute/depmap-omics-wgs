@@ -2,6 +2,7 @@ import concurrent.futures
 import logging
 import os
 import re
+import subprocess
 from csv import QUOTE_NONE
 from io import StringIO
 from pathlib import Path
@@ -18,8 +19,9 @@ from vcf_info_merger.merge import get_header_lines
 from annotate_mutations_postprocess.utils import expand_dict_columns
 
 
-def vcf_to_wide(
+def create_and_populate_db(
     vcf_path: Path,
+    db_path: Path,
     compound_info_fields: set[str],
     info_subfield_types: dict[str, dict[str, str]],
     info_cols_ignored: set[str],
@@ -29,7 +31,6 @@ def vcf_to_wide(
         vcf_path, compound_info_fields, info_cols_ignored, info_subfield_types
     )
 
-    db_path = os.path.join(Path(__file__).parent.parent, "data", "variants.duckdb")
     try:
         os.remove(db_path)
     except OSError:
@@ -38,12 +39,31 @@ def vcf_to_wide(
     with duckdb.connect(db_path) as db:
         set_up_db(db, info_and_format_dtypes)
 
-        logging.info(f"Reading {vcf_path}")
-        populate_db(db, vcf_path, info_and_format_dtypes=info_and_format_dtypes)
-        pass
+        tab_path = vcf_path.with_suffix("").with_suffix(".tsv")
+        # write_tab_vcf(vcf_gz_path=vcf_path, tab_path=tab_path)
+
+        logging.info(f"Reading {vcf_path} into {db_path}")
+        populate_db(db, tab_path, info_and_format_dtypes)
 
 
 def set_up_db(db: DuckDBPyConnection, info_and_format_dtypes: pd.DataFrame) -> None:
+    db.sql("SET GLOBAL pandas_analyze_sample=100000")
+
+    db.sql("""
+        CREATE TABLE IF NOT EXISTS vcf_lines (
+            chrom VARCHAR NOT NULL,
+            pos UINTEGER NOT NULL,
+            id VARCHAR,
+            ref VARCHAR,
+            alt VARCHAR,
+            qual VARCHAR,
+            filters VARCHAR,
+            info VARCHAR,
+            format VARCHAR,
+            values VARCHAR
+        );
+    """)
+
     db.sql("""
         CREATE TABLE IF NOT EXISTS variants (
             vid VARCHAR PRIMARY KEY,
@@ -54,7 +74,7 @@ def set_up_db(db: DuckDBPyConnection, info_and_format_dtypes: pd.DataFrame) -> N
             alt VARCHAR,
             qual VARCHAR,
             filters VARCHAR[]
-        )
+        );
     """)
 
     val_cols = info_and_format_dtypes["col_def"].loc[
@@ -65,7 +85,7 @@ def set_up_db(db: DuckDBPyConnection, info_and_format_dtypes: pd.DataFrame) -> N
         CREATE TABLE IF NOT EXISTS vals (
             vid VARCHAR REFERENCES variants(vid),
             {', '.join(val_cols)}
-        )
+        );
     """)
 
     nested_info_fields = info_and_format_dtypes.loc[
@@ -81,7 +101,7 @@ def set_up_db(db: DuckDBPyConnection, info_and_format_dtypes: pd.DataFrame) -> N
         db.sql(f"""
             CREATE TYPE info_{field['id_db']} AS STRUCT (
                 {', '.join(sub_fields)}
-            )
+            );
         """)
 
     info_cols = info_and_format_dtypes["col_def"].loc[
@@ -92,7 +112,7 @@ def set_up_db(db: DuckDBPyConnection, info_and_format_dtypes: pd.DataFrame) -> N
         CREATE TABLE IF NOT EXISTS info (
             vid VARCHAR REFERENCES variants(vid),
             {', '.join(info_cols)}
-        )
+        );
     """)
 
 
@@ -185,75 +205,122 @@ def get_vcf_info_and_format_dtypes(
     return df
 
 
+def write_tab_vcf(vcf_gz_path: Path, tab_path: Path) -> None:
+    logging.info(f"Converting {vcf_gz_path} to TSV")
+    subprocess.run(["bcftools", "view", vcf_gz_path, "--no-header", "-o", tab_path])
+
+
 def populate_db(
-    db: DuckDBPyConnection,
-    path: Path | bgzip.BGZipReader,
-    info_and_format_dtypes: pd.DataFrame,
+    db: DuckDBPyConnection, tab_path: Path, info_and_format_dtypes: pd.DataFrame
 ) -> None:
-    memoryview_batch_size = 2**24
-    chunk_size = 2**18
+    db.sql(f"""
+        COPY
+            vcf_lines
+        FROM
+            '{tab_path}' (DELIMITER '\\t', AUTO_DETECT false);
+    """)
 
-    with open(path, "rb") as raw:
-        seen_header = False
-        batch = ""
+    db.sql("""
+        delete from vcf_lines where chrom != 'chr21';
+        ALTER TABLE
+            vcf_lines
+        ADD COLUMN
+            vid VARCHAR;    
+    """)
 
-        with bgzip.BGZipReader(
-            raw,
-            buffer_size=memoryview_batch_size * 3,
-            num_threads=1,
-            raw_read_chunk_size=chunk_size,
-        ) as f:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                futures = []
+    db.sql("""
+        UPDATE vcf_lines SET id = NULL where id = '.';
+        UPDATE vcf_lines SET ref = NULL where ref = '.';
+        UPDATE vcf_lines SET alt = NULL where alt = '.';
+        UPDATE vcf_lines SET qual = NULL where qual = '.';
+        UPDATE vcf_lines SET filters = NULL where filters = '.';
+        UPDATE vcf_lines SET info = NULL where info = '.';
+        UPDATE vcf_lines SET format = NULL where format = '.';
+        UPDATE vcf_lines SET values = NULL where values = '.';
+    """)
 
-                while True:
-                    # read a block of bytes
-                    if not (d := f.read(memoryview_batch_size)):
-                        break
+    db.sql("""
+        UPDATE
+            vcf_lines
+        SET
+            vid = (
+                chrom || ':' ||
+                pos || '|' ||
+                coalesce(ref, '.') || '>' ||
+                coalesce(alt, '.')
+            )
+    """)
 
-                    # concat the latest chunk of text
-                    text = d.tobytes().decode()
-                    d.release()
-                    batch += text
+    db.sql("""
+        INSERT INTO
+            variants (
+                vid,
+                chrom,
+                pos,
+                id,
+                ref,
+                alt,
+                qual,
+                filters
+            )
+        SELECT
+            vid,
+            chrom,
+            pos,
+            id,
+            ref,
+            alt,
+            qual,
+            string_split(filters, ';')
+        FROM
+            vcf_lines;
+    """)
 
-                    if not seen_header:
-                        m = re.search(r"\n(#CHROM[^\n]+)\n", batch, re.MULTILINE)
+    format_values_wide = db.sql("""
+        WITH format_values_long AS (
+            SELECT
+                vid,
+                unnest(string_split(lower(format), ':')) as k,
+                unnest(string_split(lower(values), ':')) as v
+            FROM
+                vcf_lines
+        )
+        PIVOT format_values_long ON k USING first(v);
+    """)
 
-                        if m is not None:
-                            logging.info("Found column header. Reading variants.")
+    db.register("format_values_wide", format_values_wide)
 
-                            # done with VCF header, confirm col header format
-                            assert m[1].split("\t")[:-1] == [
-                                "#CHROM",
-                                "POS",
-                                "ID",
-                                "REF",
-                                "ALT",
-                                "QUAL",
-                                "FILTER",
-                                "INFO",
-                                "FORMAT",
-                            ]
+    val_cols = info_and_format_dtypes.loc[
+        info_and_format_dtypes["kind"].eq("value"),
+        ["id_db", "number"],
+    ]
 
-                            batch = batch[m.end() :]
-                            seen_header = True
+    val_cols["obs"] = info_and_format_dtypes["id_db"].isin(format_values_wide.columns)
+    val_cols["multi"] = ~val_cols["number"].isin({"0", "1"})
 
-                        else:
-                            continue  # still looking for col header
+    cols_expr = [duckdb.ColumnExpression("vid")]
 
-                    batch_lines, batch = batch.rsplit("\n", 1)
+    for c in filter(lambda x: x != "vid", db.table("vals").columns):
+        col = val_cols.loc[val_cols["id_db"].eq(c)].iloc[0].to_dict()
 
-                    logging.info(
-                        "\t".join(batch_lines.split("\n", 1)[0].split("\t", 5)[:5])
-                    )
+        if col["obs"]:
+            if col["multi"]:
+                colex = duckdb.FunctionExpression(
+                    "string_split",
+                    duckdb.ColumnExpression(col["id_db"]),
+                    duckdb.ConstantExpression(","),
+                ).alias(col["id_db"])
+            else:
+                colex = duckdb.ColumnExpression(col["id_db"])
 
-                    futures.append(
-                        executor.submit(
-                            insert_batch, db, batch_lines, info_and_format_dtypes
-                        )
-                    )
+        else:
+            colex = duckdb.ConstantExpression(None).alias(col["id_db"])
 
-                concurrent.futures.wait(futures)
+        cols_expr.append(colex)
+
+    db.table("format_values_wide").select(*cols_expr).insert_into("vals")
+    db.unregister("format_values_wide")
+    pass
 
 
 def insert_batch(
@@ -284,6 +351,9 @@ def insert_batch(
         encoding_errors="backslashreplace",
     )
 
+    if df.shape[0] == 23:
+        pass
+
     df["vid"] = df["chrom"] + ":" + df["pos"] + "|" + df["ref"] + ">" + df["alt"]
 
     df["pos"] = df["pos"].astype("int32")
@@ -307,8 +377,7 @@ def insert_batch(
     )
 
     multi_val_cols = info_and_format_dtypes["id_db"].loc[
-        info_and_format_dtypes["id_db"].isin(vals_df.columns)
-        & info_and_format_dtypes["kind"].eq("value")
+        info_and_format_dtypes["kind"].eq("value")
         & ~info_and_format_dtypes["number"].isin({"0", "1"})
     ]
 

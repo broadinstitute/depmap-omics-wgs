@@ -744,7 +744,6 @@ task snpeff_snpsift {
             java -Xmx14g -jar /app/snpEff.jar \
                 ann \
                 -noStats \
-                -formatEff \
                 GRCh38.mane.1.2.ensembl \
                 "~{vcf}" \
                 > "snpeff_out.vcf"
@@ -1126,7 +1125,7 @@ task merge_info {
         String docker_image
         String docker_image_hash_or_tag
         Int mem_gb = 16
-        Int cpu = 6
+        Int cpu = 5
         Int preemptible = 3
         Int max_retries = 2
         Int additional_disk_gb = 0
