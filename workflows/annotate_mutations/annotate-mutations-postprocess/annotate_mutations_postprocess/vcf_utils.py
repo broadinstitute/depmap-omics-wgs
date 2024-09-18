@@ -17,12 +17,11 @@ def create_and_populate_db(
     vcf_path: Path,
     db_path: Path,
     compound_info_fields: set[str],
-    info_subfield_types: dict[str, dict[str, str]],
     info_cols_ignored: set[str],
     url_encoded_col_name_regex: re.Pattern,
 ):
     val_info_types = get_vcf_val_info_types(
-        vcf_path, compound_info_fields, info_cols_ignored, info_subfield_types
+        vcf_path, compound_info_fields, info_cols_ignored
     )
 
     try:
@@ -47,7 +46,6 @@ def make_snakecase(x: str) -> str:
 
 def set_up_db(db: DuckDBPyConnection, val_info_types: pd.DataFrame) -> None:
     db.create_function(name="snakecase", function=make_snakecase)
-    db.sql("SET enable_progress_bar = true;")
 
     db.sql("""
         CREATE TABLE IF NOT EXISTS vcf_lines (
@@ -131,7 +129,6 @@ def get_vcf_val_info_types(
     path: Path,
     compound_info_fields: set[str],
     info_cols_ignored: set[str],
-    info_subfield_types: dict[str, dict[str, str]],
 ) -> pd.DataFrame:
     header_lines = get_header_lines([path])
     header_lines = [
@@ -171,17 +168,12 @@ def get_vcf_val_info_types(
             subfields = re.split(r"\s*\|\s*", desc)
 
             for ix, s in enumerate(subfields):
-                try:
-                    sub_type = info_subfield_types[d["id"]][s]
-                except KeyError:
-                    sub_type = "VARCHAR"
-
                 dsub = {
                     "id": s,
                     "id_db": snakecase(s),
                     "has_children": False,
                     "number": "1",
-                    "type": sub_type,
+                    "type": "VARCHAR",
                     "kind": "sub_info",
                     "parent_id": d["id"],
                     "parent_id_db": d["id_db"],
@@ -232,7 +224,6 @@ def write_tab_vcf(vcf_gz_path: Path, tab_path: Path) -> None:
 def populate_db(
     db: DuckDBPyConnection, tab_path: Path, val_info_types: pd.DataFrame
 ) -> None:
-    logging.info("copy")
     db.sql(f"""
         COPY
             vcf_lines
@@ -240,7 +231,6 @@ def populate_db(
             '{tab_path}' (DELIMITER '\\t', AUTO_DETECT false);
     """)
 
-    logging.info("updates")
     db.sql("""
         UPDATE vcf_lines SET id = NULL where id = '.';
         UPDATE vcf_lines SET ref = NULL where ref = '.';
@@ -252,7 +242,6 @@ def populate_db(
         UPDATE vcf_lines SET values = NULL where values = '.';
     """)
 
-    logging.info("alter")
     db.sql("""
         ALTER TABLE
             vcf_lines
@@ -260,7 +249,6 @@ def populate_db(
             vid VARCHAR;
     """)
 
-    logging.info("vid")
     db.sql("""
         UPDATE
             vcf_lines
@@ -273,7 +261,6 @@ def populate_db(
             )
     """)
 
-    logging.info("variants")
     db.sql("""
         INSERT INTO
             variants (
@@ -305,13 +292,14 @@ def populate_db(
     batch_size = ceil(n_variants / n_batches)
 
     for i in range(n_batches):
-        logging.info((i, n_batches))
+        logging.info(f"Loading batch {i+1} of {n_batches}")
         offset = i * batch_size
 
         populate_vals(db, val_info_types, limit=batch_size, offset=offset)
         populate_info(db, val_info_types, limit=batch_size, offset=offset)
 
     db.sql("DROP TABLE IF EXISTS kv;")
+    db.sql("DROP TABLE IF EXISTS kv2;")
     db.sql("DROP TABLE IF EXISTS vcf_lines;")
 
 
@@ -323,7 +311,6 @@ def populate_vals(
 ):
     db.sql("TRUNCATE kv;")
 
-    logging.info("kv")
     db.sql(f"""
         INSERT INTO
             kv (
@@ -362,7 +349,10 @@ def populate_info(
     db.sql("TRUNCATE kv;")
     db.sql("TRUNCATE kv2;")
 
-    logging.info("info_raw")
+    info_types = val_info_types.loc[val_info_types["kind"].eq("info")].copy()
+
+    info_types_expr = ", ".join(["'" + x + "'" for x in info_types["id_db"]])
+
     db.sql(f"""
         INSERT INTO
             kv (
@@ -384,19 +374,19 @@ def populate_info(
                 {limit}
             OFFSET
                 {offset}
-        );
+        )
+        WHERE
+            k IN ({info_types_expr});
     """)
 
-    info_types = val_info_types.loc[
-        val_info_types["kind"].eq("info")
-        & val_info_types["id_db"].isin(db.table("kv")["k"].distinct().df()["k"])
+    info_types = info_types.loc[
+        info_types["id_db"].isin(db.table("kv")["k"].distinct().df()["k"])
     ].copy()
 
     flag_fields = info_types["id_db"].loc[
         info_types["kind"].eq("info") & info_types["number"].eq("0")
     ]
 
-    logging.info("true")
     db.sql(f"""
         UPDATE
             kv
@@ -417,7 +407,6 @@ def populate_info(
         ["'" + x + "'" for x in compound_info_types["id_db"]]
     )
 
-    logging.info("delete")
     db.sql(f"""
         DELETE FROM
             kv
@@ -425,7 +414,6 @@ def populate_info(
             k NOT IN ({compound_types_expr});
     """)
 
-    logging.info("json")
     db.sql(f"""
         INSERT INTO
             kv2 (
