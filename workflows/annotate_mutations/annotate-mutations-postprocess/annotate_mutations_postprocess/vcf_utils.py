@@ -2,19 +2,15 @@ import logging
 import os
 import re
 import subprocess
-from csv import QUOTE_NONE
-from io import StringIO
+from math import ceil
 from pathlib import Path
 from urllib.parse import unquote
 
 import duckdb
-import numpy as np
 import pandas as pd
 from caseconverter import snakecase
 from duckdb import DuckDBPyConnection
 from vcf_info_merger.merge import get_header_lines
-
-from annotate_mutations_postprocess.utils import expand_dict_columns
 
 
 def create_and_populate_db(
@@ -25,7 +21,7 @@ def create_and_populate_db(
     info_cols_ignored: set[str],
     url_encoded_col_name_regex: re.Pattern,
 ):
-    info_and_format_dtypes = get_vcf_info_and_format_dtypes(
+    val_info_types = get_vcf_val_info_types(
         vcf_path, compound_info_fields, info_cols_ignored, info_subfield_types
     )
 
@@ -35,23 +31,23 @@ def create_and_populate_db(
         pass
 
     with duckdb.connect(db_path) as db:
-        set_up_db(db, info_and_format_dtypes)
+        set_up_db(db, val_info_types)
 
         tab_path = vcf_path.with_suffix("").with_suffix(".tsv")
         write_tab_vcf(vcf_gz_path=vcf_path, tab_path=tab_path)
 
         logging.info(f"Reading {vcf_path} into {db_path}")
-        populate_db(db, tab_path, info_and_format_dtypes)
+        populate_db(db, tab_path, val_info_types)
+        pass
 
 
 def make_snakecase(x: str) -> str:
     return snakecase(x)
 
 
-def set_up_db(db: DuckDBPyConnection, info_and_format_dtypes: pd.DataFrame) -> None:
-    # db.sql("SET GLOBAL pandas_analyze_sample=100000")
-
+def set_up_db(db: DuckDBPyConnection, val_info_types: pd.DataFrame) -> None:
     db.create_function(name="snakecase", function=make_snakecase)
+    db.sql("SET enable_progress_bar = true;")
 
     db.sql("""
         CREATE TABLE IF NOT EXISTS vcf_lines (
@@ -81,46 +77,57 @@ def set_up_db(db: DuckDBPyConnection, info_and_format_dtypes: pd.DataFrame) -> N
         );
     """)
 
-    val_cols = info_and_format_dtypes["col_def"].loc[
-        info_and_format_dtypes["kind"].eq("value")
-    ]
+    db.sql("""
+        CREATE TABLE IF NOT EXISTS kv (
+            vid VARCHAR,
+            k VARCHAR,
+            v VARCHAR
+        );
+    """)
+
+    db.sql("""
+        CREATE TABLE IF NOT EXISTS kv2 (
+            vid VARCHAR,
+            k VARCHAR,
+            v VARCHAR
+        );
+    """)
+
+    val_types = val_info_types.loc[val_info_types["kind"].eq("value")].copy()
+
+    req_val_col_types = val_types[["v_col_name", "col_def"]].drop_duplicates()
+    val_cols = req_val_col_types["v_col_name"] + " " + req_val_col_types["col_def"]
 
     db.sql(f"""
         CREATE TABLE IF NOT EXISTS vals (
-            vid VARCHAR REFERENCES variants(vid),
+            vid VARCHAR,
+            k VARCHAR,
             {', '.join(val_cols)}
         );
     """)
 
-    nested_info_fields = info_and_format_dtypes.loc[
-        info_and_format_dtypes["kind"].eq("info")
-        & info_and_format_dtypes["has_children"]
-    ]
+    info_types = val_info_types.loc[val_info_types["kind"].eq("info")].copy()
 
-    for _, field in nested_info_fields.iterrows():
-        sub_fields = info_and_format_dtypes["col_def"].loc[
-            info_and_format_dtypes["parent_id_db"].eq(field["id_db"])
-        ]
-
-        db.sql(f"""
-            CREATE TYPE info_{field['id_db']} AS STRUCT (
-                {', '.join(sub_fields)}
-            );
-        """)
-
-    info_cols = info_and_format_dtypes["col_def"].loc[
-        info_and_format_dtypes["kind"].eq("info")
-    ]
+    req_info_col_types = info_types[["v_col_name", "col_def"]].drop_duplicates()
+    info_cols = req_info_col_types["v_col_name"] + " " + req_info_col_types["col_def"]
 
     db.sql(f"""
         CREATE TABLE IF NOT EXISTS info (
-            vid VARCHAR REFERENCES variants(vid),
+            vid VARCHAR,
+            k VARCHAR,
             {', '.join(info_cols)}
         );
     """)
 
+    sub_fields = val_info_types.loc[
+        val_info_types["parent_id_db"].isin(info_types["id_db"]),
+        ["ix", "parent_id_db", "id_db"],
+    ].rename(columns={"parent_id_db": "k"})
 
-def get_vcf_info_and_format_dtypes(
+    db.register("sub_fields", sub_fields)
+
+
+def get_vcf_val_info_types(
     path: Path,
     compound_info_fields: set[str],
     info_cols_ignored: set[str],
@@ -204,8 +211,12 @@ def get_vcf_info_and_format_dtypes(
         }
     )
 
-    df["col_def"] = df["id_db"] + " " + df["type"]
-    df.loc[~df["number"].isin({"0", "1"}), "col_def"] += "[]"
+    df["col_def"] = df["type"]
+    df["is_list"] = ~df["number"].isin({"0", "1"})
+    df.loc[df["is_list"], "col_def"] += "[]"
+
+    df["v_col_name"] = "v_" + df["type"].str.lower()
+    df.loc[df["is_list"], "v_col_name"] += "_arr"
 
     return df
 
@@ -213,12 +224,13 @@ def get_vcf_info_and_format_dtypes(
 def write_tab_vcf(vcf_gz_path: Path, tab_path: Path) -> None:
     logging.info(f"Converting {vcf_gz_path} to TSV")
     subprocess.run(
-        ["bcftools", "view", vcf_gz_path, "-r", "chr21", "--no-header", "-o", tab_path]
+        ["bcftools", "view", vcf_gz_path, "--no-header", "-o", tab_path]
+        # ["bcftools", "view", vcf_gz_path, "-r", "chr1", "--no-header", "-o", tab_path]
     )
 
 
 def populate_db(
-    db: DuckDBPyConnection, tab_path: Path, info_and_format_dtypes: pd.DataFrame
+    db: DuckDBPyConnection, tab_path: Path, val_info_types: pd.DataFrame
 ) -> None:
     logging.info("copy")
     db.sql(f"""
@@ -227,12 +239,6 @@ def populate_db(
         FROM
             '{tab_path}' (DELIMITER '\\t', AUTO_DETECT false);
     """)
-
-    # logging.info("delete")
-    # db.sql("delete from vcf_lines where chrom != 'chr1';")
-
-    # logging.info("checkpoint")
-    # db.sql("FORCE CHECKPOINT")
 
     logging.info("updates")
     db.sql("""
@@ -293,493 +299,259 @@ def populate_db(
             vcf_lines;
     """)
 
-    format_values_wide = db.sql("""
-        WITH format_values_long AS (
-            SELECT
-                vid,
-                snakecase(unnest(str_split(format, ':'))) as k,
-                unnest(str_split(values, ':')) as v
-            FROM
-                vcf_lines
-        )
-        PIVOT format_values_long ON k USING first(v);
-    """)
+    n_variants = db.table("vcf_lines").shape[0]
+    max_batch_size = 100000
+    n_batches = 1 + n_variants // max_batch_size
+    batch_size = ceil(n_variants / n_batches)
 
-    val_cols = info_and_format_dtypes.loc[
-        info_and_format_dtypes["kind"].eq("value"), ["id_db", "number"]
-    ]
+    for i in range(n_batches):
+        logging.info((i, n_batches))
+        offset = i * batch_size
 
-    val_cols["obs"] = info_and_format_dtypes["id_db"].isin(format_values_wide.columns)
-    val_cols["multi"] = ~val_cols["number"].isin({"0", "1"})
+        populate_vals(db, val_info_types, limit=batch_size, offset=offset)
+        populate_info(db, val_info_types, limit=batch_size, offset=offset)
 
-    cols_expr = [duckdb.ColumnExpression("vid")]
+    db.sql("DROP TABLE IF EXISTS kv;")
+    db.sql("DROP TABLE IF EXISTS vcf_lines;")
 
-    for c in filter(lambda x: x != "vid", db.table("vals").columns):
-        col = val_cols.loc[val_cols["id_db"].eq(c)].iloc[0].to_dict()
 
-        if col["obs"]:
-            if col["multi"]:
-                colex = duckdb.FunctionExpression(
-                    "str_split",
-                    duckdb.ColumnExpression(col["id_db"]),
-                    duckdb.ConstantExpression(","),
-                ).alias(col["id_db"])
-            else:
-                colex = duckdb.ColumnExpression(col["id_db"])
+def populate_vals(
+    db: DuckDBPyConnection,
+    val_info_types: pd.DataFrame,
+    limit: int = 0,
+    offset: int = 0,
+):
+    db.sql("TRUNCATE kv;")
 
-        else:
-            colex = duckdb.ConstantExpression(None).alias(col["id_db"])
-
-        cols_expr.append(colex)
-
-    format_values_wide.select(*cols_expr).insert_into("vals")
-
-    simple_info_fields = info_and_format_dtypes.loc[
-        info_and_format_dtypes["kind"].eq("info")
-        & ~info_and_format_dtypes["has_children"]
-    ]
-
-    simple_info_fields_expr = ", ".join("'" + simple_info_fields["id_db"] + "'")
-
-    compound_info_fields = info_and_format_dtypes.loc[
-        info_and_format_dtypes["kind"].eq("info")
-        & info_and_format_dtypes["has_children"]
-    ]
-
-    compound_info_fields_expr = ", ".join("'" + compound_info_fields["id_db"] + "'")
-
-    sub_fields = info_and_format_dtypes.loc[
-        info_and_format_dtypes["parent_id_db"].isin(compound_info_fields["id_db"]),
-        ["ix", "parent_id_db", "id_db"],
-    ].rename(columns={"parent_id_db": "annot_k"})
-
-    db.register("sub_fields", sub_fields)
-
-    db.sql("""
-        CREATE TABLE IF NOT EXISTS info_long (
-            vid VARCHAR NOT NULL,
-            annot_k VARCHAR NOT NULL,
-            annot_v VARCHAR
-        );
-    """)
-
-    logging.info("start info")
+    logging.info("kv")
     db.sql(f"""
-        WITH annots AS (
+        INSERT INTO
+            kv (
+                vid,
+                k,
+                v
+            )
+        SELECT
+            vid,
+            snakecase(unnest(str_split(format, ':'))) as k,
+            unnest(str_split(values, ':')) as v
+        FROM
+            vcf_lines
+        LIMIT
+            {limit}
+        OFFSET
+            {offset};
+    """)
+
+    val_types = val_info_types.loc[
+        val_info_types["kind"].eq("value")
+        & val_info_types["id_db"].isin(db.table("kv")["k"].distinct().df()["k"])
+    ].copy()
+
+    cast_and_insert_v(
+        db=db, src_table_name="kv", dest_table_name="vals", types_df=val_types
+    )
+
+
+def populate_info(
+    db: DuckDBPyConnection,
+    val_info_types: pd.DataFrame,
+    limit: int = 0,
+    offset: int = 0,
+):
+    db.sql("TRUNCATE kv;")
+    db.sql("TRUNCATE kv2;")
+
+    logging.info("info_raw")
+    db.sql(f"""
+        INSERT INTO
+            kv (
+                vid,
+                k,
+                v
+            )
+        SELECT
+            vid,
+            snakecase(annot[1]) as k,
+            annot[2] as v
+        FROM (
             SELECT
                 vid,
                 str_split(unnest(str_split(info, ';')), '=') AS annot
             FROM
                 vcf_lines
-        ),
-        annots_exploded AS (
+            LIMIT
+                {limit}
+            OFFSET
+                {offset}
+        );
+    """)
+
+    info_types = val_info_types.loc[
+        val_info_types["kind"].eq("info")
+        & val_info_types["id_db"].isin(db.table("kv")["k"].distinct().df()["k"])
+    ].copy()
+
+    flag_fields = info_types["id_db"].loc[
+        info_types["kind"].eq("info") & info_types["number"].eq("0")
+    ]
+
+    logging.info("true")
+    db.sql(f"""
+        UPDATE
+            kv
+        SET
+            v = 'true'
+        WHERE
+            k in ({', '.join(["'" + x + "'" for x in flag_fields])})
+    """)
+
+    simple_info_types = info_types.loc[~info_types["has_children"]].copy()
+    compound_info_types = info_types.loc[info_types["has_children"]].copy()
+
+    cast_and_insert_v(
+        db=db, src_table_name="kv", dest_table_name="info", types_df=simple_info_types
+    )
+
+    compound_types_expr = ", ".join(
+        ["'" + x + "'" for x in compound_info_types["id_db"]]
+    )
+
+    logging.info("delete")
+    db.sql(f"""
+        DELETE FROM
+            kv
+        WHERE
+            k NOT IN ({compound_types_expr});
+    """)
+
+    logging.info("json")
+    db.sql(f"""
+        INSERT INTO
+            kv2 (
+                vid,
+                k,
+                v
+            )
+        SELECT 
+            vid,
+            k,
+            v
+        FROM (
+            WITH compound_info_split AS (
+                SELECT
+                    vid,
+                    k,
+                    str_split_regex(v, '\\s*\\|\\s*') AS v
+                FROM
+                    kv
+            ),
+            compound_info_exploded AS (
+                SELECT
+                    vid,
+                    k,
+                    unnest(v) AS v,
+                    generate_subscripts(v, 1) AS ix
+                FROM
+                    compound_info_split
+            ),
+            compound_info_with_ids AS (
+                SELECT
+                    vid,
+                    k,
+                    CASE
+                        WHEN v IN ('', '.')
+                    THEN
+                        NULL
+                    ELSE
+                        v
+                    END AS v,
+                    ix,
+                    sub_fields.id_db
+                FROM
+                    compound_info_exploded
+                NATURAL JOIN
+                    sub_fields
+            ),
+            compound_info_maps AS (
+                SELECT
+                    vid,
+                    k,
+                    MAP(
+                        list(id_db ORDER BY ix),
+                        list(v ORDER BY ix)
+                    )::JSON::VARCHAR AS v
+                FROM
+                    compound_info_with_ids
+                GROUP BY
+                    vid,
+                    k
+            )
             SELECT
                 vid,
-                snakecase(annot[1]) as annot_k,
-                annot[2] as annot_v
-            FROM
-                annots
-        ),
-        simple_info AS (
-            SELECT
-                vid,
-                annot_k,
-                annot_v
-            FROM
-                annots_exploded
-            WHERE
-                annot_k IN ({simple_info_fields_expr})
-        ),
-        compound_info AS (
-            SELECT
-                vid,
-                annot_k,
-                str_split_regex(annot_v, '\\s*\\|\\s*') AS annot_v
-            FROM
-                annots_exploded
-            WHERE
-                annot_k IN ({compound_info_fields_expr})
-        ),
-        compound_info_exploded AS (
-            SELECT
-                vid,
-                annot_k,
-                unnest(annot_v) AS annot_v,
-                generate_subscripts(annot_v, 1) AS ix
-            FROM
-                compound_info
-        ),
-        compound_info_with_ids AS (
-            SELECT
-                vid,
-                annot_k,
-                CASE
-                    WHEN annot_v IN ('', '.')
-                THEN
-                    NULL
-                ELSE
-                    annot_v
-                END AS annot_v,
-                ix,
-                sub_fields.id_db
-            FROM
-                compound_info_exploded
-            NATURAL JOIN
-                sub_fields
-            where annot_k='ann'
-        ),
-        compound_info_maps AS (
-            SELECT
-                vid,
-                annot_k,
-                MAP(
-                    list(id_db ORDER BY ix),
-                    list(annot_v ORDER BY ix)
-                )::JSON::VARCHAR AS annot_v
-            FROM
-                compound_info_with_ids
-            GROUP BY
-                vid,
-                annot_k
-        ),
-        compound_info_concat AS (
-            SELECT
-                vid,
-                annot_k,
-                '[' || string_agg(annot_v, ',') || ']' AS annot_v
+                k,
+                '[' || string_agg(v, ',') || ']' AS v
             FROM
                 compound_info_maps
             GROUP BY
                 vid,
-                annot_k
+                k
         )
-        SELECT
-            vid,
-            annot_k,
-            annot_v
-        FROM simple_info
-        UNION ALL
-        SELECT
-            vid,
-            annot_k,
-            annot_v
-        FROM compound_info_concat
-    """).insert_into("info_long")
-
-    flag_fields = info_and_format_dtypes["id_db"].loc[
-        info_and_format_dtypes["kind"].eq("info")
-        & info_and_format_dtypes["number"].eq("0")
-    ]
-
-    db.sql(f"""
-        UPDATE
-            info_long
-        SET
-            annot_v = 'true'
-        WHERE
-            annot_k in ({', '.join(["'" + x + "'" for x in flag_fields])})
     """)
 
-    logging.info("widen info")
-    info_wide = db.sql("""
-        PIVOT
-            info_long
-        ON
-            annot_k
-        USING first(annot_v)
-    """)
+    compound_info_types["is_list"] = False
 
-    info_fields = info_and_format_dtypes.loc[
-        info_and_format_dtypes["kind"].eq("info"), ["id_db", "number", "has_children"]
-    ]
-
-    info_fields["obs"] = info_and_format_dtypes["id_db"].isin(info_wide.columns)
-    info_fields["multi"] = (
-        ~info_fields["number"].isin({"0", "1"}) & ~info_fields["has_children"]
+    cast_and_insert_v(
+        db=db,
+        src_table_name="kv2",
+        dest_table_name="info",
+        types_df=compound_info_types,
     )
 
-    cols_expr = [duckdb.ColumnExpression("vid")]
 
-    for c in filter(lambda x: x != "vid", db.table("info").columns):
-        col = info_fields.loc[info_fields["id_db"].eq(c)].iloc[0].to_dict()
+def cast_and_insert_v(
+    db: DuckDBPyConnection,
+    src_table_name: str,
+    dest_table_name: str,
+    types_df: pd.DataFrame,
+):
+    for (v_col_name, is_list), g in types_df.groupby(["v_col_name", "is_list"]):
+        k_ids_expr = ", ".join(["'" + x + "'" for x in g["id_db"]])
 
-        if col["obs"]:
-            if col["multi"]:
-                colex = duckdb.FunctionExpression(
-                    "str_split",
-                    duckdb.ColumnExpression(col["id_db"]),
-                    duckdb.ConstantExpression(","),
-                ).alias(col["id_db"])
-            else:
-                colex = duckdb.ColumnExpression(col["id_db"])
-
+        if is_list:
+            db.sql(f"""
+                INSERT INTO
+                    {dest_table_name} (
+                        vid,
+                        k,
+                        {v_col_name}
+                    )
+                SELECT
+                    vid,
+                    k,
+                    str_split(v, ',') as {v_col_name}
+                FROM
+                    {src_table_name}
+                WHERE
+                    k IN ({k_ids_expr});
+            """)
         else:
-            colex = duckdb.ConstantExpression(None).alias(col["id_db"])
-
-        cols_expr.append(colex)
-
-    logging.info("insert info")
-    info_wide.select(*cols_expr).insert_into("info")
-
-    for _, c in compound_info_fields.iterrows():
-        if c["id_db"] not in info_wide.columns:
-            continue
-
-        new_type = f"info_{c['id_db']}"
-
-        if not (c["number"] == "0" or c["number"] == "1"):
-            new_type += "[]"
-
-        db.sql(f"""
-            ALTER TABLE
-                info
-            ALTER
-                {c['id_db']}
-            SET DATA TYPE
-                {new_type}
-        """)
-
-    db.sql("DROP TABLE IF EXISTS info_long")
-    db.sql("DROP TABLE IF EXISTS vcf_lines")
-
-
-def insert_batch(
-    db: DuckDBPyConnection, batch_lines: str, info_and_format_dtypes: pd.DataFrame
-) -> None:
-    cur = db.cursor()
-
-    df = pd.read_csv(
-        StringIO(batch_lines),
-        sep="\t",
-        header=None,
-        names=[
-            "chrom",
-            "pos",
-            "id",
-            "ref",
-            "alt",
-            "qual",
-            "filters",
-            "info",
-            "format",
-            "values",
-        ],
-        dtype="string",
-        na_values=".",
-        keep_default_na=False,
-        quoting=QUOTE_NONE,
-        encoding_errors="backslashreplace",
-    )
-
-    if df.shape[0] == 23:
-        pass
-
-    df["vid"] = df["chrom"] + ":" + df["pos"] + "|" + df["ref"] + ">" + df["alt"]
-
-    df["pos"] = df["pos"].astype("int32")
-
-    variants_df = df.loc[
-        :, ["vid", "chrom", "pos", "id", "ref", "alt", "qual", "filters"]
-    ]
-
-    variants_df["filters"] = variants_df["filters"].apply(lambda x: x.split(";"))
-
-    cur.sql("INSERT INTO variants BY NAME SELECT * FROM variants_df")
-
-    vals_df = df.loc[:, ["vid", "format", "values"]].set_index("vid")
-
-    vals_df = vals_df.apply(
-        lambda x: dict(zip(x["format"].split(":"), x["values"].split(":"))), axis=1
-    ).to_frame()
-
-    vals_df = expand_dict_columns(
-        vals_df, col_name_formatter=snakecase, name_columns_with_parent=False
-    )
-
-    multi_val_cols = info_and_format_dtypes["id_db"].loc[
-        info_and_format_dtypes["kind"].eq("value")
-        & ~info_and_format_dtypes["number"].isin({"0", "1"})
-    ]
-
-    for c in multi_val_cols:
-        vals_df.loc[vals_df[c].notna(), c] = vals_df.loc[vals_df[c].notna(), c].apply(
-            lambda x: x.split(",")
-        )
-
-    vals_df = vals_df.reset_index()
-
-    cur.sql("INSERT INTO vals BY NAME SELECT * FROM vals_df")
-
-    info_df = df.loc[:, ["vid", "info"]].set_index("vid")
-    info_df["info"] = info_df["info"].apply(parse_vcf_info)
-
-    info_df = expand_dict_columns(
-        info_df, col_name_formatter=snakecase, name_columns_with_parent=False
-    )
-
-    info_cols = info_and_format_dtypes.loc[
-        info_and_format_dtypes["id_db"].isin(info_df.columns)
-        & info_and_format_dtypes["kind"].eq("info")
-    ]
-
-    info_df = info_df.loc[:, info_df.columns.isin(info_cols["id_db"])]
-
-    multi_info_cols = info_cols["id_db"].loc[~info_cols["number"].isin({"0", "1"})]
-
-    for c in multi_info_cols:
-        info_df.loc[info_df[c].notna(), c] = info_df.loc[info_df[c].notna(), c].apply(
-            lambda x: x.split(",")
-        )
-
-    nested_fields = info_cols.loc[info_cols["has_children"]]
-
-    for _, info_field in nested_fields.iterrows():
-        sub_col_names = info_and_format_dtypes.loc[
-            info_and_format_dtypes["parent_id_db"].eq(info_field["id_db"])
-        ].sort_values("ix")["id_db"]
-
-        sub_info = (
-            info_df[info_field["id_db"]]
-            .dropna()
-            .explode()
-            .str.split(r"\s*\|\s*", expand=True)
-            .replace({"": pd.NA, ".": pd.NA})
-        )
-
-        sub_info.columns = sub_col_names
-
-        sub_info = pd.Series(
-            sub_info.to_dict(orient="records"),
-            index=sub_info.index,
-            name=info_field["id_db"],
-        )
-
-        sub_info = sub_info.groupby(sub_info.index).agg(list)
-
-        info_df.update(sub_info)
-        info_df = info_df.rename(columns={info_field["id_db"]: info_field["id_db"]})
-
-    info_df = info_df.reset_index()
-
-    cur.sql("INSERT INTO info BY NAME SELECT * FROM info_df")
-
-
-def clean_vcf(
-    df: pd.DataFrame,
-    info_and_format_dtypes: pd.DataFrame,
-    bool_cols: set[str],
-    drop_cols: set[str],
-    url_encoded_col_name_regex: re.Pattern,
-) -> pd.DataFrame:
-    cols_to_drop = list(drop_cols)
-    df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
-
-    df = expand_and_cast(df, info_and_format_dtypes)
-    df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
-
-    df.replace({"": pd.NA, ".": pd.NA}, inplace=True)
-
-    logging.info("URL-decoding columns")
-    df = urldecode_cols(df, url_encoded_col_name_regex)
-
-    logging.info("Casting boolean columns")
-    df = convert_booleans(df, bool_cols)
-
-    return df
-
-
-def parse_vcf_info(info: str) -> dict[str, str | None]:
-    parts = info.split(";")
-    kv = [x.split("=") for x in parts]
-    return dict(zip([x[0] for x in kv], [x[1] if len(x) == 2 else None for x in kv]))
-
-
-def expand_and_cast(
-    info_df: pd.DataFrame, info_and_format_dtypes: pd.DataFrame
-) -> pd.DataFrame:
-    obs_info_formats = info_and_format_dtypes.loc[
-        info_and_format_dtypes["kind"].eq("info")
-        & info_and_format_dtypes["id"].isin(info_df.columns)
-    ]
-
-    for _, r in obs_info_formats.iterrows():
-        if r["type"] == "boolean":
-            info_df[r["id"]] = info_df[r["id"]].astype("boolean")
-            info_df[r["id"]] = info_df[r["id"]].fillna(False)
-
-        else:
-            expanded = info_df[r["id"]].str.split(",", expand=True)
-
-            if expanded.shape[1] == 1:
-                new_col_names = [r["id"]]
-            else:
-                new_col_names = [
-                    r["id"],
-                    *[
-                        ".".join([r["id"], str(x + 1)])
-                        for x in list(range(1, expanded.shape[1]))
-                    ],
-                ]
-
-                info_df[new_col_names] = expanded.values
-
-            if r["has_subfields"]:
-                logging.info(f"Expanding {r['id']} subfields")
-
-                for c in new_col_names:
-                    if c == "info__ann":
-                        print(0)
-                    info_df[c] = info_df[c].str.strip("[]()").str.split("|")
-                    info_df.loc[~info_df[c].isna(), c] = info_df.loc[
-                        ~info_df[c].isna(), c
-                    ].apply(lambda x: dict(zip(r["subfields"], x)))
-                    info_df = expand_dict_columns(info_df)
-
-                    regex = re.compile(f"^{re.escape(c)}__")
-                    new_col_names_w_subfields = info_df.columns[
-                        info_df.columns.str.match(regex)
-                    ]
-
-                    info_df[new_col_names_w_subfields] = info_df[
-                        new_col_names_w_subfields
-                    ].astype(r["type"])
-
-                    if len(new_col_names) > 1:
-                        digit_move_map = dict(
-                            zip(
-                                new_col_names_w_subfields,
-                                (
-                                    r["id"]
-                                    + "__"
-                                    + new_col_names_w_subfields.str.replace(
-                                        regex, "", regex=True
-                                    )
-                                    + "."
-                                    + re.search(r"\d+$", c)[0]
-                                ),
-                            )
-                        )
-
-                        info_df = info_df.rename(columns=digit_move_map)
-
-            else:
-                info_df[new_col_names] = info_df[new_col_names].astype(r["type"])
-
-    assert np.dtype("O") not in list(info_df.dtypes)
-
-    info_df = info_df[
-        [
-            "chromosome",
-            "position",
-            "ref",
-            "alt",
-            *info_df.columns[info_df.columns.str.startswith("value__")].sort_values(),
-            *info_df.columns[info_df.columns.str.startswith("filter__")].sort_values(),
-            *info_df.columns[info_df.columns.str.startswith("info__")].sort_values(),
-        ]
-    ]
-
-    return info_df
+            db.sql(f"""
+                INSERT INTO
+                    {dest_table_name} (
+                        vid,
+                        k,
+                        {v_col_name}
+                    )
+                SELECT
+                    vid,
+                    k,
+                    v
+                FROM
+                    {src_table_name}
+                WHERE
+                    k IN ({k_ids_expr});
+            """)
 
 
 def urldecode_cols(
@@ -801,31 +573,5 @@ def urldecode_cols(
     df.loc[:, list(url_encoded_col_names)] = df.loc[:, list(url_encoded_col_names)].map(
         lambda x: unquote(x) if x is not pd.NA else pd.NA
     )
-
-    return df
-
-
-def convert_booleans(df: pd.DataFrame, bool_cols: set[str]) -> pd.DataFrame:
-    df_strings = df.select_dtypes(include="string")
-    df_strings = df_strings.loc[:, df_strings.notna().any(axis=0)]
-
-    true_vals = {"True", "true", "Y", "y"}
-    false_vals = {"False", "false", "N", "n"}
-
-    col_is_boollike = df_strings.isin({*true_vals, *false_vals, pd.NA}).all(axis=0)
-
-    obs_bool_cols = col_is_boollike[col_is_boollike].index
-
-    if not set(obs_bool_cols).issubset(bool_cols):
-        others = set(obs_bool_cols).difference(bool_cols)
-        logging.warning(f"Check VCF for additional booleans: {others}")
-
-    df[obs_bool_cols] = df[obs_bool_cols].astype("object")
-
-    for c in obs_bool_cols:
-        df.loc[df[c].isin({"True", "true", "Y", "y"}), c] = True
-        df.loc[df[c].isin({"False", "false", "N", "n"}), c] = False
-
-    df[obs_bool_cols] = df[obs_bool_cols].astype("boolean")
 
     return df
