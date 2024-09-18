@@ -45,7 +45,7 @@ def make_snakecase(x: str) -> str:
 
 
 def set_up_db(db: DuckDBPyConnection, val_info_types: pd.DataFrame) -> None:
-    db.create_function(name="snakecase", function=make_snakecase)
+    # db.create_function(name="snakecase", function=make_snakecase)
 
     db.sql("""
         CREATE TABLE IF NOT EXISTS vcf_lines (
@@ -157,7 +157,7 @@ def get_vcf_val_info_types(
         if d["kind"] == "info" and d["id"] in info_cols_ignored:
             continue
 
-        d["id_db"] = snakecase(d["id"])
+        d["id_db"] = d["id"]
 
         if d["id"] in compound_info_fields:
             d["has_children"] = True
@@ -170,7 +170,7 @@ def get_vcf_val_info_types(
             for ix, s in enumerate(subfields):
                 dsub = {
                     "id": s,
-                    "id_db": snakecase(s),
+                    "id_db": s,
                     "has_children": False,
                     "number": "1",
                     "type": "VARCHAR",
@@ -216,8 +216,8 @@ def get_vcf_val_info_types(
 def write_tab_vcf(vcf_gz_path: Path, tab_path: Path) -> None:
     logging.info(f"Converting {vcf_gz_path} to TSV")
     subprocess.run(
-        ["bcftools", "view", vcf_gz_path, "--no-header", "-o", tab_path]
-        # ["bcftools", "view", vcf_gz_path, "-r", "chr1", "--no-header", "-o", tab_path]
+        # ["bcftools", "view", vcf_gz_path, "--no-header", "-o", tab_path]
+        ["bcftools", "view", vcf_gz_path, "-r", "chr1", "--no-header", "-o", tab_path]
     )
 
 
@@ -309,6 +309,7 @@ def populate_vals(
     limit: int = 0,
     offset: int = 0,
 ):
+    logging.info("vals")
     db.sql("TRUNCATE kv;")
 
     db.sql(f"""
@@ -320,14 +321,25 @@ def populate_vals(
             )
         SELECT
             vid,
-            snakecase(unnest(str_split(format, ':'))) as k,
+            unnest(str_split(format, ':')) as k,
             unnest(str_split(values, ':')) as v
-        FROM
-            vcf_lines
-        LIMIT
-            {limit}
-        OFFSET
-            {offset};
+        FROM (
+            SELECT
+                vid,
+                format,
+                values
+            FROM
+                vcf_lines
+            ORDER BY
+                chrom,
+                pos,
+                ref,
+                alt
+            LIMIT
+                {limit}
+            OFFSET
+                {offset}
+        );
     """)
 
     val_types = val_info_types.loc[
@@ -346,6 +358,7 @@ def populate_info(
     limit: int = 0,
     offset: int = 0,
 ):
+    logging.info("info")
     db.sql("TRUNCATE kv;")
     db.sql("TRUNCATE kv2;")
 
@@ -362,18 +375,28 @@ def populate_info(
             )
         SELECT
             vid,
-            snakecase(annot[1]) as k,
+            annot[1] as k,
             annot[2] as v
         FROM (
             SELECT
                 vid,
                 str_split(unnest(str_split(info, ';')), '=') AS annot
-            FROM
-                vcf_lines
-            LIMIT
-                {limit}
-            OFFSET
-                {offset}
+            FROM (
+                SELECT
+                    vid,
+                    info
+                FROM
+                    vcf_lines
+                ORDER BY
+                    chrom,
+                    pos,
+                    ref,
+                    alt
+                LIMIT
+                    {limit}
+                OFFSET
+                    {offset}
+            )
         )
         WHERE
             k IN ({info_types_expr});
