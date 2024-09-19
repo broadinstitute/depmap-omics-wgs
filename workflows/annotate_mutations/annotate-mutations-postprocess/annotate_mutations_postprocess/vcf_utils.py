@@ -4,7 +4,6 @@ import re
 import subprocess
 from math import ceil
 from pathlib import Path
-from urllib.parse import unquote
 
 import duckdb
 import pandas as pd
@@ -57,7 +56,7 @@ def set_up_db(db: DuckDBPyConnection, val_info_types: pd.DataFrame) -> None:
 
     db.sql("""
         CREATE TABLE IF NOT EXISTS variants (
-            vid VARCHAR PRIMARY KEY,
+            vid UINTEGER PRIMARY KEY,
             chrom VARCHAR NOT NULL,
             pos UINTEGER NOT NULL,
             id VARCHAR,
@@ -70,7 +69,7 @@ def set_up_db(db: DuckDBPyConnection, val_info_types: pd.DataFrame) -> None:
 
     db.sql("""
         CREATE TABLE IF NOT EXISTS kv (
-            vid VARCHAR,
+            vid UINTEGER,
             k VARCHAR,
             v VARCHAR
         );
@@ -78,7 +77,7 @@ def set_up_db(db: DuckDBPyConnection, val_info_types: pd.DataFrame) -> None:
 
     db.sql("""
         CREATE TABLE IF NOT EXISTS kv_compound_info (
-            vid VARCHAR,
+            vid UINTEGER,
             k VARCHAR,
             k_sub VARCHAR,
             ix INTEGER,
@@ -95,7 +94,7 @@ def set_up_db(db: DuckDBPyConnection, val_info_types: pd.DataFrame) -> None:
 
         db.sql(f"""
             CREATE TABLE IF NOT EXISTS {x['tbl']}_tmp (
-                vid VARCHAR,
+                vid UINTEGER,
                 k VARCHAR,
                 {', '.join(cols)}
             );
@@ -103,7 +102,7 @@ def set_up_db(db: DuckDBPyConnection, val_info_types: pd.DataFrame) -> None:
 
         db.sql(f"""
             CREATE TABLE IF NOT EXISTS {x['tbl']} (
-                vid VARCHAR REFERENCES variants (vid),
+                vid UINTEGER REFERENCES variants (vid),
                 k VARCHAR NOT NULL,
                 {', '.join(cols)}
             );
@@ -202,8 +201,8 @@ def get_vcf_val_info_types(
 def write_tab_vcf(vcf_gz_path: Path, tab_path: Path) -> None:
     logging.info(f"Converting {vcf_gz_path} to TSV")
     subprocess.run(
-        ["bcftools", "view", vcf_gz_path, "--no-header", "-o", tab_path]
-        # ["bcftools", "view", vcf_gz_path, "-r", "chr1", "--no-header", "-o", tab_path]
+        # ["bcftools", "view", vcf_gz_path, "--no-header", "-o", tab_path]
+        ["bcftools", "view", vcf_gz_path, "-r", "chr1", "--no-header", "-o", tab_path]
     )
 
 
@@ -232,22 +231,18 @@ def populate_db(
     """)
 
     db.sql("""
+        BEGIN;
+    
+        CREATE SEQUENCE vid_sequence;
+        
         ALTER TABLE
             vcf_lines
         ADD COLUMN
-            vid VARCHAR;
-    """)
-
-    db.sql("""
-        UPDATE
-            vcf_lines
-        SET
-            vid = (
-                chrom || ':' ||
-                pos || '|' ||
-                coalesce(ref, '.') || '>' ||
-                coalesce(alt, '.')
-            )
+            vid UINTEGER
+        DEFAULT
+            nextval('vid_sequence');
+            
+        COMMIT;
     """)
 
     db.sql("""
@@ -623,6 +618,8 @@ def cast_and_insert_v(
 def urldecode_cols(
     db: DuckDBPyConnection, url_encoded_col_name_regexes: list[str]
 ) -> None:
+    logging.info("URL-decoding info fields")
+
     url_encoded_col_name_regex = "|".join(url_encoded_col_name_regexes)
 
     db.sql(f"""

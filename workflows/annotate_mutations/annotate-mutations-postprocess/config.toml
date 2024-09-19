@@ -47,6 +47,7 @@ compound_info_fields = [
 url_encoded_col_name_regexes = [
     "^civic_desc$",
     "^clndn$",
+    "^clnvi$",
     "^oc_",
     "^oncokb_muteff$",
     "^oncokb_oncogenic$",
