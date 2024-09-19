@@ -87,54 +87,36 @@ def set_up_db(db: DuckDBPyConnection, val_info_types: pd.DataFrame) -> None:
         );
     """)
 
-    val_types = val_info_types.loc[val_info_types["kind"].eq("value")].copy()
+    kind_map = [{"kind": "value", "tbl": "vals"}, {"kind": "info", "tbl": "info"}]
 
-    req_val_col_types = val_types[["v_col_name", "col_def"]].drop_duplicates()
-    val_cols = req_val_col_types["v_col_name"] + " " + req_val_col_types["col_def"]
+    for x in kind_map:
+        types = val_info_types.loc[val_info_types["kind"].eq(x["kind"])].copy()
+        req_col_types = types[["v_col_name", "col_def"]].drop_duplicates()
+        cols = req_col_types["v_col_name"] + " " + req_col_types["col_def"]
 
-    db.sql(f"""
-        CREATE TABLE IF NOT EXISTS vals (
-            vid VARCHAR,
-            k VARCHAR,
-            {', '.join(val_cols)}
-        );
-    """)
+        db.sql(f"""
+            CREATE TABLE IF NOT EXISTS {x['tbl']}_tmp (
+                vid VARCHAR,
+                k VARCHAR,
+                {', '.join(cols)}
+            );
+        """)
 
-    db.sql(f"""
-        CREATE TABLE IF NOT EXISTS vals_fk (
-            vid VARCHAR REFERENCES variants (vid),
-            k VARCHAR NOT NULL,
-            {', '.join(val_cols)}
-        );
-    """)
+        db.sql(f"""
+            CREATE TABLE IF NOT EXISTS {x['tbl']} (
+                vid VARCHAR REFERENCES variants (vid),
+                k VARCHAR NOT NULL,
+                {', '.join(cols)}
+            );
+        """)
 
-    info_types = val_info_types.loc[val_info_types["kind"].eq("info")].copy()
+        if x["kind"] == "info":
+            sub_fields = val_info_types.loc[
+                val_info_types["parent_id"].isin(types["id"]),
+                ["ix", "parent_id", "id"],
+            ].rename(columns={"parent_id": "k", "id": "k_sub"})
 
-    req_info_col_types = info_types[["v_col_name", "col_def"]].drop_duplicates()
-    info_cols = req_info_col_types["v_col_name"] + " " + req_info_col_types["col_def"]
-
-    db.sql(f"""
-        CREATE TABLE IF NOT EXISTS info (
-            vid VARCHAR,
-            k VARCHAR,
-            {', '.join(info_cols)}
-        );
-    """)
-
-    db.sql(f"""
-        CREATE TABLE IF NOT EXISTS info_fk (
-            vid VARCHAR REFERENCES variants (vid),
-            k VARCHAR NOT NULL,
-            {', '.join(info_cols)}
-        );
-    """)
-
-    sub_fields = val_info_types.loc[
-        val_info_types["parent_id_db"].isin(info_types["id_db"]),
-        ["ix", "parent_id_db", "id_db"],
-    ].rename(columns={"parent_id_db": "k"})
-
-    db.register("sub_fields", sub_fields)
+            db.register("sub_fields", sub_fields)
 
 
 def get_vcf_val_info_types(
@@ -169,12 +151,9 @@ def get_vcf_val_info_types(
         if d["kind"] == "info" and d["id"] in info_cols_ignored:
             continue
 
-        d["id_db"] = d["id"]
-
         if d["id"] in compound_info_fields:
             d["has_children"] = True
             d["type"] = "JSON"
-            # d["type"] = f"info_{d['id_db']}"
 
             desc = re.search(r"^.+:['\s]*([^']+)['\s]*$", d["description"]).group(1)
             subfields = re.split(r"\s*\|\s*", desc)
@@ -182,13 +161,11 @@ def get_vcf_val_info_types(
             for ix, s in enumerate(subfields):
                 dsub = {
                     "id": s,
-                    "id_db": s,
                     "has_children": False,
                     "number": "1",
                     "type": "VARCHAR",
                     "kind": "sub_info",
                     "parent_id": d["id"],
-                    "parent_id_db": d["id_db"],
                     "ix": ix + 1,
                 }
 
@@ -207,10 +184,8 @@ def get_vcf_val_info_types(
             "type": "string",
             "description": "string",
             "kind": "string",
-            "id_db": "string",
             "has_children": "boolean",
             "parent_id": "string",
-            "parent_id_db": "string",
             "ix": "Int64",
         }
     )
@@ -228,8 +203,8 @@ def get_vcf_val_info_types(
 def write_tab_vcf(vcf_gz_path: Path, tab_path: Path) -> None:
     logging.info(f"Converting {vcf_gz_path} to TSV")
     subprocess.run(
-        ["bcftools", "view", vcf_gz_path, "--no-header", "-o", tab_path]
-        # ["bcftools", "view", vcf_gz_path, "-r", "chr1", "--no-header", "-o", tab_path]
+        # ["bcftools", "view", vcf_gz_path, "--no-header", "-o", tab_path]
+        ["bcftools", "view", vcf_gz_path, "-r", "chr1", "--no-header", "-o", tab_path]
     )
 
 
@@ -316,8 +291,8 @@ def populate_db(
     db.unregister("sub_fields")
 
     for tbl in ["vals", "info"]:
-        snake_case_col(db, tbl, "k")
         make_constraints(db, tbl)
+        snake_case_col(db, tbl, "k")
 
 
 def make_constraints(db: DuckDBPyConnection, tbl: str) -> None:
@@ -325,21 +300,18 @@ def make_constraints(db: DuckDBPyConnection, tbl: str) -> None:
 
     db.sql(f"""
             INSERT INTO
-                {tbl}_fk
+                {tbl}
             BY NAME
             SELECT
                 *
             FROM
-                {tbl};
+                {tbl}_tmp;
         """)
 
-    db.sql(f"DROP TABLE {tbl};")
-    db.sql(f"ALTER TABLE {tbl}_fk RENAME TO {tbl};")
+    db.sql(f"DROP TABLE {tbl}_tmp;")
 
 
 def snake_case_col(db: DuckDBPyConnection, tbl: str, col: str) -> None:
-    logging.info(f"snake_casing {tbl}.{col}")
-
     snake_map = db.table(tbl)[col].distinct().df()
     snake_map[f"{col}_snake"] = snake_map[col].apply(snakecase)
 
@@ -399,11 +371,11 @@ def populate_vals(
 
     val_types = val_info_types.loc[
         val_info_types["kind"].eq("value")
-        & val_info_types["id_db"].isin(db.table("kv")["k"].distinct().df()["k"])
+        & val_info_types["id"].isin(db.table("kv")["k"].distinct().df()["k"])
     ].copy()
 
     cast_and_insert_v(
-        db=db, src_table_name="kv", dest_table_name="vals", types_df=val_types
+        db=db, src_table_name="kv", dest_table_name="vals_tmp", types_df=val_types
     )
 
 
@@ -414,9 +386,10 @@ def populate_info(
     offset: int = 0,
 ) -> None:
     db.sql("TRUNCATE kv;")
+    db.sql("TRUNCATE kv_compound_info;")
 
     info_types = val_info_types.loc[val_info_types["kind"].eq("info")].copy()
-    info_types_expr = ", ".join(["'" + x + "'" for x in info_types["id_db"]])
+    info_types_expr = ", ".join(["'" + x + "'" for x in info_types["id"]])
 
     db.sql(f"""
         INSERT INTO
@@ -455,10 +428,10 @@ def populate_info(
     """)
 
     info_types = info_types.loc[
-        info_types["id_db"].isin(db.table("kv")["k"].distinct().df()["k"])
+        info_types["id"].isin(db.table("kv")["k"].distinct().df()["k"])
     ].copy()
 
-    flag_fields = info_types["id_db"].loc[
+    flag_fields = info_types["id"].loc[
         info_types["kind"].eq("info") & info_types["number"].eq("0")
     ]
 
@@ -475,12 +448,13 @@ def populate_info(
     compound_info_types = info_types.loc[info_types["has_children"]].copy()
 
     cast_and_insert_v(
-        db=db, src_table_name="kv", dest_table_name="info", types_df=simple_info_types
+        db=db,
+        src_table_name="kv",
+        dest_table_name="info_tmp",
+        types_df=simple_info_types,
     )
 
-    compound_types_expr = ", ".join(
-        ["'" + x + "'" for x in compound_info_types["id_db"]]
-    )
+    compound_types_expr = ", ".join(["'" + x + "'" for x in compound_info_types["id"]])
 
     db.sql(f"""
         DELETE FROM
@@ -525,7 +499,7 @@ def populate_info(
             SELECT
                 vid,
                 compound_info_exploded.k,
-                sub_fields.id_db as k_sub,
+                sub_fields.k_sub,
                 sub_fields.ix,
                 CASE
                     WHEN v IN ('', '.')
@@ -592,7 +566,7 @@ def populate_info(
     cast_and_insert_v(
         db=db,
         src_table_name="kv",
-        dest_table_name="info",
+        dest_table_name="info_tmp",
         types_df=compound_info_types,
     )
 
@@ -604,7 +578,7 @@ def cast_and_insert_v(
     types_df: pd.DataFrame,
 ) -> None:
     for (v_col_name, is_list), g in types_df.groupby(["v_col_name", "is_list"]):
-        k_ids_expr = ", ".join(["'" + x + "'" for x in g["id_db"]])
+        k_ids_expr = ", ".join(["'" + x + "'" for x in g["id"]])
 
         if is_list:
             db.sql(f"""
