@@ -68,9 +68,9 @@ def vcf_to_duckdb(
         db_path=db,
         compound_info_fields=set(ctx.obj["settings"]["compound_info_fields"]),
         info_cols_ignored=set(ctx.obj["settings"]["info_cols_ignored"]),
-        url_encoded_col_name_regex=re.compile(
-            "|".join(ctx.obj["settings"]["url_encoded_col_name_regexes"])
-        ),
+        url_encoded_col_name_regexes=ctx.obj["settings"][
+            "url_encoded_col_name_regexes"
+        ],
     )
 
 

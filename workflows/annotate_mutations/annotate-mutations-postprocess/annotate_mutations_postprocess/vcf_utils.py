@@ -18,7 +18,7 @@ def create_and_populate_db(
     db_path: Path,
     compound_info_fields: set[str],
     info_cols_ignored: set[str],
-    url_encoded_col_name_regex: re.Pattern,
+    url_encoded_col_name_regexes: list[str],
 ) -> None:
     val_info_types = get_vcf_val_info_types(
         vcf_path, compound_info_fields, info_cols_ignored
@@ -36,8 +36,7 @@ def create_and_populate_db(
         write_tab_vcf(vcf_gz_path=vcf_path, tab_path=tab_path)
 
         logging.info(f"Reading {vcf_path} into {db_path}")
-        populate_db(db, tab_path, val_info_types)
-        pass
+        populate_db(db, tab_path, val_info_types, url_encoded_col_name_regexes)
 
 
 def set_up_db(db: DuckDBPyConnection, val_info_types: pd.DataFrame) -> None:
@@ -203,13 +202,16 @@ def get_vcf_val_info_types(
 def write_tab_vcf(vcf_gz_path: Path, tab_path: Path) -> None:
     logging.info(f"Converting {vcf_gz_path} to TSV")
     subprocess.run(
-        # ["bcftools", "view", vcf_gz_path, "--no-header", "-o", tab_path]
-        ["bcftools", "view", vcf_gz_path, "-r", "chr1", "--no-header", "-o", tab_path]
+        ["bcftools", "view", vcf_gz_path, "--no-header", "-o", tab_path]
+        # ["bcftools", "view", vcf_gz_path, "-r", "chr1", "--no-header", "-o", tab_path]
     )
 
 
 def populate_db(
-    db: DuckDBPyConnection, tab_path: Path, val_info_types: pd.DataFrame
+    db: DuckDBPyConnection,
+    tab_path: Path,
+    val_info_types: pd.DataFrame,
+    url_encoded_col_name_regexes: list[str],
 ) -> None:
     db.sql(f"""
         COPY
@@ -293,6 +295,8 @@ def populate_db(
     for tbl in ["vals", "info"]:
         make_constraints(db, tbl)
         snake_case_col(db, tbl, "k")
+
+    urldecode_cols(db, url_encoded_col_name_regexes)
 
 
 def make_constraints(db: DuckDBPyConnection, tbl: str) -> None:
@@ -617,23 +621,54 @@ def cast_and_insert_v(
 
 
 def urldecode_cols(
-    df: pd.DataFrame, url_encoded_col_name_regex: re.Pattern
-) -> pd.DataFrame:
-    col_has_percent = (
-        df.select_dtypes("string").map(lambda x: "%" in str(x)).any(axis=0)
-    )
-    obs_percent_cols = col_has_percent[col_has_percent].index
+    db: DuckDBPyConnection, url_encoded_col_name_regexes: list[str]
+) -> None:
+    url_encoded_col_name_regex = "|".join(url_encoded_col_name_regexes)
 
-    url_encoded_col_names = df.columns[df.columns.str.match(url_encoded_col_name_regex)]
+    db.sql(f"""
+        UPDATE
+            info
+        SET
+            v_varchar = url_decode(v_varchar)
+        WHERE
+            regexp_matches(k, '{url_encoded_col_name_regex}')
+            AND
+            contains(v_varchar, '%')
+    """)
 
-    if not set(url_encoded_col_names).issuperset(set(obs_percent_cols)):
-        # if this happens, we might need another CLI option to specify cols that have
-        # percent signs but aren't actually URL-encoded
-        others = set(obs_percent_cols).difference(set(url_encoded_col_names))
-        logging.warning(f"Check VCF for additional URL-encoded info in {others}")
+    db.sql(f"""
+        UPDATE
+            info
+        SET
+            v_varchar_arr = list_transform(v_varchar_arr, x -> url_decode(x))
+        WHERE
+            regexp_matches(k, '{url_encoded_col_name_regex}')
+            AND
+            contains(v_varchar_arr::text, '%')
+    """)
 
-    df.loc[:, list(url_encoded_col_names)] = df.loc[:, list(url_encoded_col_names)].map(
-        lambda x: unquote(x) if x is not pd.NA else pd.NA
-    )
+    still_encoded = db.sql(f"""
+        SELECT
+            vid,
+            k,
+            v_varchar,
+            v_varchar_arr
+        FROM
+            info
+        WHERE
+            contains(v_varchar, '%')
+            OR
+            contains(v_varchar_arr::varchar, '%')
+        ORDER BY
+            random()
+    """)
 
-    return df
+    if still_encoded.shape[0] > 0:
+        still_encoded_k = ", ".join(
+            [x[0] for x in still_encoded["k"].distinct().fetchall()]
+        )
+
+        logging.warning(
+            f"{still_encoded.shape[0]} values for annotations [{still_encoded_k}] "
+            f"might need to be URL_decoded:\n{still_encoded}"
+        )
