@@ -19,7 +19,7 @@ def create_and_populate_db(
     compound_info_fields: set[str],
     info_cols_ignored: set[str],
     url_encoded_col_name_regex: re.Pattern,
-):
+) -> None:
     val_info_types = get_vcf_val_info_types(
         vcf_path, compound_info_fields, info_cols_ignored
     )
@@ -40,13 +40,7 @@ def create_and_populate_db(
         pass
 
 
-def make_snakecase(x: str) -> str:
-    return snakecase(x)
-
-
 def set_up_db(db: DuckDBPyConnection, val_info_types: pd.DataFrame) -> None:
-    # db.create_function(name="snakecase", function=make_snakecase)
-
     db.sql("""
         CREATE TABLE IF NOT EXISTS vcf_lines (
             chrom VARCHAR NOT NULL,
@@ -84,9 +78,11 @@ def set_up_db(db: DuckDBPyConnection, val_info_types: pd.DataFrame) -> None:
     """)
 
     db.sql("""
-        CREATE TABLE IF NOT EXISTS kv2 (
+        CREATE TABLE IF NOT EXISTS kv_compound_info (
             vid VARCHAR,
             k VARCHAR,
+            k_sub VARCHAR,
+            ix INTEGER,
             v VARCHAR
         );
     """)
@@ -104,6 +100,14 @@ def set_up_db(db: DuckDBPyConnection, val_info_types: pd.DataFrame) -> None:
         );
     """)
 
+    db.sql(f"""
+        CREATE TABLE IF NOT EXISTS vals_fk (
+            vid VARCHAR REFERENCES variants (vid),
+            k VARCHAR NOT NULL,
+            {', '.join(val_cols)}
+        );
+    """)
+
     info_types = val_info_types.loc[val_info_types["kind"].eq("info")].copy()
 
     req_info_col_types = info_types[["v_col_name", "col_def"]].drop_duplicates()
@@ -113,6 +117,14 @@ def set_up_db(db: DuckDBPyConnection, val_info_types: pd.DataFrame) -> None:
         CREATE TABLE IF NOT EXISTS info (
             vid VARCHAR,
             k VARCHAR,
+            {', '.join(info_cols)}
+        );
+    """)
+
+    db.sql(f"""
+        CREATE TABLE IF NOT EXISTS info_fk (
+            vid VARCHAR REFERENCES variants (vid),
+            k VARCHAR NOT NULL,
             {', '.join(info_cols)}
         );
     """)
@@ -216,8 +228,8 @@ def get_vcf_val_info_types(
 def write_tab_vcf(vcf_gz_path: Path, tab_path: Path) -> None:
     logging.info(f"Converting {vcf_gz_path} to TSV")
     subprocess.run(
-        # ["bcftools", "view", vcf_gz_path, "--no-header", "-o", tab_path]
-        ["bcftools", "view", vcf_gz_path, "-r", "chr1", "--no-header", "-o", tab_path]
+        ["bcftools", "view", vcf_gz_path, "--no-header", "-o", tab_path]
+        # ["bcftools", "view", vcf_gz_path, "-r", "chr1", "--no-header", "-o", tab_path]
     )
 
 
@@ -299,8 +311,52 @@ def populate_db(
         populate_info(db, val_info_types, limit=batch_size, offset=offset)
 
     db.sql("DROP TABLE IF EXISTS kv;")
-    db.sql("DROP TABLE IF EXISTS kv2;")
+    db.sql("DROP TABLE IF EXISTS kv_compound_info;")
     db.sql("DROP TABLE IF EXISTS vcf_lines;")
+    db.unregister("sub_fields")
+
+    for tbl in ["vals", "info"]:
+        snake_case_col(db, tbl, "k")
+        make_constraints(db, tbl)
+
+
+def make_constraints(db: DuckDBPyConnection, tbl: str) -> None:
+    logging.info(f"Applying constraints to {tbl}")
+
+    db.sql(f"""
+            INSERT INTO
+                {tbl}_fk
+            BY NAME
+            SELECT
+                *
+            FROM
+                {tbl};
+        """)
+
+    db.sql(f"DROP TABLE {tbl};")
+    db.sql(f"ALTER TABLE {tbl}_fk RENAME TO {tbl};")
+
+
+def snake_case_col(db: DuckDBPyConnection, tbl: str, col: str) -> None:
+    logging.info(f"snake_casing {tbl}.{col}")
+
+    snake_map = db.table(tbl)[col].distinct().df()
+    snake_map[f"{col}_snake"] = snake_map[col].apply(snakecase)
+
+    db.register("snake_map", snake_map)
+
+    db.sql(f"""
+        UPDATE
+            {tbl}
+        SET
+            {col} = snake_map.{col}_snake
+        FROM
+            snake_map
+        WHERE
+            {tbl}.{col} = snake_map.{col};
+    """)
+
+    db.unregister("snake_map")
 
 
 def populate_vals(
@@ -308,8 +364,7 @@ def populate_vals(
     val_info_types: pd.DataFrame,
     limit: int = 0,
     offset: int = 0,
-):
-    logging.info("vals")
+) -> None:
     db.sql("TRUNCATE kv;")
 
     db.sql(f"""
@@ -357,13 +412,10 @@ def populate_info(
     val_info_types: pd.DataFrame,
     limit: int = 0,
     offset: int = 0,
-):
-    logging.info("info")
+) -> None:
     db.sql("TRUNCATE kv;")
-    db.sql("TRUNCATE kv2;")
 
     info_types = val_info_types.loc[val_info_types["kind"].eq("info")].copy()
-
     info_types_expr = ", ".join(["'" + x + "'" for x in info_types["id_db"]])
 
     db.sql(f"""
@@ -439,15 +491,19 @@ def populate_info(
 
     db.sql(f"""
         INSERT INTO
-            kv2 (
+            kv_compound_info (
                 vid,
                 k,
+                k_sub,
+                ix,
                 v
             )
-        SELECT 
-            vid,
-            k,
-            v
+        SELECT
+           vid,
+           k,
+           k_sub,
+           ix,
+           v
         FROM (
             WITH compound_info_split AS (
                 SELECT
@@ -465,35 +521,56 @@ def populate_info(
                     generate_subscripts(v, 1) AS ix
                 FROM
                     compound_info_split
-            ),
-            compound_info_with_ids AS (
-                SELECT
-                    vid,
-                    k,
-                    CASE
-                        WHEN v IN ('', '.')
-                    THEN
-                        NULL
-                    ELSE
-                        v
-                    END AS v,
-                    ix,
-                    sub_fields.id_db
-                FROM
-                    compound_info_exploded
-                NATURAL JOIN
-                    sub_fields
-            ),
-            compound_info_maps AS (
+            )
+            SELECT
+                vid,
+                compound_info_exploded.k,
+                sub_fields.id_db as k_sub,
+                sub_fields.ix,
+                CASE
+                    WHEN v IN ('', '.')
+                THEN
+                    NULL
+                ELSE
+                    v
+                END AS v
+            FROM
+                compound_info_exploded
+            INNER JOIN
+                sub_fields
+            ON
+                compound_info_exploded.k = sub_fields.k
+                AND
+                compound_info_exploded.ix = sub_fields.ix
+        );
+    """)
+
+    snake_case_col(db, tbl="kv_compound_info", col="k_sub")
+
+    db.sql("TRUNCATE kv;")
+
+    db.sql(f"""
+        INSERT INTO
+            kv (
+                vid,
+                k,
+                v
+            )
+        SELECT
+            vid,
+            k,
+            v
+        FROM (
+            WITH compound_info_maps AS (
                 SELECT
                     vid,
                     k,
                     MAP(
-                        list(id_db ORDER BY ix),
+                        list(k_sub ORDER BY ix),
                         list(v ORDER BY ix)
                     )::JSON::VARCHAR AS v
                 FROM
-                    compound_info_with_ids
+                    kv_compound_info
                 GROUP BY
                     vid,
                     k
@@ -514,7 +591,7 @@ def populate_info(
 
     cast_and_insert_v(
         db=db,
-        src_table_name="kv2",
+        src_table_name="kv",
         dest_table_name="info",
         types_df=compound_info_types,
     )
@@ -525,7 +602,7 @@ def cast_and_insert_v(
     src_table_name: str,
     dest_table_name: str,
     types_df: pd.DataFrame,
-):
+) -> None:
     for (v_col_name, is_list), g in types_df.groupby(["v_col_name", "is_list"]):
         k_ids_expr = ", ".join(["'" + x + "'" for x in g["id_db"]])
 
