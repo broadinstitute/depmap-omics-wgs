@@ -1,12 +1,10 @@
 import logging
-import re
 from pathlib import Path
 from typing import Annotated, Any, List
 
 import pandas as pd
 import tomllib
 import typer
-from click import echo
 from vcf_info_merger import info_merge_vcfs
 
 from annotate_mutations_postprocess.annotation import annotate_vcf
@@ -58,14 +56,16 @@ def merge_info(
 
 
 @app.command()
-def vcf_to_duckdb(
+def vcf_to_db(
     ctx: typer.Context,
     vcf: Annotated[Path, typer.Option(exists=True)],
     db: Annotated[Path, typer.Option()],
+    parquet_dir: Annotated[Path, typer.Option()],
 ) -> None:
     create_and_populate_db(
         vcf_path=vcf,
         db_path=db,
+        parquet_dir_path=parquet_dir,
         compound_info_fields=set(ctx.obj["settings"]["compound_info_fields"]),
         info_cols_ignored=set(ctx.obj["settings"]["info_cols_ignored"]),
         url_encoded_col_name_regexes=ctx.obj["settings"][
@@ -78,6 +78,7 @@ def vcf_to_duckdb(
 def vcf_to_depmap(
     ctx: typer.Context,
     db: Annotated[Path, typer.Option()],
+    parquet_dir: Annotated[Path, typer.Option()],
     oncogenes: Annotated[Path, typer.Option(exists=True)],
     tumor_suppressor_genes: Annotated[Path, typer.Option(exists=True)],
     fasta: Annotated[Path, typer.Option(exists=True)],
@@ -90,6 +91,7 @@ def vcf_to_depmap(
 
     annotate_vcf(
         db_path=db,
+        parquet_dir_path=parquet_dir,
         oncogenes=oncogenes_list,
         tumor_suppressor_genes=tumor_suppressor_genes_list,
         fasta_path=str(fasta),

@@ -15,6 +15,7 @@ from vcf_info_merger.merge import get_header_lines
 def create_and_populate_db(
     vcf_path: Path,
     db_path: Path,
+    parquet_dir_path: Path,
     compound_info_fields: set[str],
     info_cols_ignored: set[str],
     url_encoded_col_name_regexes: list[str],
@@ -37,8 +38,13 @@ def create_and_populate_db(
         logging.info(f"Reading {vcf_path} into {db_path}")
         populate_db(db, tab_path, val_info_types, url_encoded_col_name_regexes)
 
+        logging.info(f"Exporting schema and Parquet files to {parquet_dir_path}")
+        db.sql(f"EXPORT DATABASE '{parquet_dir_path}' (FORMAT PARQUET)")
+
 
 def set_up_db(db: DuckDBPyConnection, val_info_types: pd.DataFrame) -> None:
+    db.sql("SET preserve_insertion_order = false;")
+
     db.sql("""
         CREATE TABLE IF NOT EXISTS vcf_lines (
             chrom VARCHAR NOT NULL,
@@ -201,8 +207,8 @@ def get_vcf_val_info_types(
 def write_tab_vcf(vcf_gz_path: Path, tab_path: Path) -> None:
     logging.info(f"Converting {vcf_gz_path} to TSV")
     subprocess.run(
-        # ["bcftools", "view", vcf_gz_path, "--no-header", "-o", tab_path]
-        ["bcftools", "view", vcf_gz_path, "-r", "chr1", "--no-header", "-o", tab_path]
+        ["bcftools", "view", vcf_gz_path, "--no-header", "-o", tab_path]
+        # ["bcftools", "view", vcf_gz_path, "-r", "chr1", "--no-header", "-o", tab_path]
     )
 
 
@@ -241,7 +247,9 @@ def populate_db(
             vid UINTEGER
         DEFAULT
             nextval('vid_sequence');
-            
+        
+        DROP SEQUENCE vid_sequence;
+        
         COMMIT;
     """)
 
@@ -298,14 +306,14 @@ def make_constraints(db: DuckDBPyConnection, tbl: str) -> None:
     logging.info(f"Applying constraints to {tbl}")
 
     db.sql(f"""
-            INSERT INTO
-                {tbl}
-            BY NAME
-            SELECT
-                *
-            FROM
-                {tbl}_tmp;
-        """)
+        INSERT INTO
+            {tbl}
+        BY NAME
+        SELECT
+            *
+        FROM
+            {tbl}_tmp;
+    """)
 
     db.sql(f"DROP TABLE {tbl}_tmp;")
 
@@ -653,9 +661,12 @@ def urldecode_cols(
         FROM
             info
         WHERE
-            contains(v_varchar, '%')
-            OR
-            contains(v_varchar_arr::varchar, '%')
+            NOT regexp_matches(k, '{url_encoded_col_name_regex}')
+            AND (
+                contains(v_varchar, '%')
+                OR
+                contains(v_varchar_arr::varchar, '%')
+            )
         ORDER BY
             random()
     """)
