@@ -1,0 +1,9 @@
+[package]
+name = "gc_prop_in_window"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bio = "2.0.3"
+rust-htslib = "0.47.0"
+clap = { version = "4.0", features = ["derive"] }
