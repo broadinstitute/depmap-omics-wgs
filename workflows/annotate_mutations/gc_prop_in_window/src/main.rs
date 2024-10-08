@@ -52,7 +52,7 @@ fn calc_gc_proportion(
 
     // fetch the sequence from the fasta file
     let mut sequence = Vec::new();
-    fasta_handle.fetch(chrom, start - 1, end)?;
+    fasta_handle.fetch(chrom, start, end + 1)?;
     fasta_handle.read(&mut sequence)?;
 
     // calculate GC proportion
@@ -150,9 +150,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .long("window")
                 .value_name("SIZE")
                 .required(true)
-                .help(
-                    "number of base pairs to construct a centered window around the position",
-                ),
+                .help("number of base pairs to construct a centered window around the position"),
         )
         .arg(
             Arg::new("output_path")
