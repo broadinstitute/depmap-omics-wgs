@@ -34,7 +34,29 @@ config: dict[str, Any] = {}
 
 # noinspection PyUnusedLocal
 def done(*args, **kwargs):
-    typer.echo("Done.")
+    logging.info("Done.")
+
+
+def make_workflow_from_config(workflow_name: str) -> TerraWorkflow:
+    """
+    Make a TerraWorkflow object from a config entry.
+
+    :param workflow_name: the name of the workflow referenced in the config
+    :return: a TerraWorkflow instance
+    """
+
+    return TerraWorkflow(
+        repo_namespace=config["terra"]["repo_namespace"],
+        repo_method_name=config["terra"][workflow_name]["repo_method_name"],
+        method_config_name=config["terra"][workflow_name]["method_config_name"],
+        method_synopsis=config["terra"][workflow_name]["method_synopsis"],
+        workflow_wdl_path=Path(
+            config["terra"][workflow_name]["workflow_wdl_path"]
+        ).resolve(),
+        method_config_json_path=Path(
+            config["terra"][workflow_name]["method_config_json_path"]
+        ).resolve(),
+    )
 
 
 @app.callback(result_callback=done)
@@ -67,19 +89,7 @@ def main(
 def update_workflow(
     ctx: typer.Context, workflow_name: Annotated[str, typer.Option()]
 ) -> None:
-    terra_workflow = TerraWorkflow(
-        repo_namespace=config["terra"]["repo_namespace"],
-        repo_method_name=config["terra"][workflow_name]["repo_method_name"],
-        method_config_name=config["terra"][workflow_name]["method_config_name"],
-        method_synopsis=config["terra"][workflow_name]["method_synopsis"],
-        workflow_wdl_path=Path(
-            config["terra"][workflow_name]["workflow_wdl_path"]
-        ).resolve(),
-        method_config_json_path=Path(
-            config["terra"][workflow_name]["method_config_json_path"]
-        ).resolve(),
-    )
-
+    terra_workflow = make_workflow_from_config(workflow_name)
     ctx.obj["terra_workspace"].update_workflow(terra_workflow=terra_workflow)
 
 
@@ -95,18 +105,7 @@ def refresh_terra_samples(ctx: typer.Context) -> None:
 def run_workflow(
     ctx: typer.Context, workflow_name: Annotated[str, typer.Option()]
 ) -> None:
-    terra_workflow = TerraWorkflow(
-        repo_namespace=config["terra"]["repo_namespace"],
-        repo_method_name=config["terra"][workflow_name]["repo_method_name"],
-        method_config_name=config["terra"][workflow_name]["method_config_name"],
-        method_synopsis=config["terra"][workflow_name]["method_synopsis"],
-        workflow_wdl_path=Path(
-            config["terra"][workflow_name]["workflow_wdl_path"]
-        ).resolve(),
-        method_config_json_path=Path(
-            config["terra"][workflow_name]["method_config_json_path"]
-        ).resolve(),
-    )
+    terra_workflow = make_workflow_from_config(workflow_name)
 
     if workflow_name == "preprocess_wgs_sample":
         delta_preprocess_wgs_samples(
