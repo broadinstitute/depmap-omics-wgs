@@ -7,8 +7,6 @@ import duckdb
 import pandas as pd
 import pysam
 
-from annotate_mutations_postprocess.gc import calc_gc_percentage
-
 
 def annotate_vcf(
     db_path: Path,
@@ -71,42 +69,6 @@ def annotate_vcf(
                 assay_score
             ON
                 assay_class.vid = assay_score.vid
-        """)
-
-        logging.info("Calculating GC content")
-        df_gc = db.sql("""
-            SELECT
-                vid,
-                chrom,
-                pos,
-                ref,
-                CASE
-                    WHEN length(ref) > length(alt) THEN 'deletion'
-                    WHEN length(ref) > 1 AND length(alt) > 1 THEN 'substitution'
-                    ELSE NULL
-                END AS variant_class
-            FROM
-                variants
-        """).df()
-
-        with pysam.FastaFile(fasta_path) as fasta_handle:
-            df_gc["gc_percentage"] = df_gc.apply(
-                lambda x: calc_gc_percentage(
-                    chrom=x["chrom"],
-                    pos=x["pos"],
-                    ref=x["ref"],
-                    variant_class=x["variant_class"],
-                    window_size=200,
-                    fasta_handle=fasta_handle,
-                ),
-                axis=1,
-            )
-
-        db.sql("""
-            select 
-                count(distinct block_id) as num_blocks,
-                count(distinct block_id) * (select block_size from pragma_database_size()) as num_bytes
-                from pragma_storage_info(variants) group by all
         """)
 
     # todo: brca1
