@@ -1,6 +1,28 @@
+FROM rust:1.81-bullseye AS gc_prop_builder
+
+RUN apt-get -y update \
+    && apt-get -y dist-upgrade \
+    && apt-get install -y --no-install-recommends --no-install-suggests libclang-dev
+
+WORKDIR /usr/src
+
+RUN cargo new --bin gc_prop_in_window
+WORKDIR /usr/src/gc_prop_in_window
+
+COPY ./gc_prop_in_window/Cargo.toml ./gc_prop_in_window/Cargo.lock ./
+RUN cargo build --release
+RUN rm -rf src
+
+COPY ./gc_prop_in_window/src ./src
+RUN rm ./target/release/deps/gc_prop_in_window*
+RUN cargo build --release
+
 FROM bitnami/minideb:bullseye
 
-ENV DEBIAN_FRONTEND noninteractive
+WORKDIR /app
+COPY --from=gc_prop_builder /usr/src/gc_prop_in_window/target/release/gc_prop_in_window .
+
+ENV DEBIAN_FRONTEND="noninteractive"
 ENV BCFTOOLS_VERSION="1.20"
 
 ADD https://bootstrap.pypa.io/get-pip.py /tmp/get-pip.py
@@ -39,4 +61,4 @@ RUN set -e \
     && pip install -U --no-cache-dir csvkit \
     && rm -f /tmp/get-pip.py
 
-ENV BCFTOOLS_PLUGINS /usr/local/src/bcftools/plugins
+ENV BCFTOOLS_PLUGINS="/usr/local/src/bcftools/plugins"

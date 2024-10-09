@@ -44,6 +44,9 @@ workflow annotate_mutations {
         File? cosmic_cmc
         File? cosmic_cmc_index
 
+        Boolean annot_gc_prop = true
+        Int? gc_window
+
         # snpEff and SnpSift annotation
         Boolean annot_snpeff = true
         Boolean annot_snpsift = true
@@ -103,7 +106,7 @@ workflow annotate_mutations {
     )
 
     if (annot_seg_dups || annot_repeat_masker || annot_hess_drivers || annot_oncokb ||
-        annot_civic || annot_cosmic_cmc) {
+        annot_civic || annot_cosmic_cmc || annot_gc_prop) {
         call annot_with_bcftools {
             input:
                 vcf = fixed_vcf,
@@ -114,6 +117,7 @@ workflow annotate_mutations {
                 annot_oncokb = annot_oncokb,
                 annot_civic = annot_civic,
                 annot_cosmic_cmc = annot_cosmic_cmc,
+                annot_gc_prop = annot_gc_prop,
                 segdup_bed = segdup_bed,
                 segdup_bed_index = segdup_bed_index,
                 repeatmasker_bed = repeatmasker_bed,
@@ -124,7 +128,10 @@ workflow annotate_mutations {
                 civic_annotation = civic_annotation,
                 civic_annotation_index = civic_annotation_index,
                 cosmic_cmc = cosmic_cmc,
-                cosmic_cmc_index = cosmic_cmc_index
+                cosmic_cmc_index = cosmic_cmc_index,
+                gc_window = gc_window,
+                ref_fasta = ref_fasta,
+                ref_fasta_index = ref_fasta_index
         }
     }
 
@@ -542,6 +549,7 @@ task annot_with_bcftools {
         Boolean annot_oncokb
         Boolean annot_civic
         Boolean annot_cosmic_cmc
+        Boolean annot_gc_prop
         String? exclude_string
         File? segdup_bed
         File? segdup_bed_index
@@ -554,6 +562,9 @@ task annot_with_bcftools {
         File? civic_annotation_index
         File? cosmic_cmc
         File? cosmic_cmc_index
+        Int? gc_window
+        File? ref_fasta
+        File? ref_fasta_index
 
         String docker_image
         String docker_image_hash_or_tag
@@ -687,6 +698,31 @@ task annot_with_bcftools {
                 --annotations="~{civic_annotation}" \
                 --columns="CHROM,POS,REF,ALT,CIVIC_SCORE,CIVIC_DESC" \
                 --header-lines="civic.hdr.vcf" \
+                --output="${TMP_VCF}"
+            rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"
+        fi
+
+        if ~{annot_gc_prop}; then
+            echo "Annotating GC proportion"
+
+            echo '##INFO=<ID=GC_PROP,Number=1,Type=Float,Description="GC proportion in centered ~{gc_window}bp window">' \
+                > gc_prop.hdr.vcf
+
+            /app/gc_prop_in_window \
+                --vcf="~{vcf}" \
+                --fasta="~{ref_fasta}" \
+                --output="gc_prop.tsv" \
+                --window=~{gc_window}
+
+            tail -n +2 "gc_prop.tsv" > gc_prop.nohead.tsv
+            bgzip "gc_prop.nohead.tsv" --output="gc_prop.nohead.tsv.gz"
+            tabix "gc_prop.nohead.tsv.gz" -s1 -b2 -e2
+
+            bcftools annotate \
+                "~{vcf}" \
+                --annotations="gc_prop.nohead.tsv.gz" \
+                --columns="CHROM,POS,REF,ALT,GC_PROP" \
+                --header-lines="gc_prop.hdr.vcf" \
                 --output="${TMP_VCF}"
             rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"
         fi
