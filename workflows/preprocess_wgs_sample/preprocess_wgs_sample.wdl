@@ -267,40 +267,43 @@ task bam_readgroup_to_contents {
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
     }
+
     Int mem = ceil(size(bam, "MiB")) + 2000 + additional_memory_mb
     Int disk_space = ceil(size(bam, "GiB")) + 10 + additional_disk_gb
 
     parameter_meta {
-        bam: {localization_optional: true}
+        bam: { localization_optional: true }
     }
 
     command <<<
-    set -euo pipefail
-    export GCS_OAUTH_TOKEN=$(gcloud auth application-default print-access-token)
-    samtools view -H ~{bam} | \
-        awk 'BEGIN {                                                                \
-                OFS = FS = "\t";                                                    \
-                header = "ID\tBC\tCN\tDS\tDT\tFO\tKS\tLB\tPG\tPI\tPL\tPM\tPU\tSM";  \
-                split(header, header_ary, "\t");                                    \
-                for (i=1; i in header_ary; i++) {                                   \
-                    header_pos[header_ary[i]] = i                                   \
-                };                                                                  \
-                print header                                                        \
-             }                                                                      \
-             /^@RG/ {                                                               \
-                for (i=2; i<=NF; i++) {                                             \
-                    split($i, rg, ":");                                             \
-                    row_ary[header_pos[rg[1]]] = rg[2];                             \
-                };                                                                  \
-                row = row_ary[1];                                                   \
-                for (i=2; i in header_ary; i++) {                                   \
-                    row = row "\t";                                                 \
-                    if (i in row_ary)                                               \
-                        row = row row_ary[i];                                       \
-                };                                                                  \
-                delete row_ary;                                                     \
-                print row                                                           \
-             }'
+        set -euo pipefail
+
+        export GCS_OAUTH_TOKEN=$(gcloud auth application-default print-access-token)
+
+        samtools view -H ~{bam} | \
+            awk 'BEGIN {                                                                \
+                    OFS = FS = "\t";                                                    \
+                    header = "ID\tBC\tCN\tDS\tDT\tFO\tKS\tLB\tPG\tPI\tPL\tPM\tPU\tSM";  \
+                    split(header, header_ary, "\t");                                    \
+                    for (i=1; i in header_ary; i++) {                                   \
+                        header_pos[header_ary[i]] = i                                   \
+                    };                                                                  \
+                    print header                                                        \
+                 }                                                                      \
+                 /^@RG/ {                                                               \
+                    for (i=2; i<=NF; i++) {                                             \
+                        split($i, rg, ":");                                             \
+                        row_ary[header_pos[rg[1]]] = rg[2];                             \
+                    };                                                                  \
+                    row = row_ary[1];                                                   \
+                    for (i=2; i in header_ary; i++) {                                   \
+                        row = row "\t";                                                 \
+                        if (i in row_ary)                                               \
+                            row = row row_ary[i];                                       \
+                    };                                                                  \
+                    delete row_ary;                                                     \
+                    print row                                                           \
+                 }'
     >>>
 
     output {
@@ -340,11 +343,13 @@ task biobambam_bamtofastq {
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
     }
+
     Int mem = ceil(size(filename, "MiB")) + 2000 + additional_memory_mb
     Int disk_space = ceil(size(filename, "GiB") * 2) + 10 + additional_disk_gb
 
-    command {
+    command <<<
         set -euo pipefail
+
         /usr/local/bin/bamtofastq \
             T=~{T} \
             collate=~{collate} \
@@ -361,7 +366,7 @@ task biobambam_bamtofastq {
             outputperreadgroupsuffixO2=~{outputperreadgroupsuffixO2} \
             outputperreadgroupsuffixS=~{outputperreadgroupsuffixS} \
             tryoq=~{tryoq}
-    }
+    >>>
 
     output {
         Array[File] output_fastq1 = glob("*~{outputperreadgroupsuffixF}")
@@ -393,40 +398,41 @@ task emit_pe_records {
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
     }
+
     Int mem = ceil(size(fastq1_files, "MiB") + size(fastq2_files, "MiB")) + 2000 + additional_memory_mb
     Int disk_space = ceil(size(fastq1_files, "GiB") + size(fastq2_files, "GiB")) + 10 + additional_disk_gb
 
     File readgroups_tsv = write_objects(readgroups)
 
     parameter_meta {
-        fastq1_files: {localization_optional: true}
-        fastq2_files: {localization_optional: true}
+        fastq1_files: { localization_optional: true }
+        fastq2_files: { localization_optional: true }
     }
 
     command <<<
-    set -euo pipefail
+        set -euo pipefail
 
-    python <<CODE
-from csv import DictReader
+        python <<CODE
+        from csv import DictReader
 
-def basename(bucket_path):
-    return bucket_path.rsplit('/', 1)[-1]
+        def basename(bucket_path):
+            return bucket_path.rsplit('/', 1)[-1]
 
-fastq1_files = sorted("~{sep=',' fastq1_files}".split(','), key=basename)
-fastq2_files = sorted("~{sep=',' fastq2_files}".split(','), key=basename)
+        fastq1_files = sorted("~{sep=',' fastq1_files}".split(','), key=basename)
+        fastq2_files = sorted("~{sep=',' fastq2_files}".split(','), key=basename)
 
-readgroups = dict()
-with open("~{readgroups_tsv}") as readgroups_tsv:
-    for readgroup in DictReader(readgroups_tsv, dialect="excel-tab"):
-        readgroups[readgroup["ID"]] = r"@RG\t" + r"\t".join(
-            "{}:{}".format(key, value)
-            for key, value in readgroup.items() if value)
+        readgroups = dict()
+        with open("~{readgroups_tsv}") as readgroups_tsv:
+            for readgroup in DictReader(readgroups_tsv, dialect="excel-tab"):
+                readgroups[readgroup["ID"]] = r"@RG\t" + r"\t".join(
+                    "{}:{}".format(key, value)
+                    for key, value in readgroup.items() if value)
 
-print("forward_fastq\treverse_fastq\treadgroup\treadgroup_id")
-for fastq1, fastq2 in zip(fastq1_files, fastq2_files):
-    rg_id = basename(fastq1).rsplit("~{fastq1_suffix}", 1)[0]
-    print("\t".join([fastq1, fastq2, readgroups[rg_id], rg_id]))
-CODE
+        print("forward_fastq\treverse_fastq\treadgroup\treadgroup_id")
+        for fastq1, fastq2 in zip(fastq1_files, fastq2_files):
+            rg_id = basename(fastq1).rsplit("~{fastq1_suffix}", 1)[0]
+            print("\t".join([fastq1, fastq2, readgroups[rg_id], rg_id]))
+        CODE
     >>>
 
     output {
@@ -458,49 +464,50 @@ task emit_se_records {
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
     }
+
     Int mem = ceil(size(fastq_o1_files, "MiB") + size(fastq_o2_files, "MiB") + size(fastq_s_files, "MiB")) + 2000 + additional_memory_mb
     Int disk_space = ceil(size(fastq_o1_files, "GiB") + size(fastq_o2_files, "GiB") + size(fastq_s_files, "GiB")) + 10 + additional_disk_gb
 
     File readgroups_tsv = write_objects(readgroups)
 
     parameter_meta {
-        fastq_o1_files: {localization_optional: true}
-        fastq_o2_files: {localization_optional: true}
-        fastq_s_files: {localization_optional: true}
+        fastq_o1_files: { localization_optional: true }
+        fastq_o2_files: { localization_optional: true }
+        fastq_s_files: { localization_optional: true }
     }
 
     command <<<
-    set -euo pipefail
+        set -euo pipefail
 
-    python <<CODE
-from csv import DictReader
+        python <<CODE
+        from csv import DictReader
 
-def basename(bucket_path):
-    return bucket_path.rsplit('/', 1)[-1]
+        def basename(bucket_path):
+            return bucket_path.rsplit('/', 1)[-1]
 
-def emit_records(fastqs, suffix, readgroups):
-    for fastq in fastqs:
-        if not fastq:
-            return
-        rg_id = basename(fastq).rsplit(suffix, 1)[0]
-        print("\t".join([fastq, readgroups[rg_id], rg_id]))
+        def emit_records(fastqs, suffix, readgroups):
+            for fastq in fastqs:
+                if not fastq:
+                    return
+                rg_id = basename(fastq).rsplit(suffix, 1)[0]
+                print("\t".join([fastq, readgroups[rg_id], rg_id]))
 
-fastq_o1_files = "~{sep=',' fastq_o1_files}".split(',')
-fastq_o2_files = "~{sep=',' fastq_o2_files}".split(',')
-fastq_s_files = "~{sep=',' fastq_s_files}".split(',')
+        fastq_o1_files = "~{sep=',' fastq_o1_files}".split(',')
+        fastq_o2_files = "~{sep=',' fastq_o2_files}".split(',')
+        fastq_s_files = "~{sep=',' fastq_s_files}".split(',')
 
-readgroups = dict()
-with open("~{readgroups_tsv}") as readgroups_tsv:
-    for readgroup in DictReader(readgroups_tsv, dialect="excel-tab"):
-        readgroups[readgroup["ID"]] = r"@RG\t" + r"\t".join(
-            "{}:{}".format(key, value)
-            for key, value in readgroup.items() if value)
+        readgroups = dict()
+        with open("~{readgroups_tsv}") as readgroups_tsv:
+            for readgroup in DictReader(readgroups_tsv, dialect="excel-tab"):
+                readgroups[readgroup["ID"]] = r"@RG\t" + r"\t".join(
+                    "{}:{}".format(key, value)
+                    for key, value in readgroup.items() if value)
 
-print("fastq\treadgroup\treadgroup_id")
-emit_records(fastq_o1_files, "~{fastq_o1_suffix}", readgroups)
-emit_records(fastq_o2_files, "~{fastq_o2_suffix}", readgroups)
-emit_records(fastq_s_files, "~{fastq_s_suffix}", readgroups)
-CODE
+        print("fastq\treadgroup\treadgroup_id")
+        emit_records(fastq_o1_files, "~{fastq_o1_suffix}", readgroups)
+        emit_records(fastq_o2_files, "~{fastq_o2_suffix}", readgroups)
+        emit_records(fastq_s_files, "~{fastq_s_suffix}", readgroups)
+        CODE
     >>>
 
     output {
@@ -534,6 +541,7 @@ task bwa_pe {
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
     }
+
     File fastq1 = fastq_record.forward_fastq
     File fastq2 = fastq_record.reverse_fastq
     String readgroup = fastq_record.readgroup
@@ -542,8 +550,9 @@ task bwa_pe {
     Int mem = ceil(size([fastq1, fastq2], "MiB")) + 10000 + additional_memory_mb
     Int disk_space = ceil((size([fastq1, fastq2], "GiB") * 4) + ref_size) + 10 + additional_disk_gb
 
-    command {
+    command <<<
         set -euo pipefail
+
         bwa mem \
             -t ~{cpu} \
             -T 0 \
@@ -555,7 +564,7 @@ task bwa_pe {
             -Shb \
             -o ~{outbam} \
             -
-    }
+    >>>
 
     output {
         File bam = "~{outbam}"
@@ -588,6 +597,7 @@ task bwa_se {
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
     }
+
     File fastq = fastq_record.fastq
     String readgroup = fastq_record.readgroup
     String outbam = fastq_record.readgroup_id + ".bam"
@@ -595,8 +605,9 @@ task bwa_se {
     Int mem = ceil(size(fastq, "MiB")) + 10000 + additional_memory_mb
     Int disk_space = ceil((size(fastq, "GiB") * 4) + ref_size) + 10 + additional_disk_gb
 
-    command {
+    command <<<
         set -euo pipefail
+
         bwa mem \
             -t ~{cpu} \
             -T 0 \
@@ -607,7 +618,7 @@ task bwa_se {
             -Shb \
             -o ~{outbam} \
             -
-    }
+    >>>
 
     output {
         File bam = "~{outbam}"
@@ -624,61 +635,65 @@ task bwa_se {
 }
 
 task picard_markduplicates {
-  input {
-    Array[File]+ bams
-    String outbam
+    input {
+        Array[File]+ bams
+        String outbam
 
-    Int compression_level = 2
-    Int preemptible_tries = 1
-    Int max_retries = 1
-    String validation_stringency = "SILENT"
-    String assume_sort_order = "queryname"
+        Int compression_level = 2
+        Int preemptible_tries = 1
+        Int max_retries = 1
+        String validation_stringency = "SILENT"
+        String assume_sort_order = "queryname"
 
-    # The program default for READ_NAME_REGEX is appropriate in nearly every case.
-    # Sometimes we wish to supply "null" in order to turn off optical duplicate detection
-    # This can be desirable if you don't mind the estimated library size being wrong and optical duplicate detection is taking >7 days and failing
-    String? read_name_regex
-    Int memory_multiplier = 1
-    Int additional_disk_gb = 20
+        # The program default for READ_NAME_REGEX is appropriate in nearly every case.
+        # Sometimes we wish to supply "null" in order to turn off optical duplicate detection
+        # This can be desirable if you don't mind the estimated library size being wrong and optical duplicate detection is taking >7 days and failing
+        String? read_name_regex
+        Int memory_multiplier = 1
+        Int additional_disk_gb = 20
 
-    Float? sorting_collection_size_ratio
-  }
-  Float total_input_size = size(bams, "GiB")
-  String metrics_filename = outbam + ".metrics"
-  # The merged bam will be smaller than the sum of the parts so we need to account for the unmerged inputs and the merged output.
-  # Mark Duplicates takes in as input readgroup bams and outputs a slightly smaller aggregated bam. Giving .25 as wiggleroom
-  Float md_disk_multiplier = 3
-  Int disk_size = ceil(md_disk_multiplier * total_input_size) + additional_disk_gb
+        Float? sorting_collection_size_ratio
+    }
 
-  Float memory_size = 7.5 * memory_multiplier
-  Int java_memory_size = (ceil(memory_size) - 2)
+    Float total_input_size = size(bams, "GiB")
+    String metrics_filename = outbam + ".metrics"
+    # The merged bam will be smaller than the sum of the parts so we need to account for the unmerged inputs and the merged output.
+    # Mark Duplicates takes in as input readgroup bams and outputs a slightly smaller aggregated bam. Giving .25 as wiggleroom
+    Float md_disk_multiplier = 3
+    Int disk_size = ceil(md_disk_multiplier * total_input_size) + additional_disk_gb
 
-  # Task is assuming query-sorted input so that the Secondary and Supplementary reads get marked correctly
-  # This works because the output of BWA is query-grouped and therefore, so is the output of MergeBamAlignment.
-  # While query-grouped isn't actually query-sorted, it's good enough for MarkDuplicates with ASSUME_SORT_ORDER="queryname"
+    Float memory_size = 7.5 * memory_multiplier
+    Int java_memory_size = (ceil(memory_size) - 2)
 
-  command {
-    java -Dsamjdk.compression_level=~{compression_level} -Xms~{java_memory_size}g -jar /usr/picard/picard.jar \
-      MarkDuplicates \
-      INPUT=~{sep=' INPUT=' bams} \
-      OUTPUT=~{outbam} \
-      METRICS_FILE=~{metrics_filename} \
-      VALIDATION_STRINGENCY=~{validation_stringency} \
-      ASSUME_SORT_ORDER=~{assume_sort_order} \
-      ~{"SORTING_COLLECTION_SIZE_RATIO=" + sorting_collection_size_ratio} \
-      ~{"READ_NAME_REGEX=" + read_name_regex}
-  }
+    # Task is assuming query-sorted input so that the Secondary and Supplementary reads get marked correctly
+    # This works because the output of BWA is query-grouped and therefore, so is the output of MergeBamAlignment.
+    # While query-grouped isn't actually query-sorted, it's good enough for MarkDuplicates with ASSUME_SORT_ORDER="queryname"
 
-  runtime {
-    docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.26.10"
-    preemptible: preemptible_tries
-    memory: "~{memory_size} GiB"
-    disks: "local-disk " + disk_size + " SSD"
-  }
-  output {
-    File bam = "~{outbam}"
-    File metrics = "~{metrics_filename}"
-  }
+    command <<<
+        set -euo pipefail
+
+        java -Dsamjdk.compression_level=~{compression_level} -Xms~{java_memory_size}g -jar /usr/picard/picard.jar \
+            MarkDuplicates \
+            INPUT=~{sep=' INPUT=' bams} \
+            OUTPUT=~{outbam} \
+            METRICS_FILE=~{metrics_filename} \
+            VALIDATION_STRINGENCY=~{validation_stringency} \
+            ASSUME_SORT_ORDER=~{assume_sort_order} \
+            ~{"SORTING_COLLECTION_SIZE_RATIO=" + sorting_collection_size_ratio} \
+            ~{"READ_NAME_REGEX=" + read_name_regex}
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.26.10"
+        preemptible: preemptible_tries
+        memory: "~{memory_size} GiB"
+        disks: "local-disk " + disk_size + " SSD"
+    }
+
+    output {
+        File bam = "~{outbam}"
+        File metrics = "~{metrics_filename}"
+    }
 }
 
 task sort_and_index_markdup_bam {
@@ -692,6 +707,7 @@ task sort_and_index_markdup_bam {
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
     }
+
     Int mem = ceil(size(input_bam, "MiB")) + 10000 + additional_memory_mb
     Int disk_space = ceil(size(input_bam, "GiB") * 3.25) + 20 + additional_disk_gb
     Int mem_per_thread = floor(mem / cpu * 0.85)
@@ -699,20 +715,22 @@ task sort_and_index_markdup_bam {
     String output_bam = output_bam_basename + ".bam"
     String output_bai = output_bam_basename + ".bai"
 
-    command {
+    command <<<
         set -euo pipefail
+
         samtools sort \
             -@ ~{cpu} \
             -o ~{output_bam} \
             -T ~{tmp_prefix} \
             -m ~{mem_per_thread}M \
             ~{input_bam}
+
         samtools index \
             -b \
             -@ ~{index_threads} \
             ~{output_bam} \
             ~{output_bai}
-    }
+    >>>
 
     output {
         File output_bam = "~{output_bam}"
@@ -752,11 +770,10 @@ task CalculateSomaticContamination {
     }
 
     Int disk_size = ceil(size(tumor_cram_or_bam,"GB") + size(normal_cram_or_bam,"GB")) + select_first([additional_disk, 10])
-
     Int command_mem = memory_mb - 500
 
     command <<<
-        set -e
+        set -euo pipefail
 
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" gatk_override}
 
@@ -922,6 +939,8 @@ task CreateSequenceGroupingTSV {
     # It outputs to stdout where it is parsed into a wdl Array[Array[String]]
     # e.g. [["1"], ["2"], ["3", "4"], ["5"], ["6", "7", "8"]]
     command <<<
+        set -euo pipefail
+
         python3 <<CODE
         with open("~{ref_dict}", "r") as ref_dict_file:
             sequence_tuple_list = []
@@ -1008,16 +1027,18 @@ task BaseRecalibrator {
     Int max_heap = mem - 500
 
     parameter_meta {
-        bam: {localization_optional: true}
-        bam_index: {localization_optional: true}
-        dbsnp_vcf: {localization_optional: true}
-        dbsnp_vcf_index: {localization_optional: true}
-        ref_dict: {localization_optional: true}
-        ref_fasta: {localization_optional: true}
-        ref_fasta_index: {localization_optional: true}
+        bam: { localization_optional: true }
+        bam_index: { localization_optional: true }
+        dbsnp_vcf: { localization_optional: true }
+        dbsnp_vcf_index: { localization_optional: true }
+        ref_dict: { localization_optional: true }
+        ref_fasta: { localization_optional: true }
+        ref_fasta_index: { localization_optional: true }
     }
 
     command <<<
+        set -euo pipefail
+
         gatk --java-options "-XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -XX:+PrintFlagsFinal -Xlog:gc=debug:file=gc_log.log -Xms~{jvm_mem}m -Xmx~{max_heap}m" \
             BaseRecalibrator \
                 --input ~{bam} \
@@ -1058,6 +1079,8 @@ task GatherBqsrReports {
     Int disk_space = 3 * ceil(size(input_bqsr_reports, "GiB")) + additional_disk_gb
 
     command <<<
+        set -euo pipefail
+
         gatk --java-options "-Xms3000m -Xmx3000m" \
             GatherBQSRReports \
             -I ~{sep=' -I ' input_bqsr_reports} \
@@ -1102,11 +1125,13 @@ task ApplyBQSR {
     String output_bam = basename(bam)
 
     parameter_meta {
-        bam: {localization_optional: true}
-        bam_index: {localization_optional: true}
+        bam: { localization_optional: true }
+        bam_index: { localization_optional: true }
     }
 
     command <<<
+        set -euo pipefail
+
         gatk --java-options "-XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -XX:+PrintFlagsFinal -Xlog:gc=debug:file=gc_log.log -Xms~{jvm_mem}m -Xmx~{max_heap}m" \
             ApplyBQSR \
                 --input ~{bam} \
@@ -1151,6 +1176,8 @@ task GatherBamFiles {
     Int disk_space = 2 * ceil(size(input_bams, "GiB")) + 10 + additional_disk_gb
 
     command <<<
+        set -euo pipefail
+
         java -Xms~{java_inital_memory_mb}m -Xmx~{java_max_memory_mb}m -jar /usr/picard/picard.jar \
             GatherBamFiles \
             INPUT=~{sep=' INPUT=' input_bams} \
@@ -1192,6 +1219,8 @@ task collect_insert_size_metrics {
     Int disk_size = ceil(size(input_bam, "GiB")) + 20 + additional_disk_gb
 
     command <<<
+        set -euo pipefail
+
         java -Xms~{jvm_mem}m -Xmx~{max_heap}m -jar /usr/picard/picard.jar \
             CollectInsertSizeMetrics \
             INPUT=~{input_bam} \

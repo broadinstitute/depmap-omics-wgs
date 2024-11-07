@@ -114,6 +114,8 @@ task RevertSam {
     Int max_heap = memory_in_MiB - 500
 
     command <<<
+        set -euo pipefail
+
         java -Xms~{java_mem}m -Xmx~{max_heap}m -jar /usr/picard/picard.jar \
             RevertSam \
             --INPUT ~{input_bam} \
@@ -153,8 +155,7 @@ task CramToBam {
     }
 
     command <<<
-        set -e
-        set -o pipefail
+        set -euo pipefail
 
         samtools view -h -T ~{ref_fasta} ~{cram_file} |
         samtools view -b -o ~{output_basename}.bam -
@@ -185,7 +186,7 @@ task GenerateOutputMap {
     }
 
     command <<<
-        set -e
+        set -euo pipefail
 
         samtools view -H ~{input_bam} | grep '^@RG' | cut -f2 | sed s/ID:// > readgroups.txt
 
@@ -216,6 +217,8 @@ task SplitUpOutputMapFile {
     }
 
     command <<<
+        set -euo pipefail
+
         mkdir rgtemp
         cd rgtemp
 
@@ -245,6 +248,8 @@ task SplitOutUbamByReadGroup {
     Array[Array[String]] tmp = read_tsv(rg_to_ubam_file)
 
     command <<<
+        set -euo pipefail
+
         echo "Read Group ~{tmp[0][0]} from ~{input_bam} is being written to ~{tmp[0][1]}"
         samtools view -b -h -r ~{tmp[0][0]} -o ~{tmp[0][1]} ~{input_bam}
     >>>
@@ -274,6 +279,8 @@ task ValidateSamFile {
     Int max_heap = memory_in_MiB - 500
 
     command <<<
+        set -euo pipefail
+
         java -Xms~{java_mem}m -Xmx~{max_heap}m -jar /usr/picard/picard.jar \
             ValidateSamFile \
             --INPUT ~{input_bam} \
@@ -308,6 +315,8 @@ task SortSam {
     Int max_heap = memory_in_MiB - 500
 
     command <<<
+        set -euo pipefail
+
         java -Xms~{java_mem}m -Xmx~{max_heap}m -jar /usr/picard/picard.jar \
             SortSam \
             --INPUT ~{input_bam} \
