@@ -36,23 +36,3 @@ force_keep = [
     "strandq",
     "tumor_barcode",
 ]
-
-compound_info_fields = [
-    "ANN",
-    "CSQ",
-    "LOF",
-    "NMD",
-]
-
-url_encoded_col_name_regexes = [
-    "^civic_desc$",
-    "^clndn$",
-    "^clnvi$",
-    "^oc_",
-    "^oncokb_muteff$",
-    "^oncokb_oncogenic$",
-]
-
-info_cols_ignored = [
-    "FUNCOTATION"
-]

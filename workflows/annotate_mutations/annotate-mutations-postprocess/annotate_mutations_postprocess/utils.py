@@ -1,4 +1,3 @@
-import re
 from typing import Callable
 
 import pandas as pd
@@ -102,8 +101,3 @@ def expand_dict_columns(
             )
 
     return df
-
-
-def cs(df: pd.DataFrame, s: str) -> list[str]:
-    regex = re.compile(rf"{re.escape(s)}")
-    return list(df.columns[df.columns.str.contains(regex)])

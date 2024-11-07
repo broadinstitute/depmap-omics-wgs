@@ -31,27 +31,6 @@ tests = ["cloudpickle", "hypothesis", "mypy (>=1.11.1)", "pympler", "pytest (>=4
 tests-mypy = ["mypy (>=1.11.1)", "pytest-mypy-plugins"]
 
 [[package]]
-name = "bgzip"
-version = "0.5.0"
-description = "Utilities working with blocked gzip streams."
-optional = false
-python-versions = "*"
-files = [
-    {file = "bgzip-0.5.0.tar.gz", hash = "sha256:26ea6eed35ac43ea36cff828ca0f94925298ac21283cd0debaf072a92ac4be74"},
-]
-
-[[package]]
-name = "case-converter"
-version = "1.1.0"
-description = "A string case conversion package."
-optional = false
-python-versions = "*"
-files = [
-    {file = "case-converter-1.1.0.tar.gz", hash = "sha256:2ed3fc6e3ffa8d601f9a31ffcbc8fbd19eaeb48671a79a8ef16394672824510e"},
-    {file = "case_converter-1.1.0-py3-none-any.whl", hash = "sha256:d0fbc665a4fd410e454630bcf5168dce62e147a98512647ed48b0a6b556986e3"},
-]
-
-[[package]]
 name = "cattrs"
 version = "24.1.1"
 description = "Composable complex class support for attrs and dataclasses."
@@ -154,38 +133,6 @@ files = [
     {file = "duckdb-1.1.0-cp39-cp39-win_amd64.whl", hash = "sha256:d8333f3e85fa2a0f1c222b752c2bd42ea875235ff88492f7bcbb6867d0f644eb"},
     {file = "duckdb-1.1.0.tar.gz", hash = "sha256:b4d4c12b1f98732151bd31377753e0da1a20f6423016d2d097d2e31953ec7c23"},
 ]
-
-[[package]]
-name = "hypothesis"
-version = "6.111.2"
-description = "A library for property-based testing"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "hypothesis-6.111.2-py3-none-any.whl", hash = "sha256:055e8228958e22178d6077e455fd86a72044d02dac130dbf9c8b31e161b9809c"},
-    {file = "hypothesis-6.111.2.tar.gz", hash = "sha256:0496ad28c7240ee9ba89fcc7fb1dc74e89f3e40fbcbbb5f73c0091558dec8e6e"},
-]
-
-[package.dependencies]
-attrs = ">=22.2.0"
-sortedcontainers = ">=2.1.0,<3.0.0"
-
-[package.extras]
-all = ["backports.zoneinfo (>=0.2.1)", "black (>=19.10b0)", "click (>=7.0)", "crosshair-tool (>=0.0.70)", "django (>=3.2)", "dpcontracts (>=0.4)", "hypothesis-crosshair (>=0.0.13)", "lark (>=0.10.1)", "libcst (>=0.3.16)", "numpy (>=1.17.3)", "pandas (>=1.1)", "pytest (>=4.6)", "python-dateutil (>=1.4)", "pytz (>=2014.1)", "redis (>=3.0.0)", "rich (>=9.0.0)", "tzdata (>=2024.1)"]
-cli = ["black (>=19.10b0)", "click (>=7.0)", "rich (>=9.0.0)"]
-codemods = ["libcst (>=0.3.16)"]
-crosshair = ["crosshair-tool (>=0.0.70)", "hypothesis-crosshair (>=0.0.13)"]
-dateutil = ["python-dateutil (>=1.4)"]
-django = ["django (>=3.2)"]
-dpcontracts = ["dpcontracts (>=0.4)"]
-ghostwriter = ["black (>=19.10b0)"]
-lark = ["lark (>=0.10.1)"]
-numpy = ["numpy (>=1.17.3)"]
-pandas = ["pandas (>=1.1)"]
-pytest = ["pytest (>=4.6)"]
-pytz = ["pytz (>=2014.1)"]
-redis = ["redis (>=3.0.0)"]
-zoneinfo = ["backports.zoneinfo (>=0.2.1)", "tzdata (>=2024.1)"]
 
 [[package]]
 name = "lsprotocol"
@@ -361,7 +308,6 @@ files = [
 ]
 
 [package.dependencies]
-hypothesis = {version = ">=6.92.7", optional = true, markers = "extra == \"strategies\""}
 multimethod = "<=1.10.0"
 numpy = ">=1.19.0"
 packaging = ">=20.0"
@@ -610,17 +556,6 @@ files = [
 ]
 
 [[package]]
-name = "sortedcontainers"
-version = "2.4.0"
-description = "Sorted Containers -- Sorted List, Sorted Dict, Sorted Set"
-optional = false
-python-versions = "*"
-files = [
-    {file = "sortedcontainers-2.4.0-py2.py3-none-any.whl", hash = "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0"},
-    {file = "sortedcontainers-2.4.0.tar.gz", hash = "sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88"},
-]
-
-[[package]]
 name = "typeguard"
 version = "4.3.0"
 description = "Run-time type checker for Python"
@@ -695,26 +630,6 @@ files = [
     {file = "tzdata-2024.1-py2.py3-none-any.whl", hash = "sha256:9068bc196136463f5245e51efda838afa15aaeca9903f49050dfa2679db4d252"},
     {file = "tzdata-2024.1.tar.gz", hash = "sha256:2674120f8d891909751c38abcdfd386ac0a5a1127954fbc332af6b5ceae07efd"},
 ]
-
-[[package]]
-name = "vcf-info-merger"
-version = "0.1.0"
-description = "Merge info fields across multiple single-sample VCF files"
-optional = false
-python-versions = ">=3.12"
-files = []
-develop = false
-
-[package.dependencies]
-bgzip = ">=0.5.0"
-pandas = ">=2.2"
-pandera = {version = ">=0.20", extras = ["strategies"]}
-
-[package.source]
-type = "git"
-url = "https://github.com/broadinstitute/vcf-info-merger.git"
-reference = "HEAD"
-resolved_reference = "b8420835b346a5388836842840f15ef2a53a4414"
 
 [[package]]
 name = "wrapt"
@@ -798,4 +713,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "dacb88392af9ffb5e7ef92517aae4b839543fb24040eb04c9603d8129832bd12"
+content-hash = "0fcedc5aea894d4090da80f24362596fbf2bd638632a4d9d6c5d6cfa25bd8e02"

@@ -5,7 +5,6 @@ from pathlib import Path
 
 import duckdb
 import pandas as pd
-import pysam
 
 
 def annotate_vcf(
@@ -13,7 +12,6 @@ def annotate_vcf(
     parquet_dir_path: Path,
     oncogenes: set[str],
     tumor_suppressor_genes: set[str],
-    fasta_path: str,
 ) -> pd.DataFrame:
     logging.info("Annotating VCF")
 

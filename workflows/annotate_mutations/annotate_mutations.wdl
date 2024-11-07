@@ -79,6 +79,10 @@ workflow annotate_mutations {
         Array[String]? funcotator_annotation_overrides
         String? funcotator_data_sources_url
         String? funcotator_extra_args
+
+        # vcf-to-duckdb options
+        Array[String]? compound_info_fields
+        Array[String]? url_encoded_col_name_regexes
     }
 
     call compress_vcf {
@@ -223,11 +227,19 @@ workflow annotate_mutations {
             output_file_base_name = sample_id + "_info_merged",
     }
 
-#    call index_vcf {
-#        input:
-#            vcf = merge_info.vcf_info_merged
-#    }
-#
+    call index_vcf {
+        input:
+            vcf = merge_info.vcf_info_merged
+    }
+
+    call vcf_to_duckdb {
+        input:
+            vcf = merge_info.vcf_info_merged,
+            vcf_index = index_vcf.vcf_index,
+            compound_info_fields = compound_info_fields,
+            url_encoded_col_name_regexes = url_encoded_col_name_regexes
+    }
+
 #    call vcf2maf {
 #        input:
 #            vcf = fixed_vcf,
@@ -239,7 +251,8 @@ workflow annotate_mutations {
 
     output {
         File mut_annot_vcf = fixed_vcf
-#        File mut_annot_vcf_index = index_vcf.vcf_index
+        File mut_annot_vcf_index = index_vcf.vcf_index
+        Array[File] mut_duckdb = vcf_to_duckdb.duckdb
 #        File mut_annot_maf = vcf2maf.maf
     }
 }
@@ -1181,6 +1194,61 @@ task merge_info {
 
     output {
         File vcf_info_merged = "~{output_file_base_name}.vcf.gz"
+    }
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+
+    meta {
+        allowNestedInputs: true
+    }
+}
+
+task vcf_to_duckdb {
+    input {
+        File vcf
+        File vcf_index
+        Array[String]? compound_info_fields
+        Array[String]? url_encoded_col_name_regexes
+
+        String docker_image
+        String docker_image_hash_or_tag
+        Int mem_gb = 16
+        Int cpu = 4
+        Int preemptible = 3
+        Int max_retries = 0
+        Int additional_disk_gb = 0
+    }
+
+    Int disk_space = ceil(30 * size(vcf, "GiB")) + 10 + additional_disk_gb
+
+    String compound_info_fields_arg = (
+        if defined(compound_info_fields) then " --compound-info-field " else ""
+    )
+    String url_encoded_col_name_regexes_arg = (
+        if defined(url_encoded_col_name_regexes) then " --compound-info-field " else ""
+    )
+
+    command <<<
+        set -euo pipefail
+
+        python -m vcf_to_duckdb convert \
+            --vcf="~{vcf}" \
+            --tab="tmp.tsv" \
+            --db="tmp.duckdb" \
+            --parquet-dir="./parq" \
+            ~{compound_info_fields_arg}~{default="" sep=" --compound-info-field " compound_info_fields} \
+            ~{url_encoded_col_name_regexes_arg}~{default="" sep=" --url-encoded-col-name-regex " url_encoded_col_name_regexes}
+    >>>
+
+    output {
+        Array[File] duckdb = glob("parq/*.*")
     }
 
     runtime {
