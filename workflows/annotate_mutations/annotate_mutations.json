@@ -39,6 +39,7 @@
     "annotate_mutations.funcotator.docker_image": "\"broadinstitute/gatk\"",
     "annotate_mutations.funcotator.docker_image_hash_or_tag": "\":4.5.0.0\"",
     "annotate_mutations.funcotator_data_sources_url": "\"gs://cds-pipelines/data/funcotator/funcotator_dataSources.v1.8.hg38.20230908s\"",
+    "annotate_mutations.gc_window": "200",
     "annotate_mutations.gene_constraint_scores": "\"gs://gcp-public-data--gnomad/legacy/exac_browser/forweb_cleaned_exac_r03_march16_z_data_pLI_CNV-final.txt.gz\"",
     "annotate_mutations.hess_drivers": "\"gs://cds-pipelines/data/hess/hess_drivers.tsv.gz\"",
     "annotate_mutations.hess_drivers_index": "\"gs://cds-pipelines/data/hess/hess_drivers.tsv.gz.tbi\"",
