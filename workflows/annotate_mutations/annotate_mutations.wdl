@@ -1219,20 +1219,20 @@ task vcf_to_duckdb {
 
         String docker_image
         String docker_image_hash_or_tag
-        Int mem_gb = 16
-        Int cpu = 4
+        Int mem_gb = 24
+        Int cpu = 8
         Int preemptible = 3
-        Int max_retries = 0
+        Int max_retries = 2
         Int additional_disk_gb = 0
     }
 
     Int disk_space = ceil(30 * size(vcf, "GiB")) + 10 + additional_disk_gb
 
     String compound_info_fields_arg = (
-        if defined(compound_info_fields) then " --compound-info-field " else ""
+        if defined(compound_info_fields) then "--compound-info-field=\"" else ""
     )
     String url_encoded_col_name_regexes_arg = (
-        if defined(url_encoded_col_name_regexes) then " --compound-info-field " else ""
+        if defined(url_encoded_col_name_regexes) then "--url-encoded-col-name-regex=\"" else ""
     )
 
     command <<<
@@ -1243,8 +1243,8 @@ task vcf_to_duckdb {
             --tab="tmp.tsv" \
             --db="tmp.duckdb" \
             --parquet-dir="./parq" \
-            ~{compound_info_fields_arg}~{default="" sep=" --compound-info-field " compound_info_fields} \
-            ~{url_encoded_col_name_regexes_arg}~{default="" sep=" --url-encoded-col-name-regex " url_encoded_col_name_regexes}
+            ~{compound_info_fields_arg}~{default="" sep="\" --compound-info-field=\"" compound_info_fields} \
+            ~{url_encoded_col_name_regexes_arg}~{default="" sep="\" --url-encoded-col-name-regex=\"" url_encoded_col_name_regexes}
     >>>
 
     output {
