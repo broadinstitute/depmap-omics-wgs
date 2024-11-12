@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 from pathlib import Path
@@ -12,7 +11,7 @@ def annotate_vcf(
     parquet_dir_path: Path,
     oncogenes: set[str],
     tumor_suppressor_genes: set[str],
-) -> pd.DataFrame:
+) -> None:
     logging.info("Annotating VCF")
 
     try:
@@ -96,13 +95,46 @@ def annotate_vcf(
                 vid
         """)
 
-    # oncogenes and tumor suppressors
-    df["post__oncogene_high_impact"] = df["info__csq__impact"].eq("HIGH") & df[
-        "info__csq__symbol"
-    ].isin(oncogenes)
+        db.register(
+            "oncogenes",
+            pd.DataFrame({"gene_name": list(oncogenes)}, dtype="string"),
+        )
 
-    df["post__tumor_suppressor_high_impact"] = df["info__csq__impact"].eq("HIGH") & df[
-        "info__csq__symbol"
-    ].isin(tumor_suppressor_genes)
+        db.register(
+            "tumor_suppressor_genes",
+            pd.DataFrame({"gene_name": list(tumor_suppressor_genes)}, dtype="string"),
+        )
 
-    return df
+        db.sql("""
+            WITH vep_exploded AS (
+                SELECT
+                    vid,
+                    json_transform(
+                        UNNEST(v_json_arr),
+                        '{
+                            "symbol": "VARCHAR",
+                            "consequence": "VARCHAR",
+                            "biotype": "VARCHAR",
+                            "clin_sig": "VARCHAR",
+                            "ensp": "VARCHAR",
+                            "existing_variation": "VARCHAR",
+                            "hgnc_id": "VARCHAR",
+                            "impact": "VARCHAR",
+                            "loftool": "DOUBLE",
+                            "mane_select": "VARCHAR",
+                            "pli_gene_value": "DOUBLE",
+                            "somatic": "VARCHAR",
+                            "swissprot": "VARCHAR"
+                        }'
+                    ) AS csq
+                FROM
+                    info
+                WHERE
+                    k = 'csq'
+            )
+            SELECT
+                vid,
+                csq.*
+            FROM
+                vep_exploded
+        """)
