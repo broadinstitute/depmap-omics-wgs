@@ -89,7 +89,8 @@
   "name": "annotate_mutations",
   "outputs": {
     "annotate_mutations.mut_annot_vcf": "this.mut_annot_vcf",
-    "annotate_mutations.mut_annot_vcf_index": "this.mut_annot_vcf_index"
+    "annotate_mutations.mut_annot_vcf_index": "this.mut_annot_vcf_index",
+    "annotate_mutations.mut_duckdb": "this.mut_duckdb"
   },
   "rootEntityType": "sample"
 }

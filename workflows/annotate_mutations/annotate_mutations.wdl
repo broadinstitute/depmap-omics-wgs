@@ -1228,23 +1228,28 @@ task vcf_to_duckdb {
 
     Int disk_space = ceil(30 * size(vcf, "GiB")) + 10 + additional_disk_gb
 
-    String compound_info_fields_arg = (
-        if defined(compound_info_fields) then "--compound-info-field=\"" else ""
-    )
-    String url_encoded_col_name_regexes_arg = (
-        if defined(url_encoded_col_name_regexes) then "--url-encoded-col-name-regex=\"" else ""
-    )
-
     command <<<
         set -euo pipefail
+
+        # construct array of command options
+        OPTIONS=()
+        COMPOUND_INFO_FIELDS="~{default="" sep=" " compound_info_fields}"
+        URL_ENCODED_COL_NAME_REGEXES="~{default="" sep=" " url_encoded_col_name_regexes}"
+
+        for VAL in ${COMPOUND_INFO_FIELDS[@]};do
+            OPTIONS+=(--compound-info-field="$VAL")
+        done
+
+        for VAL in ${URL_ENCODED_COL_NAME_REGEXES[@]};do
+            OPTIONS+=(--url-encoded-col-name-regex="$VAL")
+        done
 
         python -m vcf_to_duckdb convert \
             --vcf="~{vcf}" \
             --tab="tmp.tsv" \
             --db="tmp.duckdb" \
             --parquet-dir="./parq" \
-            ~{compound_info_fields_arg}~{default="" sep="\" --compound-info-field=\"" compound_info_fields} \
-            ~{url_encoded_col_name_regexes_arg}~{default="" sep="\" --url-encoded-col-name-regex=\"" url_encoded_col_name_regexes}
+            "${OPTIONS[@]}"
     >>>
 
     output {
