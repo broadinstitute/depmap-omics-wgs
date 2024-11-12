@@ -24,7 +24,6 @@ def annotate_vcf(
         logging.info(f"Reading schema and Parquet files from {parquet_dir_path}")
         db.sql(f"IMPORT DATABASE '{parquet_dir_path}'")
 
-        # todo: brca1
         brca1 = db.sql("""
             WITH brca1_long AS (
                 SELECT
@@ -69,21 +68,33 @@ def annotate_vcf(
                 assay_class.vid = assay_score.vid
         """)
 
-    # todo: brca1
-    # transcript_likely_lof
-    has_revel = df["info__oc_revel_all"].notna()
-
-    # extract transcript IDs (field 1) given score cutoff (field 2) from values like
-    # `[["ENST00000379410",0.042,0.11227],["ENST00000...`
-    df.loc[has_revel, "post__transcript_likely_lof"] = (
-        df.loc[has_revel, "info__oc_revel_all"]
-        .apply(json.loads)
-        .apply(lambda x: ";".join([y[0] for y in x if y[1] >= 0.7]))
-    ).replace({"": pd.NA})
-
-    df["post__transcript_likely_lof"] = df["post__transcript_likely_lof"].astype(
-        "string"
-    )
+        revel = db.sql("""
+            WITH exploded AS (
+                SELECT
+                    vid,
+                    unnest(json_transform_strict(v_varchar, '["json"]')) AS revel_cols
+                FROM
+                    info
+                WHERE
+                    k = 'oc_revel_all'
+            ),
+            split_to_cols AS (
+                SELECT
+                    vid,
+                    json_extract_string(revel_cols, '$[0]') AS transcript_id,
+                    json_extract(revel_cols, '$[1]')::DOUBLE AS score
+                FROM exploded
+            )
+            SELECT
+                vid,
+                string_agg(transcript_id, ';') AS revel_transcript_ids
+            FROM
+                split_to_cols
+            WHERE
+                score >= 0.7
+            GROUP BY
+                vid
+        """)
 
     # oncogenes and tumor suppressors
     df["post__oncogene_high_impact"] = df["info__csq__impact"].eq("HIGH") & df[
