@@ -12,6 +12,7 @@ def annotate_vcf(
     oncogenes: set[str],
     tumor_suppressor_genes: set[str],
     min_af: float = 0.15,
+    min_depth: int = 2,
 ) -> None:
     logging.info("Annotating VCF")
 
@@ -148,17 +149,95 @@ def annotate_vcf(
             )
         """)
 
-        db.sql(
-            f"""
+        db.sql(f"""
+            CREATE OR REPLACE VIEW vals_wide AS (
+                SELECT
+                    vid,
+                    t_af.af,
+                    t_dp.dp,
+                    t_gt.gt,
+                    t_ps.ps
+                FROM
+                    vals
+                
+                NATURAL JOIN (
+                    SELECT
+                        vid,
+                        v_float_arr[1] AS af,
+                    FROM
+                        vals
+                    WHERE
+                        k = 'af'
+                ) t_af
+                
+                NATURAL JOIN (
+                    SELECT
+                        vid,
+                        v_integer AS dp
+                    FROM
+                        vals
+                    WHERE
+                        k = 'dp'
+                ) t_dp
+                
+                NATURAL JOIN (
+                    SELECT
+                        vid,
+                        v_varchar AS gt
+                    FROM
+                        vals
+                    WHERE
+                        k = 'gt'
+                ) t_gt
+                
+                NATURAL JOIN (
+                    SELECT
+                        vid,
+                        v_integer AS ps
+                    FROM
+                        vals
+                    WHERE
+                        k = 'ps'
+                ) t_ps
+            )
+        """)
+
+        db.sql("""
             SELECT
-                variants.*
+                vid,
+                v_varchar_arr,
+                list_intersect(
+                    v_varchar_arr,
+                    ['map_qual', 'slippage', 'strand_bias', 'weak_evidence']                    
+                ) as i
+            FROM
+                info
+            WHERE
+                k = 'as_filter_status'
+        """)
+
+        db.sql("""
+            SELECT
+                vid,
+                v_varchar_arr
+            FROM
+                info
+            WHERE
+                k = 'as_filter_status'
+        """)
+
+        db.sql(f"""
+            SELECT
+                variants.*,
+                vals_wide.*
             FROM
                 variants
             INNER JOIN
-                vals
+                vals_wide
             ON 
-                variants.vid = vals.vid
+                variants.vid = vals_wide.vid
             WHERE
-                (vals.k = 'af' and vals.v_float_arr[1] >= {min_af})
-        """,
-        )
+                vals_wide.af >= {min_af}
+                AND
+                vals_wide.dp >= {min_depth}
+        """)
