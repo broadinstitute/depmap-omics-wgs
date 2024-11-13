@@ -152,15 +152,14 @@ def annotate_vcf(
         db.sql(f"""
             CREATE OR REPLACE VIEW vals_wide AS (
                 SELECT
-                    vid,
+                    DISTINCT vals.vid,
                     t_af.af,
                     t_dp.dp,
-                    t_gt.gt,
-                    t_ps.ps
+                    t_gt.gt
                 FROM
                     vals
                 
-                NATURAL JOIN (
+                LEFT OUTER JOIN (
                     SELECT
                         vid,
                         v_float AS af,
@@ -168,9 +167,9 @@ def annotate_vcf(
                         vals
                     WHERE
                         k = 'af'
-                ) t_af
+                ) t_af ON vals.vid = t_af.vid 
                 
-                NATURAL JOIN (
+                LEFT OUTER JOIN (
                     SELECT
                         vid,
                         v_integer AS dp
@@ -178,9 +177,9 @@ def annotate_vcf(
                         vals
                     WHERE
                         k = 'dp'
-                ) t_dp
+                ) t_dp ON vals.vid = t_dp.vid 
                 
-                NATURAL JOIN (
+                LEFT OUTER JOIN (
                     SELECT
                         vid,
                         v_varchar AS gt
@@ -188,17 +187,7 @@ def annotate_vcf(
                         vals
                     WHERE
                         k = 'gt'
-                ) t_gt
-                
-                NATURAL JOIN (
-                    SELECT
-                        vid,
-                        v_integer AS ps
-                    FROM
-                        vals
-                    WHERE
-                        k = 'ps'
-                ) t_ps
+                ) t_gt ON vals.vid = t_gt.vid 
             )
         """)
 
@@ -262,6 +251,7 @@ def annotate_vcf(
                         filters
                     WHERE
                         filter IN (
+                            'multiallelic',
                             'map_qual',
                             'slippage',
                             'strand_bias',
