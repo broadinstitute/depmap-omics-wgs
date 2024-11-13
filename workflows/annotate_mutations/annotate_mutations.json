@@ -72,7 +72,7 @@
     "annotate_mutations.url_encoded_col_name_regexes": "[\"^civic_desc$\", \"^clndn$\", \"^clnvi$\", \"^oc_\", \"^oncokb_muteff$\", \"^oncokb_oncogenic$\"]",
     "annotate_mutations.use_gnomad": "true",
     "annotate_mutations.vcf_to_duckdb.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/vcf-to-duckdb\"",
-    "annotate_mutations.vcf_to_duckdb.docker_image_hash_or_tag": "\"@sha256:a16cf7097f9c88006de54a9a7bcdeca400f65fcbd0848965de4c75ea432e83e6\"",
+    "annotate_mutations.vcf_to_duckdb.docker_image_hash_or_tag": "\"@sha256:874cf9663ce5a328dadb451c30dfa19a24671b0eaa243d115aa7a2ced2b1f68e\"",
     "annotate_mutations.vcf2maf.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/vcf2maf\"",
     "annotate_mutations.vcf2maf.docker_image_hash_or_tag": "\"@sha256:7828fdca3a89cd019f74441191ea2713b9b99b5129bcf0ea02814fd7228c0d06\"",
     "annotate_mutations.vep_chrom_cache_url_prefix": "\"gs://cds-pipelines/data/vep/cache/112_GRCh38/\"",
