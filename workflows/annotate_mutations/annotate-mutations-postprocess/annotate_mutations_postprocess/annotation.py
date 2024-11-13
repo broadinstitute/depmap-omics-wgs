@@ -163,7 +163,7 @@ def annotate_vcf(
                 NATURAL JOIN (
                     SELECT
                         vid,
-                        v_float_arr[1] AS af,
+                        v_float AS af,
                     FROM
                         vals
                     WHERE
@@ -203,33 +203,47 @@ def annotate_vcf(
         """)
 
         db.sql("""
-            SELECT
-                vid,
-                v_varchar_arr,
-                list_intersect(
-                    v_varchar_arr,
-                    ['map_qual', 'slippage', 'strand_bias', 'weak_evidence']                    
-                ) as i
-            FROM
-                info
-            WHERE
-                k = 'as_filter_status'
-        """)
-
-        db.sql("""
-            SELECT
-                vid,
-                v_varchar_arr
-            FROM
-                info
-            WHERE
-                k = 'as_filter_status'
+            CREATE OR REPLACE VIEW filters AS (
+                WITH val_filters AS (
+                    SELECT
+                        vid,
+                        unnest(filters) AS filter
+                    FROM
+                        variants
+                ),
+                as_filters AS (
+                    SELECT
+                        vid,
+                        unnest(str_split_regex(v_varchar, '\\s*\\|\\s*')) AS filter
+                    FROM
+                        info
+                    WHERE
+                        k = 'as_filter_status'
+                )
+                SELECT
+                    vid,
+                    lower(filter) AS filter
+                FROM
+                    val_filters
+                UNION 
+                SELECT
+                    vid,
+                    lower(filter) AS filter
+                FROM
+                    as_filters
+            )
         """)
 
         db.sql(f"""
             SELECT
-                variants.*,
-                vals_wide.*
+                variants.vid,
+                variants.chrom,
+                variants.pos,
+                variants.ref,
+                variants.alt,
+                vals_wide.af,
+                vals_wide.dp,
+                vals_wide.gt
             FROM
                 variants
             INNER JOIN
@@ -240,4 +254,20 @@ def annotate_vcf(
                 vals_wide.af >= {min_af}
                 AND
                 vals_wide.dp >= {min_depth}
+                AND
+                variants.vid NOT IN (
+                    SELECT
+                        vid
+                    FROM
+                        filters
+                    WHERE
+                        filter IN (
+                            'map_qual',
+                            'slippage',
+                            'strand_bias',
+                            'weak_evidence',
+                            'clustered_events',
+                            'base_qual'
+                        )
+                )
         """)
