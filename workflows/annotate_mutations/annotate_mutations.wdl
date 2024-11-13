@@ -889,11 +889,8 @@ task open_cravat {
             -d out \
             -a ~{sep=" " annotators_to_use}
 
-        # 1. Open-Cravat hardcodes "Number=A" for every possible header line it creates,
-        # but we split multiallelics earlier so "Number=1" is more correct.
-        # 2. Fix other headers that are difficult for vcf2maf to parse
-        sed -e '/^##INFO=<ID=OC/s/Number=A/Number=1/' \
-            -e '/^##INFO=<ID=OC_provean__prediction/s/"D(amaging)"/D(amaging)/' \
+        # fix other headers that are difficult for vcf2maf to parse
+        sed -e '/^##INFO=<ID=OC_provean__prediction/s/"D(amaging)"/D(amaging)/' \
             -e '/^##INFO=<ID=OC_provean__prediction/s/"N(eutral)"/N(eutral)/' \
             "out/~{basename(vcf)}.vcf" > "~{output_file_base_name}_to_fix.vcf"
         rm "out/~{basename(vcf)}.vcf"
