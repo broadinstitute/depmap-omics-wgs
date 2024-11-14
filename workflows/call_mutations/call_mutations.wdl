@@ -5,8 +5,6 @@ version 1.0
 # Modifications:
 #   - Remove tasks and options related to mutect3 training data
 #   - Use SSDs instead of HDDs by default
-#   - Swap filter and allele separator characters in the `AS_FilterStatus` field in the
-#     filtered VCF
 #
 # Use this file as a base and manually implement changes in the upstream code in order
 # to retain these modifications.
@@ -696,32 +694,6 @@ task Filter {
             ~{"-stats " + mutect_stats} \
             --filtering-stats filtering.stats \
             ~{m2_extra_filtering_args}
-
-        # fix for https://github.com/broadinstitute/gatk/issues/6857
-        awk '{
-            # find the filter status field
-            match($0, /\tAS_FilterStatus=[^;]+;/);
-
-            if (RSTART != 0) {
-                # the line matches
-                before = substr($0, 1, RSTART-1);
-                match_str = substr($0, RSTART, RLENGTH);
-                after = substr($0, RSTART+RLENGTH);
-
-                # temp replace "|" with a non-printing char to swap "|" and "," chars
-                gsub(/\|/, "\x1e", match_str);
-                gsub(/,/, "|", match_str);
-                gsub(/\x1e/, ",", match_str);
-
-                # print modified line
-                print before match_str after;
-            } else {
-                # no match
-                print $0;
-            }
-        }' "~{output_vcf}" > tmp.vcf
-
-        rm "~{output_vcf}" && mv tmp.vcf "~{output_vcf}"
     >>>
 
     runtime {

@@ -484,6 +484,35 @@ task fix_with_bcftools {
 
         TMP_VCF="~{basename(vcf, '.vcf.gz')}_tmp.vcf.gz"
 
+        # fix for https://github.com/broadinstitute/gatk/issues/6857
+        # temporarily convert to text VCF
+        bcftools view "~{vcf}" -o tmp.vcf && rm "~{vcf}"
+
+        awk '{
+            # find the filter status field
+            match($0, /\tAS_FilterStatus=[^;]+;/);
+
+            if (RSTART != 0) {
+                # the line matches
+                before = substr($0, 1, RSTART-1);
+                match_str = substr($0, RSTART, RLENGTH);
+                after = substr($0, RSTART+RLENGTH);
+
+                # temp replace "|" with a non-printing char to swap "|" and "," chars
+                gsub(/\|/, "\x1e", match_str);
+                gsub(/,/, "|", match_str);
+                gsub(/\x1e/, ",", match_str);
+
+                # print modified line
+                print before match_str after;
+            } else {
+                # no match
+                print $0;
+            }
+        }' tmp.vcf > swapped.vcf && rm tmp.vcf
+
+        bcftools view swapped.vcf -o "~{vcf}" && rm swapped.vcf
+
         if ~{fix_ploidy}; then
             echo "Fixing ploidy"
             # set the genotype annotation to be homozygous when we have no ref reads and at
