@@ -526,7 +526,7 @@ task DenoiseReadCounts {
         set -e
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" gatk4_jar_override}
 
-        gatk --java-options "-Xmx~{command_mem_mb}m" DenoiseReadCounts \
+        java -Xmx~{command_mem_mb}m -jar ${GATK_LOCAL_JAR} DenoiseReadCounts \
             --input ~{read_counts} \
             --count-panel-of-normals ~{read_count_pon} \
             ~{"--number-of-eigensamples " + number_of_eigensamples} \
@@ -602,7 +602,7 @@ task ModelSegments {
         set -e
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" gatk4_jar_override}
 
-        gatk --java-options "-Xmx~{command_mem_mb}m" ModelSegments \
+        java -Xmx~{command_mem_mb}m -jar ${GATK_LOCAL_JAR} ModelSegments \
             --denoised-copy-ratios ~{denoised_copy_ratios} \
             --allelic-counts ~{allelic_counts} \
             ~{"--normal-allelic-counts " + normal_allelic_counts} \
@@ -683,7 +683,7 @@ task CallCopyRatioSegments {
         set -e
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" gatk4_jar_override}
 
-        gatk --java-options "-Xmx~{command_mem_mb}m" CallCopyRatioSegments \
+        java -Xmx~{command_mem_mb}m -jar ${GATK_LOCAL_JAR} CallCopyRatioSegments \
             --input ~{copy_ratio_segments} \
             --neutral-segment-copy-ratio-lower-bound ~{default="0.9" neutral_segment_copy_ratio_lower_bound} \
             --neutral-segment-copy-ratio-upper-bound ~{default="1.1" neutral_segment_copy_ratio_upper_bound} \
@@ -737,7 +737,7 @@ task PlotDenoisedCopyRatios {
         set -e
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" gatk4_jar_override}
 
-        gatk --java-options "-Xmx~{command_mem_mb}m" PlotDenoisedCopyRatios \
+        java -Xmx~{command_mem_mb}m -jar ${GATK_LOCAL_JAR} PlotDenoisedCopyRatios \
             --standardized-copy-ratios ~{standardized_copy_ratios} \
             --denoised-copy-ratios ~{denoised_copy_ratios} \
             --sequence-dictionary ~{ref_fasta_dict} \
@@ -802,7 +802,7 @@ task PlotModeledSegments {
         set -e
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" gatk4_jar_override}
 
-        gatk --java-options "-Xmx~{command_mem_mb}m" PlotModeledSegments \
+        java -Xmx~{command_mem_mb}m -jar ${GATK_LOCAL_JAR} PlotModeledSegments \
             --denoised-copy-ratios ~{denoised_copy_ratios} \
             --allelic-counts ~{het_allelic_counts} \
             --segments ~{modeled_segments} \

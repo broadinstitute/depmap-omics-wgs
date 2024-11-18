@@ -268,7 +268,7 @@ task SplitIntervals {
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" runtime_params.gatk_override}
 
         mkdir interval-files
-        gatk --java-options "-Xmx~{runtime_params.command_mem}m" SplitIntervals \
+        java -Xmx~{runtime_params.command_mem}m -jar ${GATK_LOCAL_JAR} SplitIntervals \
             -R ~{ref_fasta} \
             ~{"-L " + intervals} \
             -scatter ~{scatter_count} \
@@ -368,17 +368,17 @@ task M2 {
         touch dataset.txt
         echo "" > normal_name.txt
 
-        gatk --java-options "-Xmx~{command_mem}m" GetSampleName -R ~{ref_fasta} -I ~{tumor_reads} -O tumor_name.txt -encode \
+        java -Xmx~{command_mem}m -jar ${GATK_LOCAL_JAR} GetSampleName -R ~{ref_fasta} -I ~{tumor_reads} -O tumor_name.txt -encode \
         --gcs-project-for-requester-pays "${GCS_REQUESTER_PAYS_PROJECT}"
         tumor_command_line="-I ~{tumor_reads} -tumor `cat tumor_name.txt`"
 
         if [[ ! -z "~{normal_reads}" ]]; then
-            gatk --java-options "-Xmx~{command_mem}m" GetSampleName -R ~{ref_fasta} -I ~{normal_reads} -O normal_name.txt -encode \
+            java -Xmx~{command_mem}m -jar ${GATK_LOCAL_JAR} GetSampleName -R ~{ref_fasta} -I ~{normal_reads} -O normal_name.txt -encode \
             --gcs-project-for-requester-pays "${GCS_REQUESTER_PAYS_PROJECT}"
             normal_command_line="-I ~{normal_reads} -normal `cat normal_name.txt`"
         fi
 
-        gatk --java-options "-Xmx~{command_mem}m" Mutect2 \
+        java -Xmx~{command_mem}m -jar ${GATK_LOCAL_JAR} Mutect2 \
             -R ~{ref_fasta} \
             $tumor_command_line \
             $normal_command_line \
@@ -403,13 +403,13 @@ task M2 {
         set +e
 
         if [[ ! -z "~{variants_for_contamination}" ]]; then
-            gatk --java-options "-Xmx~{command_mem}m" GetPileupSummaries -R ~{ref_fasta} -I ~{tumor_reads} ~{"--interval-set-rule INTERSECTION -L " + intervals} \
+            java -Xmx~{command_mem}m -jar ${GATK_LOCAL_JAR} GetPileupSummaries -R ~{ref_fasta} -I ~{tumor_reads} ~{"--interval-set-rule INTERSECTION -L " + intervals} \
                 -V ~{variants_for_contamination} -L ~{variants_for_contamination} -O tumor-pileups.table ~{getpileupsummaries_extra_args} \
                 --gcs-project-for-requester-pays "${GCS_REQUESTER_PAYS_PROJECT}"
 
 
             if [[ ! -z "~{normal_reads}" ]]; then
-                gatk --java-options "-Xmx~{command_mem}m" GetPileupSummaries -R ~{ref_fasta} -I ~{normal_reads} ~{"--interval-set-rule INTERSECTION -L " + intervals} \
+                java -Xmx~{command_mem}m -jar ${GATK_LOCAL_JAR} GetPileupSummaries -R ~{ref_fasta} -I ~{normal_reads} ~{"--interval-set-rule INTERSECTION -L " + intervals} \
                     -V ~{variants_for_contamination} -L ~{variants_for_contamination} -O normal-pileups.table ~{getpileupsummaries_extra_args} \
                     --gcs-project-for-requester-pays "${GCS_REQUESTER_PAYS_PROJECT}"
             fi
@@ -458,7 +458,7 @@ task MergeVCFs {
     command {
         set -e
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" runtime_params.gatk_override}
-        gatk --java-options "-Xmx~{runtime_params.command_mem}m" MergeVcfs -I ~{sep=' -I ' input_vcfs} -O ~{output_vcf}
+        java -Xmx~{runtime_params.command_mem}m -jar ${GATK_LOCAL_JAR} MergeVcfs -I ~{sep=' -I ' input_vcfs} -O ~{output_vcf}
     }
 
     runtime {
@@ -492,15 +492,15 @@ task MergeBamOuts {
         #  Do not call this task if len(bam_outs) == 0
         set -e
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" runtime_params.gatk_override}
-        gatk --java-options "-Xmx~{runtime_params.command_mem}m" GatherBamFiles \
+        java -Xmx~{runtime_params.command_mem}m -jar ${GATK_LOCAL_JAR} GatherBamFiles \
             -I ~{sep=" -I " bam_outs} -O unsorted.out.bam -R ~{ref_fasta}
 
         # We must sort because adjacent scatters may have overlapping (padded) assembly regions, hence
         # overlapping bamouts
 
-        gatk --java-options "-Xmx~{runtime_params.command_mem}m" SortSam -I unsorted.out.bam \
+        java -Xmx~{runtime_params.command_mem}m -jar ${GATK_LOCAL_JAR} SortSam -I unsorted.out.bam \
             -O bamout.bam --SORT_ORDER coordinate -VALIDATION_STRINGENCY LENIENT
-        gatk --java-options "-Xmx~{runtime_params.command_mem}m" BuildBamIndex -I bamout.bam -VALIDATION_STRINGENCY LENIENT
+        java -Xmx~{runtime_params.command_mem}m -jar ${GATK_LOCAL_JAR} BuildBamIndex -I bamout.bam -VALIDATION_STRINGENCY LENIENT
     >>>
 
     runtime {
@@ -531,7 +531,7 @@ task MergeStats {
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" runtime_params.gatk_override}
 
 
-        gatk --java-options "-Xmx~{runtime_params.command_mem}m" MergeMutectStats \
+        java -Xmx~{runtime_params.command_mem}m -jar ${GATK_LOCAL_JAR} MergeMutectStats \
             -stats ~{sep=" -stats " stats} -O merged.stats
     }
 
@@ -562,7 +562,7 @@ task MergePileupSummaries {
         set -e
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" runtime_params.gatk_override}
 
-        gatk --java-options "-Xmx~{runtime_params.command_mem}m" GatherPileupSummaries \
+        java -Xmx~{runtime_params.command_mem}m -jar ${GATK_LOCAL_JAR} GatherPileupSummaries \
         --sequence-dictionary ~{ref_dict} \
         -I ~{sep=' -I ' input_tables} \
         -O ~{output_name}.tsv
@@ -598,7 +598,7 @@ task LearnReadOrientationModel {
         set -e
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" runtime_params.gatk_override}
 
-        gatk --java-options "-Xmx~{command_mem}m" LearnReadOrientationModel \
+        java -Xmx~{command_mem}m -jar ${GATK_LOCAL_JAR} LearnReadOrientationModel \
             -I ~{sep=" -I " f1r2_tar_gz} \
             -O "artifact-priors.tar.gz"
     }
@@ -632,7 +632,7 @@ task CalculateContamination {
 
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" runtime_params.gatk_override}
 
-        gatk --java-options "-Xmx~{runtime_params.command_mem}m" CalculateContamination -I ~{tumor_pileups} \
+        java -Xmx~{runtime_params.command_mem}m -jar ${GATK_LOCAL_JAR} CalculateContamination -I ~{tumor_pileups} \
         -O contamination.table --tumor-segmentation segments.table ~{"-matched " + normal_pileups}
     }
 
@@ -685,7 +685,7 @@ task Filter {
 
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" runtime_params.gatk_override}
 
-        gatk --java-options "-Xmx~{runtime_params.command_mem}m" FilterMutectCalls -V ~{unfiltered_vcf} \
+        java -Xmx~{runtime_params.command_mem}m -jar ${GATK_LOCAL_JAR} FilterMutectCalls -V ~{unfiltered_vcf} \
             -R ~{ref_fasta} \
             -O "~{output_vcf}" \
             ~{"--contamination-table " + contamination_table} \
@@ -751,7 +751,7 @@ task FilterAlignmentArtifacts {
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" runtime_params.gatk_override}
         export GCS_REQUESTER_PAYS_PROJECT="$(gcloud config get-value project -q)"
 
-        gatk --java-options "-Xmx~{command_mem}m" FilterAlignmentArtifacts \
+        java -Xmx~{command_mem}m -jar ${GATK_LOCAL_JAR} FilterAlignmentArtifacts \
             -R ~{ref_fasta} \
             -V ~{input_vcf} \
             -I ~{reads} \

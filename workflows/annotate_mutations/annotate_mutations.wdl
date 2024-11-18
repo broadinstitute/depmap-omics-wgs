@@ -424,14 +424,13 @@ task gather_vcfs {
     command <<<
         set -euo pipefail
 
-        gatk --java-options "-Xmx~{command_mem_mb}m" \
-            GatherVcfsCloud \
+        java -Xmx~{command_mem_mb}m -jar ${GATK_LOCAL_JAR} GatherVcfsCloud \
             --input ~{sep=" --input " vcfs} \
             --output "combined.vcf.gz" \
             --gather-type "BLOCK" \
             --disable-contig-ordering-check
 
-        gatk --java-options "-Xmx~{command_mem_mb}m" \
+        java -Xmx~{command_mem_mb}m -jar ${GATK_LOCAL_JAR} SortVcf \
             SortVcf \
             --INPUT "combined.vcf.gz" \
             --OUTPUT "~{output_file_base_name}.vcf.gz"
@@ -486,6 +485,7 @@ task fix_with_bcftools {
 
         # fix for https://github.com/broadinstitute/gatk/issues/6857
         # temporarily convert to text VCF
+        echo "Fixing AS_FilterStatus allele delimiter"
         bcftools view "~{vcf}" -o tmp.vcf && rm "~{vcf}"
 
         awk '{
@@ -1128,7 +1128,7 @@ task funcotator {
         fi
 
         echo "Indexing VCF"
-        gatk --java-options "-Xmx~{command_mem}m"  IndexFeatureFile --input "~{vcf}"
+        java -Xmx~{command_mem}m -jar ${GATK_LOCAL_JAR} IndexFeatureFile --input "~{vcf}"
 
         echo "Downloading Funcotator data sources"
         DATA_SOURCES_FOLDER="./funcotator_data_sources"
@@ -1153,7 +1153,7 @@ task funcotator {
         fi
 
         # Run Funcotator:
-        gatk --java-options "-Xmx~{command_mem}m" Funcotator \
+        java -Xmx~{command_mem}m -jar ${GATK_LOCAL_JAR} Funcotator \
             --data-sources-path $DATA_SOURCES_FOLDER \
             --ref-version ~{reference_version} \
             --output-file-format ~{output_format} \

@@ -777,7 +777,7 @@ task CalculateSomaticContamination {
 
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" gatk_override}
 
-        gatk --java-options "-Xmx~{command_mem}m" GetPileupSummaries \
+        java -Xmx~{command_mem}m -jar ${GATK_LOCAL_JAR} GetPileupSummaries \
              -R ~{reference} \
              -I ~{tumor_cram_or_bam} \
              ~{"--interval-set-rule INTERSECTION -L " + intervals} \
@@ -787,7 +787,7 @@ task CalculateSomaticContamination {
 
         if [[ -f "~{normal_cram_or_bam}" ]];
         then
-            gatk --java-options "-Xmx~{command_mem}m" GetPileupSummaries \
+            java -Xmx~{command_mem}m -jar ${GATK_LOCAL_JAR} GetPileupSummaries \
                  -R ~{reference} \
                  -I ~{normal_cram_or_bam} \
                  ~{"--interval-set-rule INTERSECTION -L " + intervals} \
@@ -795,14 +795,14 @@ task CalculateSomaticContamination {
                  -L ~{contamination_vcf} \
                  -O normal_pileups.table
 
-            gatk --java-options "-Xmx~{command_mem}m" CalculateContamination \
+            java -Xmx~{command_mem}m -jar ${GATK_LOCAL_JAR} CalculateContamination \
                  -I pileups.table \
                  -O contamination.table \
                  --tumor-segmentation segments.table \
                  -matched normal_pileups.table
         else
             touch normal_pileups.table
-            gatk --java-options "-Xmx~{command_mem}m" CalculateContamination \
+            java -Xmx~{command_mem}m -jar ${GATK_LOCAL_JAR} CalculateContamination \
                  -I pileups.table \
                  -O contamination.table \
                  --tumor-segmentation segments.table
@@ -1039,15 +1039,15 @@ task BaseRecalibrator {
     command <<<
         set -euo pipefail
 
-        gatk --java-options "-XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -XX:+PrintFlagsFinal -Xlog:gc=debug:file=gc_log.log -Xms~{jvm_mem}m -Xmx~{max_heap}m" \
-            BaseRecalibrator \
-                --input ~{bam} \
-                --use-original-qualities \
-                --known-sites ~{dbsnp_vcf} \
-                --reference ~{ref_fasta} \
-                --tmp-dir . \
-                --output ~{output_grp} \
-                --intervals ~{sep=" --intervals " bqsr_regions}
+        java -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -XX:+PrintFlagsFinal -Xlog:gc=debug:file=gc_log.log -Xms~{jvm_mem}m -Xmx~{max_heap}m \
+            -jar /root/gatk.jar BaseRecalibrator \
+            --input ~{bam} \
+            --use-original-qualities \
+            --known-sites ~{dbsnp_vcf} \
+            --reference ~{ref_fasta} \
+            --tmp-dir . \
+            --output ~{output_grp} \
+            --intervals ~{sep=" --intervals " bqsr_regions}
     >>>
 
     output {
@@ -1081,7 +1081,7 @@ task GatherBqsrReports {
     command <<<
         set -euo pipefail
 
-        gatk --java-options "-Xms3000m -Xmx3000m" \
+        java -Xms3000m -Xmx3000m -jar /root/gatk.jar \
             GatherBQSRReports \
             -I ~{sep=' -I ' input_bqsr_reports} \
             -O ~{output_report_filename}
@@ -1132,16 +1132,16 @@ task ApplyBQSR {
     command <<<
         set -euo pipefail
 
-        gatk --java-options "-XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -XX:+PrintFlagsFinal -Xlog:gc=debug:file=gc_log.log -Xms~{jvm_mem}m -Xmx~{max_heap}m" \
-            ApplyBQSR \
-                --input ~{bam} \
-                --bqsr-recal-file ~{bqsr_recal_file} \
-                --emit-original-quals ~{emit_original_quals} \
-                --use-original-qualities \
-                --add-output-sam-program-record \
-                --tmp-dir . \
-                --output ~{output_bam} \
-                --intervals ~{sep=" --intervals " bqsr_regions}
+        java -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -XX:+PrintFlagsFinal -Xlog:gc=debug:file=gc_log.log -Xms~{jvm_mem}m -Xmx~{max_heap}m \
+            -jar /root/gatk.jar ApplyBQSR \
+            --input ~{bam} \
+            --bqsr-recal-file ~{bqsr_recal_file} \
+            --emit-original-quals ~{emit_original_quals} \
+            --use-original-qualities \
+            --add-output-sam-program-record \
+            --tmp-dir . \
+            --output ~{output_bam} \
+            --intervals ~{sep=" --intervals " bqsr_regions}
     >>>
 
     output {

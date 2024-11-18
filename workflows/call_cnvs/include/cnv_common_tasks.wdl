@@ -39,7 +39,7 @@ task PreprocessIntervals {
         set -eu
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" gatk4_jar_override}
 
-        gatk --java-options "-Xmx~{command_mem_mb}m" PreprocessIntervals \
+        java -Xmx~{command_mem_mb}m -jar ${GATK_LOCAL_JAR} PreprocessIntervals \
             ~{"-L " + intervals} \
             ~{"-XL " + blacklist_intervals} \
             --reference ~{ref_fasta} \
@@ -94,7 +94,7 @@ task AnnotateIntervals {
         set -eu
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" gatk4_jar_override}
 
-        gatk --java-options "-Xmx~{command_mem_mb}m" AnnotateIntervals \
+        java -Xmx~{command_mem_mb}m -jar ${GATK_LOCAL_JAR} AnnotateIntervals \
             -L ~{intervals} \
             --reference ~{ref_fasta} \
             ~{"--mappability-track " + mappability_track_bed} \
@@ -155,7 +155,7 @@ task FilterIntervals {
         set -eu
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" gatk4_jar_override}
 
-        gatk --java-options "-Xmx~{command_mem_mb}m" FilterIntervals \
+        java -Xmx~{command_mem_mb}m -jar ${GATK_LOCAL_JAR} FilterIntervals \
             -L ~{intervals} \
             ~{"-XL " + blacklist_intervals} \
             ~{"--annotated-intervals " + annotated_intervals} \
@@ -272,7 +272,7 @@ task CollectCounts {
             exit 1
         fi
 
-        gatk --java-options "-Xmx~{command_mem_mb}m" CollectReadCounts \
+        java -Xmx~{command_mem_mb}m -jar ${GATK_LOCAL_JAR} CollectReadCounts \
             -L ~{intervals} \
             --input ~{bam} \
             --read-index ~{bam_idx} \
@@ -288,7 +288,7 @@ task CollectCounts {
         fi
 
         if [ ~{enable_indexing_} = "true" ]; then
-            gatk --java-options "-Xmx~{command_mem_mb}m" IndexFeatureFile \
+            java -Xmx~{command_mem_mb}m -jar ${GATK_LOCAL_JAR} IndexFeatureFile \
                 -I ~{counts_filename}
         fi
     >>>
@@ -349,7 +349,7 @@ task CollectAllelicCounts {
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" gatk4_jar_override}
         export GCS_REQUESTER_PAYS_PROJECT="$(gcloud config get-value project -q)"
 
-        gatk --java-options "-Xmx~{command_mem_mb}m" CollectAllelicCounts \
+        java -Xmx~{command_mem_mb}m -jar ${GATK_LOCAL_JAR} CollectAllelicCounts \
             -L ~{common_sites} \
             --input ~{bam} \
             --read-index ~{bam_idx} \
@@ -421,7 +421,7 @@ task ScatterIntervals {
             >&2 echo "Not running IntervalListTools because only a single shard is required. Copying original interval list..."
             cp ~{interval_list} ~{output_dir_}/~{base_filename}.scattered.0001.interval_list
         else
-            gatk --java-options "-Xmx~{command_mem_mb}m" IntervalListTools \
+            java -Xmx~{command_mem_mb}m -jar ${GATK_LOCAL_JAR} IntervalListTools \
                 --INPUT ~{interval_list} \
                 --SUBDIVISION_MODE INTERVAL_COUNT \
                 --SCATTER_CONTENT ~{num_intervals_per_scatter} \
@@ -530,7 +530,7 @@ task PostprocessGermlineCNVCalls {
         mkdir contig-ploidy-calls
         tar xzf ~{contig_ploidy_calls_tar} -C contig-ploidy-calls
 
-        gatk --java-options "-Xmx~{command_mem_mb}m" PostprocessGermlineCNVCalls \
+        java -Xmx~{command_mem_mb}m -jar ${GATK_LOCAL_JAR} PostprocessGermlineCNVCalls \
             $calls_args \
             $model_args \
             ~{sep=" " allosomal_contigs_args} \
