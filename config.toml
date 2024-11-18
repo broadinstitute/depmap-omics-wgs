@@ -57,6 +57,13 @@ method_synopsis = "Annotate mutations"
 workflow_wdl_path = "./workflows/annotate_mutations/annotate_mutations.wdl"
 method_config_json_path = "./workflows/annotate_mutations/annotate_mutations.json"
 
+[terra.debug_gatk]
+repo_method_name = "debug_gatk"
+method_config_name = "debug_gatk"
+method_synopsis = "debug_gatk"
+workflow_wdl_path = "./workflows/debug_gatk/debug_gatk.wdl"
+method_config_json_path = "./workflows/debug_gatk/debug_gatk.json"
+
 [ref.hg19]
 ref_amb = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.amb"
 ref_ann = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.ann"

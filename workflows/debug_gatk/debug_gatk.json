@@ -1,0 +1,17 @@
+{
+  "deleted": false,
+  "inputs": {
+  },
+  "methodConfigVersion": 1,
+  "methodRepoMethod": {
+    "methodNamespace": "cds-pipelines",
+    "methodName": "debug_gatk",
+    "methodVersion": 1
+  },
+  "namespace": "cds-pipelines",
+  "name": "debug_gatk",
+  "outputs": {
+    "debug_gatk.stats": "this.stats"
+  },
+  "rootEntityType": "sample"
+}
