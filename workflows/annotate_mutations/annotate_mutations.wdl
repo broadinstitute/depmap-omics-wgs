@@ -431,7 +431,6 @@ task gather_vcfs {
             --disable-contig-ordering-check
 
         java -Xmx~{command_mem_mb}m -jar /root/gatk.jar SortVcf \
-            SortVcf \
             --INPUT "combined.vcf.gz" \
             --OUTPUT "~{output_file_base_name}.vcf.gz"
     >>>

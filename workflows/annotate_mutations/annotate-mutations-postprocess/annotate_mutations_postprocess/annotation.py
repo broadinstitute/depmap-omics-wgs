@@ -114,7 +114,7 @@ def annotate_vcf(
         """)
 
         db.sql("""
-            CREATE OR REPLACE VIEW vep AS (
+            CREATE OR REPLACE VIEW vep_view AS (
                 WITH vep_exploded AS (
                     SELECT
                         vid,
@@ -128,6 +128,7 @@ def annotate_vcf(
                                 "ensp": "VARCHAR",
                                 "existing_variation": "VARCHAR",
                                 "hgnc_id": "VARCHAR",
+                                "hgvsp": "VARCHAR",
                                 "impact": "VARCHAR",
                                 "loftool": "DOUBLE",
                                 "mane_select": "VARCHAR",
@@ -143,10 +144,29 @@ def annotate_vcf(
                 )
                 SELECT
                     vid,
-                    csq.*
+                    csq.symbol,
+                    csq.consequence,
+                    csq.biotype,
+                    csq.clin_sig,
+                    csq.ensp,
+                    csq.existing_variation,
+                    csq.hgnc_id,
+                    url_decode(csq.hgvsp) AS hgvsp,
+                    csq.impact,
+                    csq.loftool,
+                    csq.mane_select,
+                    csq.pli_gene_value,
+                    csq.somatic,
+                    csq.swissprot,
                 FROM
                     vep_exploded
             )
+        """)
+
+        db.sql("""
+            CREATE OR REPLACE TABLE vep
+            AS
+            SELECT * FROM vep_view
         """)
 
         db.sql(f"""
