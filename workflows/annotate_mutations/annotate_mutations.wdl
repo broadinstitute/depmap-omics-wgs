@@ -424,13 +424,13 @@ task gather_vcfs {
     command <<<
         set -euo pipefail
 
-        java -Xmx~{command_mem_mb}m -jar ${GATK_LOCAL_JAR} GatherVcfsCloud \
+        java -Xmx~{command_mem_mb}m -jar /root/gatk.jar GatherVcfsCloud \
             --input ~{sep=" --input " vcfs} \
             --output "combined.vcf.gz" \
             --gather-type "BLOCK" \
             --disable-contig-ordering-check
 
-        java -Xmx~{command_mem_mb}m -jar ${GATK_LOCAL_JAR} SortVcf \
+        java -Xmx~{command_mem_mb}m -jar /root/gatk.jar SortVcf \
             SortVcf \
             --INPUT "combined.vcf.gz" \
             --OUTPUT "~{output_file_base_name}.vcf.gz"

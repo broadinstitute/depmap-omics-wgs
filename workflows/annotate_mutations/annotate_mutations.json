@@ -30,7 +30,7 @@
     "annotate_mutations.ensembl_vep.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/ensembl_vep\"",
     "annotate_mutations.ensembl_vep.docker_image_hash_or_tag": "\"@sha256:e5556a32aba073ee6da84c02dbd2c30074358233bb4bdf08715375eacb0663c1\"",
     "annotate_mutations.ensembl_vep_gathered.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/gatk\"",
-    "annotate_mutations.ensembl_vep_gathered.docker_image_hash_or_tag": "\"us-docker.pkg.dev/depmap-omics/public/gatk:4.6.1.0\"",
+    "annotate_mutations.ensembl_vep_gathered.docker_image_hash_or_tag": "\":4.6.1.0\"",
     "annotate_mutations.exclude_string": "\"FILTER~\\\"weak_evidence\\\"||FILTER~\\\"map_qual\\\"||FILTER~\\\"strand_bias\\\"||FILTER~\\\"slippage\\\"||FILTER~\\\"clustered_events\\\"||FILTER~\\\"base_qual\\\"\"",
     "annotate_mutations.filter_funcotations": "false",
     "annotate_mutations.filter_vcf": "true",
