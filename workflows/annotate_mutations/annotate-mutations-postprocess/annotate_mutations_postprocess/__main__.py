@@ -56,7 +56,6 @@ def merge_info(
 
 @app.command()
 def vcf_to_depmap(
-    ctx: typer.Context,
     db: Annotated[Path, typer.Option()],
     parquet_dir: Annotated[Path, typer.Option()],
     oncogenes: Annotated[Path, typer.Option(exists=True)],

@@ -1275,6 +1275,7 @@ task vcf_to_duckdb {
             --tab="tmp.tsv" \
             --db="tmp.duckdb" \
             --parquet-dir="./parq" \
+            --no-multiallelics \
             "${OPTIONS[@]}"
     >>>
 
