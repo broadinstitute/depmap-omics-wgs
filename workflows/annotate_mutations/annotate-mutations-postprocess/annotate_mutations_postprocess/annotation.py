@@ -280,4 +280,34 @@ def annotate_vcf(
                             'base_qual'
                         )
                 )
+                AND
+                variants.vid IN (
+                    SELECT
+                        vid
+                    FROM
+                        vep
+                    WHERE
+                        (
+                            contains(consequence, 'splice')
+                            AND
+                            impact IN ('HIGH', 'MODERATE')
+                        )
+                        OR
+                        (
+                            hgvsp IS NOT NULL
+                            AND
+                            NOT ends_with(hgvsp, '=')
+                        )
+                )
+                AND
+                variants.vid NOT IN (
+                    SELECT
+                        vid
+                    FROM
+                        info
+                    WHERE
+                        k in ('segdup', 'rm')
+                        AND
+                        v_boolean
+                )
         """)
