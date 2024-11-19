@@ -263,7 +263,7 @@ task SplitIntervals {
       Runtime runtime_params
     }
 
-    command {
+    command <<<
         set -e
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" runtime_params.gatk_override}
 
@@ -275,7 +275,7 @@ task SplitIntervals {
             -O interval-files \
             ~{split_intervals_extra_args}
         cp interval-files/*.interval_list .
-    }
+    >>>
 
     runtime {
         docker: runtime_params.gatk_docker
@@ -455,11 +455,11 @@ task MergeVCFs {
 
     # using MergeVcfs instead of GatherVcfs so we can create indices
     # WARNING 2015-10-28 15:01:48 GatherVcfs  Index creation not currently supported when gathering block compressed VCFs.
-    command {
+    command <<<
         set -e
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" runtime_params.gatk_override}
         java -Xmx~{runtime_params.command_mem}m -jar ${GATK_LOCAL_JAR} MergeVcfs -I ~{sep=' -I ' input_vcfs} -O ~{output_vcf}
-    }
+    >>>
 
     runtime {
         docker: runtime_params.gatk_docker
@@ -526,14 +526,13 @@ task MergeStats {
       Runtime runtime_params
     }
 
-    command {
+    command <<<
         set -e
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" runtime_params.gatk_override}
 
-
         java -Xmx~{runtime_params.command_mem}m -jar ${GATK_LOCAL_JAR} MergeMutectStats \
             -stats ~{sep=" -stats " stats} -O merged.stats
-    }
+    >>>
 
     runtime {
         docker: runtime_params.gatk_docker
@@ -558,7 +557,7 @@ task MergePileupSummaries {
       Runtime runtime_params
     }
 
-    command {
+    command <<<
         set -e
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" runtime_params.gatk_override}
 
@@ -566,7 +565,7 @@ task MergePileupSummaries {
         --sequence-dictionary ~{ref_dict} \
         -I ~{sep=' -I ' input_tables} \
         -O ~{output_name}.tsv
-    }
+    >>>
 
     runtime {
         docker: runtime_params.gatk_docker
@@ -594,14 +593,14 @@ task LearnReadOrientationModel {
     Int machine_mem = select_first([mem, runtime_params.machine_mem])
     Int command_mem = machine_mem - 1000
 
-    command {
+    command <<<
         set -e
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" runtime_params.gatk_override}
 
         java -Xmx~{command_mem}m -jar ${GATK_LOCAL_JAR} LearnReadOrientationModel \
             -I ~{sep=" -I " f1r2_tar_gz} \
             -O "artifact-priors.tar.gz"
-    }
+    >>>
 
     runtime {
         docker: runtime_params.gatk_docker
@@ -627,14 +626,14 @@ task CalculateContamination {
       Runtime runtime_params
     }
 
-    command {
+    command <<<
         set -e
 
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" runtime_params.gatk_override}
 
         java -Xmx~{runtime_params.command_mem}m -jar ${GATK_LOCAL_JAR} CalculateContamination -I ~{tumor_pileups} \
         -O contamination.table --tumor-segmentation segments.table ~{"-matched " + normal_pileups}
-    }
+    >>>
 
     runtime {
         docker: runtime_params.gatk_docker
