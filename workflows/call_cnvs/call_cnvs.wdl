@@ -10,7 +10,6 @@ version 1.0
 # to retain these modifications.
 
 import "./include/cnv_common_tasks.wdl" as CNVTasks
-import "./include/cnv_somatic_oncotator_workflow.wdl" as CNVOncotator
 
 workflow call_cnvs {
     input {
@@ -31,14 +30,12 @@ workflow call_cnvs {
         File ref_fasta_dict
         File ref_fasta_fai
         File ref_fasta
+        String gatk_docker_mini
         String gatk_docker
 
         ##################################
         #### optional basic arguments ####
         ##################################
-        # For running oncotator
-        Boolean? is_run_oncotator
-
         File? gatk4_jar_override
         Int? preemptible_attempts
         # Use as a last resort to increase the disk given to every task in case of ill behaving data
@@ -112,14 +109,6 @@ workflow call_cnvs {
         Float? point_size_copy_ratio
         Float? point_size_allele_fraction
         Int? mem_gb_for_plotting
-
-        ##########################################
-        #### optional arguments for Oncotator ####
-        ##########################################
-        String? additional_args_for_oncotator
-        String? oncotator_docker
-        Int? mem_gb_for_oncotator
-        Int? boot_disk_space_gb_for_oncotator
     }
 
     Int ref_size = ceil(size(ref_fasta, "GB") + size(ref_fasta_dict, "GB") + size(ref_fasta_fai, "GB"))
@@ -145,7 +134,7 @@ workflow call_cnvs {
             padding = padding,
             bin_length = bin_length,
             gatk4_jar_override = gatk4_jar_override,
-            gatk_docker = gatk_docker,
+            gatk_docker = gatk_docker_mini,
             mem_gb = mem_gb_for_preprocess_intervals,
             disk_space_gb = preprocess_intervals_disk,
             preemptible_attempts = preemptible_attempts
@@ -163,7 +152,7 @@ workflow call_cnvs {
             format = collect_counts_format,
             enable_indexing = false,
             gatk4_jar_override = gatk4_jar_override,
-            gatk_docker = gatk_docker,
+            gatk_docker = gatk_docker_mini,
             mem_gb = mem_gb_for_collect_counts,
             disk_space_gb = collect_counts_tumor_disk,
             preemptible_attempts = preemptible_attempts
@@ -180,7 +169,7 @@ workflow call_cnvs {
             ref_fasta_fai = ref_fasta_fai,
             minimum_base_quality =  minimum_base_quality,
             gatk4_jar_override = gatk4_jar_override,
-            gatk_docker = gatk_docker,
+            gatk_docker = gatk_docker_mini,
             mem_gb = mem_gb_for_collect_allelic_counts,
             disk_space_gb = collect_allelic_counts_tumor_disk,
             preemptible_attempts = preemptible_attempts
@@ -194,7 +183,7 @@ workflow call_cnvs {
             read_count_pon = read_count_pon,
             number_of_eigensamples = number_of_eigensamples,
             gatk4_jar_override = gatk4_jar_override,
-            gatk_docker = gatk_docker,
+            gatk_docker = gatk_docker_mini,
             mem_gb = mem_gb_for_denoise_read_counts,
             disk_space_gb = denoise_read_counts_tumor_disk,
             preemptible_attempts = preemptible_attempts
@@ -229,7 +218,7 @@ workflow call_cnvs {
             max_num_smoothing_iterations = max_num_smoothing_iterations,
             num_smoothing_iterations_per_fit = num_smoothing_iterations_per_fit,
             gatk4_jar_override = gatk4_jar_override,
-            gatk_docker = gatk_docker,
+            gatk_docker = gatk_docker_mini,
             mem_gb = mem_gb_for_model_segments,
             disk_space_gb = model_segments_tumor_disk,
             preemptible_attempts = preemptible_attempts
@@ -245,7 +234,7 @@ workflow call_cnvs {
             outlier_neutral_segment_copy_ratio_z_score_threshold = outlier_neutral_segment_copy_ratio_z_score_threshold,
             calling_copy_ratio_z_score_threshold = calling_copy_ratio_z_score_threshold,
             gatk4_jar_override = gatk4_jar_override,
-            gatk_docker = gatk_docker,
+            gatk_docker = gatk_docker_mini,
             mem_gb = mem_gb_for_call_copy_ratio_segments,
             disk_space_gb = copy_ratio_segments_tumor_disk,
             preemptible_attempts = preemptible_attempts
@@ -300,7 +289,7 @@ workflow call_cnvs {
                 format = collect_counts_format,
                 enable_indexing = false,
                 gatk4_jar_override = gatk4_jar_override,
-                gatk_docker = gatk_docker,
+                gatk_docker = gatk_docker_mini,
                 mem_gb = mem_gb_for_collect_counts,
                 disk_space_gb = collect_counts_normal_disk,
                 preemptible_attempts = preemptible_attempts
@@ -317,7 +306,7 @@ workflow call_cnvs {
                 ref_fasta_fai = ref_fasta_fai,
                 minimum_base_quality =  minimum_base_quality,
                 gatk4_jar_override = gatk4_jar_override,
-                gatk_docker = gatk_docker,
+                gatk_docker = gatk_docker_mini,
                 mem_gb = mem_gb_for_collect_allelic_counts,
                 disk_space_gb = collect_allelic_counts_normal_disk,
                 preemptible_attempts = preemptible_attempts
@@ -331,7 +320,7 @@ workflow call_cnvs {
                 read_count_pon = read_count_pon,
                 number_of_eigensamples = number_of_eigensamples,
                 gatk4_jar_override = gatk4_jar_override,
-                gatk_docker = gatk_docker,
+                gatk_docker = gatk_docker_mini,
                 mem_gb = mem_gb_for_denoise_read_counts,
                 disk_space_gb = denoise_read_counts_normal_disk,
                 preemptible_attempts = preemptible_attempts
@@ -363,7 +352,7 @@ workflow call_cnvs {
                 max_num_smoothing_iterations = max_num_smoothing_iterations,
                 num_smoothing_iterations_per_fit = num_smoothing_iterations_per_fit,
                 gatk4_jar_override = gatk4_jar_override,
-                gatk_docker = gatk_docker,
+                gatk_docker = gatk_docker_mini,
                 mem_gb = mem_gb_for_model_segments,
                 disk_space_gb = model_segments_normal_disk,
                 preemptible_attempts = preemptible_attempts
@@ -379,7 +368,7 @@ workflow call_cnvs {
                 outlier_neutral_segment_copy_ratio_z_score_threshold = outlier_neutral_segment_copy_ratio_z_score_threshold,
                 calling_copy_ratio_z_score_threshold = calling_copy_ratio_z_score_threshold,
                 gatk4_jar_override = gatk4_jar_override,
-                gatk_docker = gatk_docker,
+                gatk_docker = gatk_docker_mini,
                 mem_gb = mem_gb_for_call_copy_ratio_segments,
                 disk_space_gb = copy_ratio_segments_normal_disk,
                 preemptible_attempts = preemptible_attempts
@@ -419,18 +408,6 @@ workflow call_cnvs {
                 mem_gb = mem_gb_for_plotting,
                 disk_space_gb = plot_normal_disk,
                 preemptible_attempts = preemptible_attempts
-        }
-    }
-
-    if (select_first([is_run_oncotator, false])) {
-        call CNVOncotator.CNVOncotatorWorkflow as CNVOncotatorWorkflow {
-            input:
-                 called_file = CallCopyRatioSegmentsTumor.called_copy_ratio_segments,
-                 additional_args = additional_args_for_oncotator,
-                 oncotator_docker = oncotator_docker,
-                 mem_gb_for_oncotator = mem_gb_for_oncotator,
-                 boot_disk_space_gb_for_oncotator = boot_disk_space_gb_for_oncotator,
-                 preemptible_attempts = preemptible_attempts
         }
     }
 
@@ -496,9 +473,6 @@ workflow call_cnvs {
         File? scaled_delta_MAD_normal = PlotDenoisedCopyRatiosNormal.scaled_delta_MAD
         Float? scaled_delta_MAD_value_normal = PlotDenoisedCopyRatiosNormal.scaled_delta_MAD_value
         File? modeled_segments_plot_normal = PlotModeledSegmentsNormal.modeled_segments_plot
-
-        File? oncotated_called_file_tumor = CNVOncotatorWorkflow.oncotated_called_file
-        File? oncotated_called_gene_list_file_tumor = CNVOncotatorWorkflow.oncotated_called_gene_list_file
     }
 }
 
@@ -752,6 +726,7 @@ task PlotDenoisedCopyRatios {
         docker: "~{gatk_docker}"
         memory: machine_mem_mb + " MB"
         disks: "local-disk " + disk_space_gb + if use_ssd then " SSD" else " HDD"
+        bootDiskSizeGb: 20
         cpu: select_first([cpu, 1])
         preemptible: select_first([preemptible_attempts, 5])
     }
@@ -819,6 +794,7 @@ task PlotModeledSegments {
         docker: "~{gatk_docker}"
         memory: machine_mem_mb + " MB"
         disks: "local-disk " + disk_space_gb + if use_ssd then " SSD" else " HDD"
+        bootDiskSizeGb: 20
         cpu: select_first([cpu, 1])
         preemptible: select_first([preemptible_attempts, 5])
     }
