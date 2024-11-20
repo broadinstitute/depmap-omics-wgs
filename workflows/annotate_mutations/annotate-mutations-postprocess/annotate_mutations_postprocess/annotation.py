@@ -13,6 +13,7 @@ def annotate_vcf(
     tumor_suppressor_genes: set[str],
     min_af: float = 0.15,
     min_depth: int = 2,
+    max_pop_af: float = 1e-05,
 ) -> None:
     logging.info("Annotating VCF")
 
@@ -134,7 +135,9 @@ def annotate_vcf(
                                 "mane_select": "VARCHAR",
                                 "pli_gene_value": "DOUBLE",
                                 "somatic": "VARCHAR",
-                                "swissprot": "VARCHAR"
+                                "swissprot": "VARCHAR",
+                                "gnom_ade_af": "DOUBLE",
+                                "gnom_adg_af": "DOUBLE"
                             }'
                         ) AS csq
                     FROM
@@ -158,6 +161,8 @@ def annotate_vcf(
                     csq.pli_gene_value,
                     csq.somatic,
                     csq.swissprot,
+                    csq.gnom_ade_af AS gnomade_af,
+                    csq.gnom_adg_af AS gnomadg_af
                 FROM
                     vep_exploded
             )
@@ -260,6 +265,10 @@ def annotate_vcf(
             ON 
                 variants.vid = vals_wide.vid
             WHERE
+                variants.chrom = 'chr1'
+                and variants.pos = 41382200
+                AND
+                -- quality checks
                 vals_wide.af >= {min_af}
                 AND
                 vals_wide.dp >= {min_depth}
@@ -287,12 +296,14 @@ def annotate_vcf(
                     FROM
                         vep
                     WHERE
+                        -- important splice event
                         (
                             contains(consequence, 'splice')
                             AND
                             impact IN ('HIGH', 'MODERATE')
                         )
                         OR
+                        -- protein sequence has changed
                         (
                             hgvsp IS NOT NULL
                             AND
@@ -300,14 +311,27 @@ def annotate_vcf(
                         )
                 )
                 AND
+                -- not in a segmental duplication nor repeatmasker region
                 variants.vid NOT IN (
                     SELECT
                         vid
                     FROM
                         info
                     WHERE
-                        k in ('segdup', 'rm')
+                        k in ('segdup', 'rm', 'pon')
                         AND
                         v_boolean
                 )
-        """)
+                AND
+                -- max population prevalence per gnomAD
+                variants.vid IN (
+                    SELECT
+                        vid
+                    FROM
+                        vep
+                    WHERE
+                        coalesce(gnomade_af, 0) <= {max_pop_af}
+                        AND
+                        coalesce(gnomadg_af, 0) <= {max_pop_af}
+                )
+        """).df()
