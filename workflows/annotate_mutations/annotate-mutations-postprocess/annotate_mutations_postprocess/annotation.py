@@ -512,6 +512,43 @@ def annotate_vcf(
         """)
 
         db.sql("""
+            CREATE OR REPLACE VIEW oncogene_tsg AS (
+                WITH oncogene_v AS (
+                    SELECT
+                        vid,
+                        TRUE AS oncogene_high_impact
+                    FROM
+                        info
+                    WHERE
+                        k = 'oncogene'
+                        AND
+                        vid IN (SELECT vid FROM vep WHERE impact = 'HIGH')
+                ),
+                tsg_v AS (
+                    SELECT
+                        vid,
+                        TRUE AS tumor_suppressor_high_impact
+                    FROM
+                        info
+                    WHERE
+                        k = 'tsg'
+                        AND
+                        vid IN (SELECT vid FROM vep WHERE impact = 'HIGH')
+                )
+                SELECT
+                    coalesce(oncogene_v.vid, tsg_v.vid) AS vid,
+                    oncogene_v.oncogene_high_impact,
+                    tsg_v.tumor_suppressor_high_impact
+                FROM
+                    oncogene_v
+                FULL OUTER JOIN
+                    tsg_v
+                ON
+                    oncogene_v.vid = tsg_v.vid
+            )
+        """)
+
+        db.sql("""
             CREATE OR REPLACE VIEW filters AS (
                 WITH val_filters AS (
                     SELECT
@@ -689,7 +726,10 @@ def annotate_vcf(
                 lof_v.number_of_transcripts_in_gene AS 
                     lof_number_of_transcripts_in_gene,
                 lof_v.percent_of_transcripts_affected AS
-                    lof_percent_of_transcripts_affected
+                    lof_percent_of_transcripts_affected,
+                oncogene_tsg.oncogene_high_impact AS oncogene_high_impact,
+                oncogene_tsg.tumor_suppressor_high_impact AS
+                    tumor_suppressor_high_impact
             FROM
                 variants
             INNER JOIN
@@ -720,6 +760,10 @@ def annotate_vcf(
                 lof_v
             ON 
                 variants.vid = lof_v.vid
+            LEFT JOIN
+                oncogene_tsg
+            ON 
+                variants.vid = oncogene_tsg.vid
             WHERE
                 variants.vid IN (SELECT vid from filtered_vids)
                 and
