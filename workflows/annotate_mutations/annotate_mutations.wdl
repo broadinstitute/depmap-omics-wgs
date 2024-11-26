@@ -44,6 +44,14 @@ workflow annotate_mutations {
         File? cosmic_cmc
         File? cosmic_cmc_index
 
+        Boolean annot_oncogenes_tsg = true
+        File? oncogenes_tsg
+        File? oncogenes_tsg_index
+
+        Boolean annot_hgnc = true
+        File? hgnc
+        File? hgnc_index
+
         Boolean annot_gc_prop = true
         Int? gc_window
 
@@ -110,7 +118,8 @@ workflow annotate_mutations {
     )
 
     if (annot_seg_dups || annot_repeat_masker || annot_hess_drivers || annot_oncokb ||
-        annot_civic || annot_cosmic_cmc || annot_gc_prop) {
+        annot_civic || annot_cosmic_cmc || annot_oncogenes_tsg || annot_hgnc ||
+        annot_gc_prop) {
         call annot_with_bcftools {
             input:
                 vcf = fixed_vcf,
@@ -121,6 +130,8 @@ workflow annotate_mutations {
                 annot_oncokb = annot_oncokb,
                 annot_civic = annot_civic,
                 annot_cosmic_cmc = annot_cosmic_cmc,
+                annot_oncogenes_tsg = annot_oncogenes_tsg,
+                annot_hgnc = annot_hgnc,
                 annot_gc_prop = annot_gc_prop,
                 segdup_bed = segdup_bed,
                 segdup_bed_index = segdup_bed_index,
@@ -133,6 +144,10 @@ workflow annotate_mutations {
                 civic_annotation_index = civic_annotation_index,
                 cosmic_cmc = cosmic_cmc,
                 cosmic_cmc_index = cosmic_cmc_index,
+                oncogenes_tsg = oncogenes_tsg,
+                oncogenes_tsg_index = oncogenes_tsg_index,
+                hgnc = hgnc,
+                hgnc_index = hgnc_index,
                 gc_window = gc_window,
                 ref_fasta = ref_fasta,
                 ref_fasta_index = ref_fasta_index
@@ -590,6 +605,8 @@ task annot_with_bcftools {
         Boolean annot_oncokb
         Boolean annot_civic
         Boolean annot_cosmic_cmc
+        Boolean annot_oncogenes_tsg
+        Boolean annot_hgnc
         Boolean annot_gc_prop
         String? exclude_string
         File? segdup_bed
@@ -603,6 +620,10 @@ task annot_with_bcftools {
         File? civic_annotation_index
         File? cosmic_cmc
         File? cosmic_cmc_index
+        File? oncogenes_tsg
+        File? oncogenes_tsg_index
+        File? hgnc
+        File? hgnc_index
         Int? gc_window
         File? ref_fasta
         File? ref_fasta_index
@@ -739,6 +760,42 @@ task annot_with_bcftools {
                 --annotations="~{civic_annotation}" \
                 --columns="CHROM,POS,REF,ALT,CIVIC_SCORE,CIVIC_DESC" \
                 --header-lines="civic.hdr.vcf" \
+                --output="${TMP_VCF}"
+            rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"
+        fi
+
+        if ~{annot_oncogenes_tsg}; then
+            echo "Annotating oncogenes and tumor suppressor genes"
+
+            echo '##INFO=<ID=ONCOGENE,Number=0,Type=Flag,Description="Is oncogene">' \
+                > oncogenes_tsg.hdr.vcf
+            echo '##INFO=<ID=TSG,Number=0,Type=Flag,Description="Is tumor suppressor gene">' \
+                >> oncogenes_tsg.hdr.vcf
+
+            bcftools annotate \
+                "~{vcf}" \
+                --annotations="~{oncogenes_tsg}" \
+                --columns=CHROM,BEG,END,ONCOGENE,TSG \
+                --merge-logic="ONCOGENE:first,TSG:first" \
+                --header-lines="oncogenes_tsg.hdr.vcf" \
+                --output="${TMP_VCF}"
+            rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"
+        fi
+
+        if ~{annot_hgnc}; then
+            echo "Annotating from HGNC"
+
+            echo '##INFO=<ID=HGNC_NAME,Number=.,Type=String,Description="HGNC approved name">' \
+                > hgnc.hdr.vcf
+            echo '##INFO=<ID=HGNC_GROUP,Number=.,Type=String,Description="HGNC gene group name">' \
+                >> hgnc.hdr.vcf
+
+            bcftools annotate \
+                "~{vcf}" \
+                --annotations="~{hgnc}" \
+                --columns=CHROM,BEG,END,HGNC_NAME,HGNC_GROUP \
+                --merge-logic="HGNC_NAME:unique,HGNC_GROUP:unique" \
+                --header-lines="hgnc.hdr.vcf" \
                 --output="${TMP_VCF}"
             rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"
         fi

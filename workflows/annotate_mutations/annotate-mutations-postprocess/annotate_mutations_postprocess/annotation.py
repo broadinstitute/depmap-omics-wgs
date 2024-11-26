@@ -11,6 +11,7 @@ def annotate_vcf(
     parquet_dir_path: Path,
     oncogenes: set[str],
     tumor_suppressor_genes: set[str],
+    hgnc: pd.DataFrame,
     min_af: float = 0.15,
     min_depth: int = 2,
     max_pop_af: float = 1e-05,
@@ -26,6 +27,78 @@ def annotate_vcf(
         logging.info(f"Reading schema and Parquet files from {parquet_dir_path}")
         db.sql(f"IMPORT DATABASE '{parquet_dir_path}'")
 
+        db.sql("""
+            CREATE TABLE IF NOT EXISTS maf (
+                chrom VARCHAR,
+                pos VARCHAR,
+                ref VARCHAR,
+                alt VARCHAR,
+                af FLOAT,
+                alt_count UINTEGER,
+                am_class VARCHAR,
+                am_pathogenicity FLOAT,
+                brca1_func_score FLOAT,
+                civic_description VARCHAR,
+                civic_id VARCHAR,
+                civic_score FLOAT,
+                dbsnp_rs_id VARCHAR,
+                DepMap_ID VARCHAR,
+                dida_id VARCHAR,
+                dida_name VARCHAR,
+                dna_change VARCHAR,
+                dp VARCHAR,
+                ensembl_feature_id VARCHAR,
+                ensembl_gene_id VARCHAR,
+                exon VARCHAR,
+                gc_content FLOAT,
+                gnomade_af FLOAT,
+                gnomadg_af FLOAT,
+                gt VARCHAR,
+                gtex_gene VARCHAR,
+                gwas_disease VARCHAR,
+                gwas_pmid VARCHAR,
+                hess_driver BOOLEAN,
+                hess_signature VARCHAR,
+                hgnc_family VARCHAR,
+                hgnc_name VARCHAR,
+                hugo_symbol VARCHAR,
+                intron VARCHAR,
+                likely_lof BOOLEAN,
+                lof_gene_id VARCHAR,
+                lof_gene_name VARCHAR,
+                lof_number_of_transcripts_in_gene UINTEGER,
+                lof_percent_of_transcripts_affected FLOAT,
+                molecular_consequence VARCHAR,
+                nmd VARCHAR,
+                oncogene_high_impact BOOLEAN,
+                pharmgkb_id VARCHAR,
+                polyphen VARCHAR,
+                protein_change VARCHAR,
+                provean_prediction VARCHAR,
+                ps VARCHAR,
+                ref_count UINTEGER,
+                rescue BOOLEAN,
+                revel_score FLOAT,
+                sift VARCHAR,
+                transcript_likely_lof VARCHAR,
+                tumor_suppressor_high_impact BOOLEAN,
+                uniprot_id VARCHAR,
+                variant_info VARCHAR,
+                variant_type VARCHAR,
+                vep_biotype VARCHAR,
+                vep_clin_sig VARCHAR,
+                vep_ensp VARCHAR,
+                vep_existing_variation VARCHAR,
+                vep_hgnc_id VARCHAR,
+                vep_impact VARCHAR,
+                vep_loftool FLOAT,
+                vep_mane_select VARCHAR,
+                vep_pli_gene_value FLOAT,
+                vep_somatic VARCHAR,
+                vep_swissprot VARCHAR
+            )
+        """)
+
         db.register(
             "oncogenes",
             pd.DataFrame({"gene_name": list(oncogenes)}, dtype="string"),
@@ -36,51 +109,7 @@ def annotate_vcf(
             pd.DataFrame({"gene_name": list(tumor_suppressor_genes)}, dtype="string"),
         )
 
-        db.sql("""
-            CREATE OR REPLACE VIEW brca1 AS (
-                WITH brca1_long AS (
-                    SELECT
-                        vid,
-                        k,
-                        v_varchar,
-                        v_float
-                    FROM
-                        info
-                    WHERE
-                        k IN ('oc_brca1_func_assay_class', 'oc_brca1_func_assay_score')
-                ),
-                assay_class AS (
-                    PIVOT
-                        brca1_long
-                    ON
-                        k IN ('oc_brca1_func_assay_class')
-                    USING
-                        first(v_varchar)
-                    GROUP BY
-                        vid
-                ),
-                assay_score AS (
-                    PIVOT
-                        brca1_long
-                    ON
-                        k IN ('oc_brca1_func_assay_score')
-                    USING
-                        first(v_float)
-                    GROUP BY
-                        vid
-                )
-                SELECT
-                    assay_class.vid,
-                    assay_class.oc_brca1_func_assay_class,
-                    assay_score.oc_brca1_func_assay_score
-                FROM
-                    assay_class
-                FULL OUTER JOIN
-                    assay_score
-                ON
-                    assay_class.vid = assay_score.vid
-            )
-        """)
+        db.register("hgnc", hgnc)
 
         db.sql("""
             CREATE OR REPLACE VIEW revel AS (
@@ -122,22 +151,33 @@ def annotate_vcf(
                         json_transform(
                             UNNEST(v_json_arr),
                             '{
+                                "am_class": "VARCHAR",
+                                "am_pathogenicity": "FLOAT",
+                                "hgvsc": "VARCHAR",
+                                "feature": "VARCHAR",
+                                "gene": "VARCHAR",
+                                "exon": "VARCHAR",
+                                "gnom_ade_af": "FLOAT",
+                                "gnom_adg_af": "FLOAT",
                                 "symbol": "VARCHAR",
+                                "intron": "VARCHAR",
+                                "poly_phen": "VARCHAR",
+                                "hgvsp": "VARCHAR",
+                                "sift": "VARCHAR",
+                                "uniprot_isoform": "VARCHAR",
                                 "consequence": "VARCHAR",
+                                "variant_class": "VARCHAR",
                                 "biotype": "VARCHAR",
                                 "clin_sig": "VARCHAR",
                                 "ensp": "VARCHAR",
                                 "existing_variation": "VARCHAR",
                                 "hgnc_id": "VARCHAR",
-                                "hgvsp": "VARCHAR",
                                 "impact": "VARCHAR",
-                                "loftool": "DOUBLE",
+                                "loftool": "FLOAT",
                                 "mane_select": "VARCHAR",
-                                "pli_gene_value": "DOUBLE",
+                                "pli_gene_value": "FLOAT",
                                 "somatic": "VARCHAR",
-                                "swissprot": "VARCHAR",
-                                "gnom_ade_af": "DOUBLE",
-                                "gnom_adg_af": "DOUBLE"
+                                "swissprot": "VARCHAR"
                             }'
                         ) AS csq
                     FROM
@@ -147,42 +187,40 @@ def annotate_vcf(
                 )
                 SELECT
                     vid,
-                    csq.symbol,
-                    csq.consequence,
-                    csq.biotype,
-                    csq.clin_sig,
-                    csq.ensp,
-                    csq.existing_variation,
-                    csq.hgnc_id,
-                    url_decode(csq.hgvsp) AS hgvsp,
-                    csq.impact,
-                    csq.loftool,
-                    csq.mane_select,
-                    csq.pli_gene_value,
-                    csq.somatic,
-                    csq.swissprot,
-                    csq.gnom_ade_af AS gnomade_af,
-                    csq.gnom_adg_af AS gnomadg_af
+                    csq.*
                 FROM
                     vep_exploded
             )
         """)
 
+        # this is a physical table due to the slowness of the `vep_exploded` CTE
         db.sql("""
             CREATE OR REPLACE TABLE vep
             AS
             SELECT * FROM vep_view
         """)
 
-        db.sql(f"""
+        db.sql("""
             CREATE OR REPLACE VIEW vals_wide AS (
                 SELECT
                     DISTINCT vals.vid,
+                    t_ad.ad,
                     t_af.af,
                     t_dp.dp,
-                    t_gt.gt
+                    t_gt.gt,
+                    t_ps.ps
                 FROM
                     vals
+                
+                LEFT OUTER JOIN (
+                    SELECT
+                        vid,
+                        v_integer_arr AS ad,
+                    FROM
+                        vals
+                    WHERE
+                        k = 'ad'
+                ) t_ad ON vals.vid = t_ad.vid 
                 
                 LEFT OUTER JOIN (
                     SELECT
@@ -202,7 +240,7 @@ def annotate_vcf(
                         vals
                     WHERE
                         k = 'dp'
-                ) t_dp ON vals.vid = t_dp.vid 
+                ) t_dp ON vals.vid = t_dp.vid
                 
                 LEFT OUTER JOIN (
                     SELECT
@@ -213,7 +251,98 @@ def annotate_vcf(
                     WHERE
                         k = 'gt'
                 ) t_gt ON vals.vid = t_gt.vid 
+                
+                LEFT OUTER JOIN (
+                    SELECT
+                        vid,
+                        v_integer AS ps
+                    FROM
+                        vals
+                    WHERE
+                        k = 'ps'
+                ) t_ps ON vals.vid = t_ps.vid 
             )
+        """)
+
+        info_col_name_map = {
+            "civic_desc": "civic_description",
+            "civic_score": "civic_score",
+            "oc_revel_score": "revel_score",
+            "oc_pharmgkb_id": "pharmgkb_id",
+            "gc_prop": "gc_prop",
+        }
+
+        maf_info_cols = db.execute(
+            """
+            SELECT
+                id_snake,
+                v_col_name
+            FROM
+                val_info_types
+            WHERE
+                kind = 'info'
+                AND
+                id_snake IN (
+                    SELECT DISTINCT k FROM info
+                )
+                AND
+                ('rs' IN $maf_info_cols)
+        """,
+            {"maf_info_cols": ["dp", "rs"]},
+        ).df()
+
+        relevent_info = [
+            "civic_desc",
+            "civic_score",
+            "oc_revel_score",
+            "oc_pharmgkb_id",
+            "gc_prop",
+        ]
+
+        relevent_info_clause = ", ".join(f"'{x}'" for x in relevent_info)
+
+        db.execute(
+            """
+            select * from info where k IN $relevent_info
+        """,
+            {"relevent_info": relevent_info},
+        )
+
+        pivot_ctes = [
+            f"""
+            info_{c} AS (
+                PIVOT (
+                    SELECT
+                        vid,
+                        k,
+                        {c}
+                    FROM
+                        info
+                    WHERE
+                        --k IN ({relevent_info})
+                        --AND
+                        {c} IS NOT NULL
+                ) ON k USING first({c})
+            )
+        """
+            for c in info_cols
+        ]
+
+        join_clauses = [
+            f"""
+            FULL OUTER JOIN
+                info_{c}
+            ON
+                info_{info_cols[0]}.vid = info_{c}.vid
+        """
+            for c in info_cols[1:]
+        ]
+
+        # this is a physical table because you can't PIVOT this way inside views
+        db.sql(f"""
+            WITH {', '.join(pivot_ctes)}
+            SELECT * FROM info_{info_cols[0]}
+            {'\n'.join(join_clauses)}
         """)
 
         db.sql("""
@@ -249,89 +378,147 @@ def annotate_vcf(
         """)
 
         db.sql(f"""
+            CREATE OR REPLACE VIEW filtered_vids AS (
+                SELECT
+                    vid
+                FROM
+                    variants
+                WHERE
+                    -- quality checks
+                    vid IN (
+                        SELECT
+                            vid
+                        FROM
+                            vals_wide
+                        WHERE
+                            vals_wide.af >= {min_af}
+                            AND
+                            vals_wide.dp >= {min_depth}
+                    )
+                    AND
+                    vid NOT IN (
+                        SELECT
+                            vid
+                        FROM
+                            filters
+                        WHERE
+                            filter IN (
+                                'multiallelic',
+                                'map_qual',
+                                'slippage',
+                                'strand_bias',
+                                'weak_evidence',
+                                'clustered_events',
+                                'base_qual'
+                            )
+                    )
+                    AND
+                    vid IN (
+                        SELECT
+                            vid
+                        FROM
+                            vep
+                        WHERE
+                            -- important splice event
+                            (
+                                contains(consequence, 'splice')
+                                AND
+                                impact IN ('HIGH', 'MODERATE')
+                            )
+                            OR
+                            -- protein sequence has changed
+                            (
+                                hgvsp IS NOT NULL
+                                AND
+                                NOT ends_with(hgvsp, '=')
+                            )
+                    )
+                    AND
+                    -- not in a segmental duplication nor repeatmasker region
+                    vid NOT IN (
+                        SELECT
+                            vid
+                        FROM
+                            info
+                        WHERE
+                            k in ('segdup', 'rm', 'pon')
+                            AND
+                            v_boolean
+                    )
+                    AND
+                    -- max population prevalence per gnomAD
+                    vid IN (
+                        SELECT
+                            vid
+                        FROM
+                            vep
+                        WHERE
+                            coalesce(gnom_ade_af, 0) <= {max_pop_af}
+                            AND
+                            coalesce(gnom_adg_af, 0) <= {max_pop_af}
+                    )
+            )
+        """)
+
+        db.sql("""
             SELECT
                 variants.vid,
-                variants.chrom,
-                variants.pos,
-                variants.ref,
-                variants.alt,
-                vals_wide.af,
-                vals_wide.dp,
-                vals_wide.gt
+                variants.chrom AS chrom,
+                variants.pos AS pos,
+                variants.ref AS ref,
+                variants.alt AS alt,
+                vals_wide.ad[1] AS ref_count,
+                vals_wide.ad[2] AS alt_count,
+                vals_wide.af AS af,
+                vals_wide.dp AS dp,
+                vals_wide.gt AS gt,
+                brca1.oc_brca1_func_assay_score AS brca1_func_score,
+                vep.clin_sig AS vep_clin_sig,
+                vep.ensp AS vep_ensp,
+                vep.existing_variation AS vep_existing_variation,
+                vep.hgnc_id AS vep_hgnc_id,
+                vep.impact AS vep_impact,
+                vep.loftool AS vep_loftool,
+                vep.mane_select AS vep_mane_select,
+                vep.pli_gene_value AS vep_pli_gene_value,
+                vep.somatic AS vep_somatic,
+                vep.swissprot AS vep_swissprot,
+                vep.exon AS exon,
+                vep.intron AS intron,
+                vep.poly_phen AS polyphen,
+                vep.am_class AS am_class,
+                vep.am_pathogenicity AS am_pathogenicity,
+                list_aggregate(info_wide.mc, 'string_agg', ',') AS molecular_consequence,
+                NULL AS civic_id,
+                info_wide.civic_desc AS civic_description,
+                info_wide.civic_score AS civic_score,
+                info_wide.oc_revel_score AS revel_score,
+                info_wide.oc_pharmgkb_id AS pharmgkb_id,
+                info_wide.gc_prop AS gc_prop,
             FROM
                 variants
             INNER JOIN
                 vals_wide
             ON 
                 variants.vid = vals_wide.vid
+            LEFT JOIN
+                brca1
+            ON 
+                variants.vid = brca1.vid
+            LEFT JOIN
+                vep
+            ON 
+                variants.vid = vep.vid
+            LEFT JOIN
+                revel
+            ON 
+                variants.vid = revel.vid
+            LEFT JOIN
+                info_wide
+            ON 
+                variants.vid = info_wide.vid
             WHERE
-                variants.chrom = 'chr1'
-                and variants.pos = 41382200
-                AND
-                -- quality checks
-                vals_wide.af >= {min_af}
-                AND
-                vals_wide.dp >= {min_depth}
-                AND
-                variants.vid NOT IN (
-                    SELECT
-                        vid
-                    FROM
-                        filters
-                    WHERE
-                        filter IN (
-                            'multiallelic',
-                            'map_qual',
-                            'slippage',
-                            'strand_bias',
-                            'weak_evidence',
-                            'clustered_events',
-                            'base_qual'
-                        )
-                )
-                AND
-                variants.vid IN (
-                    SELECT
-                        vid
-                    FROM
-                        vep
-                    WHERE
-                        -- important splice event
-                        (
-                            contains(consequence, 'splice')
-                            AND
-                            impact IN ('HIGH', 'MODERATE')
-                        )
-                        OR
-                        -- protein sequence has changed
-                        (
-                            hgvsp IS NOT NULL
-                            AND
-                            NOT ends_with(hgvsp, '=')
-                        )
-                )
-                AND
-                -- not in a segmental duplication nor repeatmasker region
-                variants.vid NOT IN (
-                    SELECT
-                        vid
-                    FROM
-                        info
-                    WHERE
-                        k in ('segdup', 'rm', 'pon')
-                        AND
-                        v_boolean
-                )
-                AND
-                -- max population prevalence per gnomAD
-                variants.vid IN (
-                    SELECT
-                        vid
-                    FROM
-                        vep
-                    WHERE
-                        coalesce(gnomade_af, 0) <= {max_pop_af}
-                        AND
-                        coalesce(gnomadg_af, 0) <= {max_pop_af}
-                )
-        """).df()
+                variants.vid IN (SELECT vid from filtered_vids)
+                and
+                chrom is not null
+        """)
