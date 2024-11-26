@@ -10,8 +10,10 @@ import pandas as pd
 import requests
 from pyliftover import LiftOver
 
+liftover = LiftOver("hg19", "hg38")
 
-def liftover_one(liftover, chrom, pos):
+
+def liftover_one(chrom, pos):
     lifted = liftover.convert_coordinate(chrom, pos)
 
     if len(lifted) != 1:
@@ -42,7 +44,7 @@ vs = pd.read_csv(
         "variant_id": "string",
         "variant_civic_url": "string",
         "gene": "string",
-        "entrez_id": "int64",
+        "entrez_id": "Int64",
         "variant": "string",
         "variant_groups": "string",
         "chromosome": "string",
@@ -125,10 +127,8 @@ df = df.loc[
     ],
 ]
 
-liftover = LiftOver("hg19", "hg38")
-
 df["chrom_pos_hg38"] = df.apply(
-    lambda x: liftover_one(liftover, x["chrom"], x["pos"] - 1), axis=1
+    lambda x: liftover_one(x["chrom"], x["pos"] - 1), axis=1
 )
 
 df[["chrom_hg38", "pos_hg38"]] = df["chrom_pos_hg38"].str.split(",", expand=True)
@@ -153,22 +153,24 @@ df.loc[~df["description"].isna(), "description"] = df.loc[
     ~df["description"].isna(), "description"
 ].apply(quote)
 
-df[["chrom", "pos", "ref", "alt", "evidence_score", "description"]].to_csv(
-    f"./data/civic/civic_{today}.tsv", sep="\t", index=False, header=False
-)
+df[
+    ["chrom", "pos", "ref", "alt", "variant_id", "evidence_score", "description"]
+].to_csv(f"./data/civic/civic_{today}.tsv", sep="\t", index=False, header=False)
 
 """
-echo '##INFO=<ID=CIVIC_SCORE,Number=1,Type=String,Description="CIVIC evidence score">' \
+echo '##INFO=<ID=CIVIC_ID,Number=1,Type=Integer,Description="CIVIC variant ID">' \
     > ./data/civic/civic.hdr.vcf
+echo '##INFO=<ID=CIVIC_SCORE,Number=1,Type=String,Description="CIVIC evidence score">' \
+    >> ./data/civic/civic.hdr.vcf
 echo '##INFO=<ID=CIVIC_DESC,Number=1,Type=String,Description="CIVIC variant description">' \
     >> ./data/civic/civic.hdr.vcf
-bgzip ./data/civic/civic_2024-07-03.tsv -k
-tabix ./data/civic/civic_2024-07-03.tsv.gz -s1 -b2 -e2
+bgzip ./data/civic/civic_2024-11-26.tsv -k -f
+tabix ./data/civic/civic_2024-11-26.tsv.gz -s1 -b2 -e2 -f
 
 # e.g.
 bcftools annotate input.vcf.gz \
-    --annotations=./data/civic/civic_2024-07-03.tsv.gz \
+    --annotations=./data/civic/civic_2024-11-26.tsv.gz \
     --output=./data/output.vcf.gz \
     --header-lines=./data/hess.hdr.vcf \
-    --columns=CHROM,POS,REF,ALT,CIVIC_SCORE,CIVIC_DESC
+    --columns=CHROM,POS,REF,ALT,CIVIC_ID,CIVIC_SCORE,CIVIC_DESC
 """

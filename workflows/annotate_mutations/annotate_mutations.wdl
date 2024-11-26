@@ -750,15 +750,17 @@ task annot_with_bcftools {
         if ~{annot_civic}; then
             echo "Annotating CIVIC variants"
 
-            echo '##INFO=<ID=CIVIC_SCORE,Number=1,Type=Float,Description="CIVIC evidence score">' \
+            echo '##INFO=<ID=CIVIC_ID,Number=1,Type=Integer,Description="CIVIC variant ID">' \
                 > civic.hdr.vcf
+            echo '##INFO=<ID=CIVIC_SCORE,Number=1,Type=Float,Description="CIVIC evidence score">' \
+                >> civic.hdr.vcf
             echo '##INFO=<ID=CIVIC_DESC,Number=1,Type=String,Description="CIVIC variant description">' \
                 >> civic.hdr.vcf
 
             bcftools annotate \
                 "~{vcf}" \
                 --annotations="~{civic_annotation}" \
-                --columns="CHROM,POS,REF,ALT,CIVIC_SCORE,CIVIC_DESC" \
+                --columns="CHROM,POS,REF,ALT,CIVIC_ID,CIVIC_SCORE,CIVIC_DESC" \
                 --header-lines="civic.hdr.vcf" \
                 --output="${TMP_VCF}"
             rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"
