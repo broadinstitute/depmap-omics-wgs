@@ -96,7 +96,7 @@ def annotate_vcf(
         """)
 
         db.sql("""
-            CREATE OR REPLACE VIEW revel AS (
+            CREATE OR REPLACE VIEW transcript_likely_lof_v AS (
                 WITH exploded AS (
                     SELECT
                         vid,
@@ -124,6 +124,76 @@ def annotate_vcf(
                     score >= 0.7
                 GROUP BY
                     vid
+            )
+        """)
+
+        db.sql("""
+            CREATE OR REPLACE VIEW nmd_v AS (
+                WITH exploded AS (
+                    SELECT
+                        vid,
+                        unnest(v_json_arr) AS v_json
+                    FROM
+                        info
+                    WHERE
+                        k = 'nmd'
+                )
+                SELECT
+                    vid,
+                    list_aggregate(v_json->>'$.*', 'string_agg', '|') AS nmd
+                FROM
+                    exploded
+            )
+        """)
+
+        db.sql("""
+            CREATE OR REPLACE VIEW hgnc_v AS (
+                WITH hgnc_name_exploded AS (
+                    SELECT
+                        vid,
+                        unnest(v_varchar_arr) AS v_varchar
+                    FROM
+                        info
+                    WHERE
+                        k = 'hgnc_name'
+                ),
+                hgnc_name_concat AS (
+                    SELECT
+                        vid,
+                        string_agg(v_varchar, '; ') AS hgnc_name
+                    FROM
+                        hgnc_name_exploded
+                    GROUP BY
+                        vid
+                ),
+                hgnc_group_exploded AS (
+                    SELECT
+                        vid,
+                        unnest(v_varchar_arr) AS v_varchar
+                    FROM
+                        info
+                    WHERE
+                        k = 'hgnc_group'
+                ),
+                hgnc_group_concat AS (
+                    SELECT
+                        vid,
+                        string_agg(v_varchar, '; ') AS hgnc_group
+                    FROM
+                        hgnc_group_exploded
+                    GROUP BY
+                        vid
+                )
+                SELECT
+                    coalesce(hgnc_name_concat.vid, hgnc_group_concat.vid) AS vid,
+                    hgnc_name_concat.hgnc_name,
+                    hgnc_group_concat.hgnc_group
+                FROM
+                    hgnc_name_concat
+                FULL OUTER JOIN
+                    hgnc_group_concat
+                ON
+                    hgnc_name_concat.vid = hgnc_group_concat.vid
             )
         """)
 
@@ -583,7 +653,10 @@ def annotate_vcf(
                 vep.pli_gene_value AS vep_pli_gene_value,
                 vep.somatic AS vep_somatic,
                 vep.swissprot AS vep_swissprot,
-                revel.transcript_likely_lof AS transcript_likely_lof
+                transcript_likely_lof_v.transcript_likely_lof AS transcript_likely_lof,
+                nmd_v.nmd AS nmd,
+                hgnc_v.hgnc_name AS hgnc_name,
+                hgnc_v.hgnc_group AS hgnc_family
             FROM
                 variants
             INNER JOIN
@@ -599,9 +672,17 @@ def annotate_vcf(
             ON 
                 variants.vid = vep.vid
             LEFT JOIN
-                revel
+                transcript_likely_lof_v
             ON 
-                variants.vid = revel.vid
+                variants.vid = transcript_likely_lof_v.vid
+            LEFT JOIN
+                nmd_v
+            ON 
+                variants.vid = nmd_v.vid
+            LEFT JOIN
+                hgnc_v
+            ON 
+                variants.vid = hgnc_v.vid
             WHERE
                 variants.vid IN (SELECT vid from filtered_vids)
                 and
