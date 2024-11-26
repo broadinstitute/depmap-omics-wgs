@@ -3,15 +3,11 @@ import os
 from pathlib import Path
 
 import duckdb
-import pandas as pd
 
 
 def annotate_vcf(
     db_path: Path,
     parquet_dir_path: Path,
-    oncogenes: set[str],
-    tumor_suppressor_genes: set[str],
-    hgnc: pd.DataFrame,
     min_af: float = 0.15,
     min_depth: int = 2,
     max_pop_af: float = 1e-05,
@@ -98,18 +94,6 @@ def annotate_vcf(
                 vep_swissprot VARCHAR
             )
         """)
-
-        db.register(
-            "oncogenes",
-            pd.DataFrame({"gene_name": list(oncogenes)}, dtype="string"),
-        )
-
-        db.register(
-            "tumor_suppressor_genes",
-            pd.DataFrame({"gene_name": list(tumor_suppressor_genes)}, dtype="string"),
-        )
-
-        db.register("hgnc", hgnc)
 
         db.sql("""
             CREATE OR REPLACE VIEW revel AS (

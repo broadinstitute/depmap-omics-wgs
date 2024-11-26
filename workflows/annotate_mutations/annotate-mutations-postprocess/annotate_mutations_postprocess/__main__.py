@@ -56,23 +56,9 @@ def merge_info(
 
 @app.command()
 def vcf_to_depmap(
-    db: Annotated[Path, typer.Option()],
-    parquet_dir: Annotated[Path, typer.Option()],
-    oncogenes: Annotated[Path, typer.Option(exists=True)],
-    tumor_suppressor_genes: Annotated[Path, typer.Option(exists=True)],
+    db: Annotated[Path, typer.Option()], parquet_dir: Annotated[Path, typer.Option()]
 ) -> None:
-    with open(oncogenes, "r") as f:
-        oncogenes_list = set(line.strip() for line in f)
-
-    with open(tumor_suppressor_genes, "r") as f:
-        tumor_suppressor_genes_list = set(line.strip() for line in f)
-
-    annotate_vcf(
-        db_path=db,
-        parquet_dir_path=parquet_dir,
-        oncogenes=oncogenes_list,
-        tumor_suppressor_genes=tumor_suppressor_genes_list,
-    )
+    annotate_vcf(db_path=db, parquet_dir_path=parquet_dir)
 
 
 if __name__ == "__main__":
