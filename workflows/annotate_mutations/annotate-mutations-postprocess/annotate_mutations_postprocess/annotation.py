@@ -29,6 +29,7 @@ def annotate_vcf(
                 pos VARCHAR,
                 ref VARCHAR,
                 alt VARCHAR,
+                DepMap_ID VARCHAR,
                 af FLOAT,
                 alt_count UINTEGER,
                 am_class VARCHAR,
@@ -38,7 +39,6 @@ def annotate_vcf(
                 civic_id VARCHAR,
                 civic_score FLOAT,
                 dbsnp_rs_id VARCHAR,
-                DepMap_ID VARCHAR,
                 dida_id VARCHAR,
                 dida_name VARCHAR,
                 dna_change VARCHAR,
@@ -117,7 +117,7 @@ def annotate_vcf(
                 )
                 SELECT
                     vid,
-                    string_agg(transcript_id, ';') AS revel_transcript_ids
+                    string_agg(transcript_id, ';') AS transcript_likely_lof
                 FROM
                     split_to_cols
                 WHERE
@@ -137,31 +137,31 @@ def annotate_vcf(
                             '{
                                 "am_class": "VARCHAR",
                                 "am_pathogenicity": "FLOAT",
-                                "hgvsc": "VARCHAR",
-                                "feature": "VARCHAR",
-                                "gene": "VARCHAR",
-                                "exon": "VARCHAR",
-                                "gnom_ade_af": "FLOAT",
-                                "gnom_adg_af": "FLOAT",
-                                "symbol": "VARCHAR",
-                                "intron": "VARCHAR",
-                                "poly_phen": "VARCHAR",
-                                "hgvsp": "VARCHAR",
-                                "sift": "VARCHAR",
-                                "uniprot_isoform": "VARCHAR",
-                                "consequence": "VARCHAR",
-                                "variant_class": "VARCHAR",
                                 "biotype": "VARCHAR",
                                 "clin_sig": "VARCHAR",
+                                "consequence": "VARCHAR",
                                 "ensp": "VARCHAR",
                                 "existing_variation": "VARCHAR",
+                                "exon": "VARCHAR",
+                                "feature": "VARCHAR",
+                                "gene": "VARCHAR",
+                                "gnom_ade_af": "FLOAT",
+                                "gnom_adg_af": "FLOAT",
                                 "hgnc_id": "VARCHAR",
+                                "hgvsc": "VARCHAR",
+                                "hgvsp": "VARCHAR",
                                 "impact": "VARCHAR",
+                                "intron": "VARCHAR",
                                 "loftool": "FLOAT",
                                 "mane_select": "VARCHAR",
                                 "pli_gene_value": "FLOAT",
+                                "poly_phen": "VARCHAR",
+                                "sift": "VARCHAR",
                                 "somatic": "VARCHAR",
-                                "swissprot": "VARCHAR"
+                                "swissprot": "VARCHAR",
+                                "symbol": "VARCHAR",
+                                "uniprot_isoform": "VARCHAR",
+                                "variant_class": "VARCHAR"
                             }'
                         ) AS csq
                     FROM
@@ -184,11 +184,14 @@ def annotate_vcf(
             SELECT * FROM vep_view
         """)
 
+        db.sql("DROP VIEW IF EXISTS vep_view")
+
         db.sql("""
             CREATE OR REPLACE VIEW vals_wide AS (
                 SELECT
                     DISTINCT vals.vid,
-                    t_ad.ad,
+                    t_ad.ad[1] AS ref_count,
+                    t_ad.ad[2] AS alt_count,
                     t_af.af,
                     t_dp.dp,
                     t_gt.gt,
@@ -199,7 +202,7 @@ def annotate_vcf(
                 LEFT OUTER JOIN (
                     SELECT
                         vid,
-                        v_integer_arr AS ad,
+                        v_integer_arr AS ad
                     FROM
                         vals
                     WHERE
@@ -209,7 +212,7 @@ def annotate_vcf(
                 LEFT OUTER JOIN (
                     SELECT
                         vid,
-                        v_float AS af,
+                        v_float AS af
                     FROM
                         vals
                     WHERE
@@ -248,85 +251,167 @@ def annotate_vcf(
             )
         """)
 
-        info_col_name_map = {
-            "civic_desc": "civic_description",
-            "civic_score": "civic_score",
-            "oc_revel_score": "revel_score",
-            "oc_pharmgkb_id": "pharmgkb_id",
-            "gc_prop": "gc_prop",
-        }
+        db.sql("""
+            CREATE OR REPLACE VIEW info_wide AS (
+                SELECT
+                    DISTINCT info.vid,
+                    t_oc_brca1_func_assay_score.oc_brca1_func_assay_score,
+                    t_civic_desc.civic_desc,
+                    t_civic_id.civic_id,
+                    t_civic_score.civic_score,
+                    t_rs.rs[1] AS rs,
+                    t_gc_prop.gc_prop,
+                    list_aggregate(t_mc.mc, 'string_agg', ',') AS mc,
+                    t_oc_gtex_gtex_gene.oc_gtex_gtex_gene,
+                    t_oc_gwas_catalog_disease.oc_gwas_catalog_disease,
+                    t_oc_gwas_catalog_pmid.oc_gwas_catalog_pmid,
+                    t_hess_driver.hess_driver,
+                    t_hess_signature.hess_signature,
+                    t_oc_pharmgkb_id.oc_pharmgkb_id,
+                    t_oc_provean_prediction.oc_provean_prediction
+                FROM
+                    info
 
-        maf_info_cols = db.execute(
-            """
-            SELECT
-                id_snake,
-                v_col_name
-            FROM
-                val_info_types
-            WHERE
-                kind = 'info'
-                AND
-                id_snake IN (
-                    SELECT DISTINCT k FROM info
-                )
-                AND
-                ('rs' IN $maf_info_cols)
-        """,
-            {"maf_info_cols": ["dp", "rs"]},
-        ).df()
-
-        relevent_info = [
-            "civic_desc",
-            "civic_score",
-            "oc_revel_score",
-            "oc_pharmgkb_id",
-            "gc_prop",
-        ]
-
-        relevent_info_clause = ", ".join(f"'{x}'" for x in relevent_info)
-
-        db.execute(
-            """
-            select * from info where k IN $relevent_info
-        """,
-            {"relevent_info": relevent_info},
-        )
-
-        pivot_ctes = [
-            f"""
-            info_{c} AS (
-                PIVOT (
+                LEFT OUTER JOIN (
                     SELECT
                         vid,
-                        k,
-                        {c}
+                        v_float AS oc_brca1_func_assay_score
                     FROM
                         info
                     WHERE
-                        --k IN ({relevent_info})
-                        --AND
-                        {c} IS NOT NULL
-                ) ON k USING first({c})
+                        k = 'oc_brca1_func_assay_score'
+                ) t_oc_brca1_func_assay_score ON info.vid = t_oc_brca1_func_assay_score.vid
+                
+                LEFT OUTER JOIN (
+                    SELECT
+                        vid,
+                        v_varchar AS civic_desc
+                    FROM
+                        info
+                    WHERE
+                        k = 'civic_desc'
+                ) t_civic_desc ON info.vid = t_civic_desc.vid
+                
+                LEFT OUTER JOIN (
+                    SELECT
+                        vid,
+                        v_varchar AS civic_id
+                    FROM
+                        info
+                    WHERE
+                        k = 'civic_id'
+                ) t_civic_id ON info.vid = t_civic_id.vid
+                
+                LEFT OUTER JOIN (
+                    SELECT
+                        vid,
+                        v_float AS civic_score
+                    FROM
+                        info
+                    WHERE
+                        k = 'civic_score'
+                ) t_civic_score ON info.vid = t_civic_score.vid
+                
+                LEFT OUTER JOIN (
+                    SELECT
+                        vid,
+                        v_varchar_arr AS rs
+                    FROM
+                        info
+                    WHERE
+                        k = 'rs'
+                ) t_rs ON info.vid = t_rs.vid
+                
+                LEFT OUTER JOIN (
+                    SELECT
+                        vid,
+                        v_float AS gc_prop
+                    FROM
+                        info
+                    WHERE
+                        k = 'gc_prop'
+                ) t_gc_prop ON info.vid = t_gc_prop.vid
+                
+                LEFT OUTER JOIN (
+                    SELECT
+                        vid,
+                        v_varchar_arr AS mc
+                    FROM
+                        info
+                    WHERE
+                        k = 'mc'
+                ) t_mc ON info.vid = t_mc.vid
+                
+                LEFT OUTER JOIN (
+                    SELECT
+                        vid,
+                        v_varchar AS oc_gtex_gtex_gene
+                    FROM
+                        info
+                    WHERE
+                        k = 'oc_gtex_gtex_gene'
+                ) t_oc_gtex_gtex_gene ON info.vid = t_oc_gtex_gtex_gene.vid
+                
+                LEFT OUTER JOIN (
+                    SELECT
+                        vid,
+                        v_varchar AS oc_gwas_catalog_disease
+                    FROM
+                        info
+                    WHERE
+                        k = 'oc_gwas_catalog_disease'
+                ) t_oc_gwas_catalog_disease ON info.vid = t_oc_gwas_catalog_disease.vid
+                
+                LEFT OUTER JOIN (
+                    SELECT
+                        vid,
+                        v_varchar AS oc_gwas_catalog_pmid
+                    FROM
+                        info
+                    WHERE
+                        k = 'oc_gwas_catalog_pmid'
+                ) t_oc_gwas_catalog_pmid ON info.vid = t_oc_gwas_catalog_pmid.vid
+                
+                LEFT OUTER JOIN (
+                    SELECT
+                        vid,
+                        TRUE AS hess_driver
+                    FROM
+                        info
+                    WHERE
+                        k = 'hess'
+                ) t_hess_driver ON info.vid = t_hess_driver.vid
+                
+                LEFT OUTER JOIN (
+                    SELECT
+                        vid,
+                        v_varchar AS hess_signature
+                    FROM
+                        info
+                    WHERE
+                        k = 'hess'
+                ) t_hess_signature ON info.vid = t_hess_signature.vid
+                
+                LEFT OUTER JOIN (
+                    SELECT
+                        vid,
+                        v_varchar AS oc_pharmgkb_id
+                    FROM
+                        info
+                    WHERE
+                        k = 'oc_pharmgkb_id'
+                ) t_oc_pharmgkb_id ON info.vid = t_oc_pharmgkb_id.vid
+                
+                LEFT OUTER JOIN (
+                    SELECT
+                        vid,
+                        v_varchar AS oc_provean_prediction
+                    FROM
+                        info
+                    WHERE
+                        k = 'oc_provean_prediction'
+                ) t_oc_provean_prediction ON info.vid = t_oc_provean_prediction.vid
             )
-        """
-            for c in info_cols
-        ]
-
-        join_clauses = [
-            f"""
-            FULL OUTER JOIN
-                info_{c}
-            ON
-                info_{info_cols[0]}.vid = info_{c}.vid
-        """
-            for c in info_cols[1:]
-        ]
-
-        # this is a physical table because you can't PIVOT this way inside views
-        db.sql(f"""
-            WITH {', '.join(pivot_ctes)}
-            SELECT * FROM info_{info_cols[0]}
-            {'\n'.join(join_clauses)}
         """)
 
         db.sql("""
@@ -451,12 +536,43 @@ def annotate_vcf(
                 variants.pos AS pos,
                 variants.ref AS ref,
                 variants.alt AS alt,
-                vals_wide.ad[1] AS ref_count,
-                vals_wide.ad[2] AS alt_count,
+                vals_wide.ref_count AS ref_count,
+                vals_wide.alt_count AS alt_count,
                 vals_wide.af AS af,
                 vals_wide.dp AS dp,
                 vals_wide.gt AS gt,
-                brca1.oc_brca1_func_assay_score AS brca1_func_score,
+                vals_wide.ps AS ps,
+                info_wide.oc_brca1_func_assay_score AS brca1_func_score,
+                info_wide.civic_desc AS civic_description,
+                info_wide.civic_id AS civic_id,
+                info_wide.civic_score AS civic_score,
+                info_wide.rs AS dbsnp_rs_id,
+                info_wide.gc_prop AS gc_content,
+                info_wide.mc AS molecular_consequence,
+                info_wide.oc_gtex_gtex_gene AS gtex_gene,
+                info_wide.oc_gwas_catalog_disease AS gwas_disease,
+                info_wide.oc_gwas_catalog_pmid AS gwas_pmid,
+                info_wide.hess_driver AS hess_driver,
+                info_wide.hess_signature AS hess_signature,
+                info_wide.oc_pharmgkb_id AS pharmgkb_id,
+                info_wide.oc_provean_prediction AS provean_prediction,
+                vep.am_class AS am_class,
+                vep.am_pathogenicity AS am_pathogenicity,
+                vep.hgvsc AS dna_change,
+                vep.feature AS ensembl_feature_id,
+                vep.gene AS ensembl_gene_id,
+                vep.exon AS exon,
+                vep.gnom_ade_af AS gnomade_af,
+                vep.gnom_adg_af AS gnomadg_af,
+                vep.symbol AS hugo_symbol,
+                vep.intron AS intron,
+                vep.poly_phen AS polyphen,
+                vep.hgvsp AS protein_change,
+                vep.sift AS sift,
+                vep.uniprot_isoform AS uniprot_id,
+                vep.consequence AS variant_info,
+                vep.variant_class AS variant_type,
+                vep.biotype AS vep_biotype,
                 vep.clin_sig AS vep_clin_sig,
                 vep.ensp AS vep_ensp,
                 vep.existing_variation AS vep_existing_variation,
@@ -467,18 +583,7 @@ def annotate_vcf(
                 vep.pli_gene_value AS vep_pli_gene_value,
                 vep.somatic AS vep_somatic,
                 vep.swissprot AS vep_swissprot,
-                vep.exon AS exon,
-                vep.intron AS intron,
-                vep.poly_phen AS polyphen,
-                vep.am_class AS am_class,
-                vep.am_pathogenicity AS am_pathogenicity,
-                list_aggregate(info_wide.mc, 'string_agg', ',') AS molecular_consequence,
-                NULL AS civic_id,
-                info_wide.civic_desc AS civic_description,
-                info_wide.civic_score AS civic_score,
-                info_wide.oc_revel_score AS revel_score,
-                info_wide.oc_pharmgkb_id AS pharmgkb_id,
-                info_wide.gc_prop AS gc_prop,
+                revel.transcript_likely_lof AS transcript_likely_lof
             FROM
                 variants
             INNER JOIN
@@ -486,9 +591,9 @@ def annotate_vcf(
             ON 
                 variants.vid = vals_wide.vid
             LEFT JOIN
-                brca1
+                info_wide
             ON 
-                variants.vid = brca1.vid
+                variants.vid = info_wide.vid
             LEFT JOIN
                 vep
             ON 
@@ -497,10 +602,6 @@ def annotate_vcf(
                 revel
             ON 
                 variants.vid = revel.vid
-            LEFT JOIN
-                info_wide
-            ON 
-                variants.vid = info_wide.vid
             WHERE
                 variants.vid IN (SELECT vid from filtered_vids)
                 and
