@@ -147,6 +147,32 @@ def annotate_vcf(
         """)
 
         db.sql("""
+            CREATE OR REPLACE VIEW lof_v AS (
+                WITH exploded AS (
+                    SELECT
+                        vid,
+                        unnest(v_json_arr) AS v_json
+                    FROM
+                        info
+                    WHERE
+                        k = 'lof'
+                )
+                SELECT
+                    vid,
+                    string_agg(v_json->>'$.gene_name', ';') AS gene_name,
+                    string_agg(v_json->>'$.gene_id', ';') AS gene_id,
+                    string_agg(v_json->>'$.number_of_transcripts_in_gene', ';') AS
+                        number_of_transcripts_in_gene,
+                    string_agg(v_json->>'$.percent_of_transcripts_affected', ';') AS
+                        percent_of_transcripts_affected
+                FROM
+                    exploded
+                GROUP BY
+                    vid
+            )
+        """)
+
+        db.sql("""
             CREATE OR REPLACE VIEW hgnc_v AS (
                 WITH hgnc_name_exploded AS (
                     SELECT
@@ -350,7 +376,8 @@ def annotate_vcf(
                         info
                     WHERE
                         k = 'oc_brca1_func_assay_score'
-                ) t_oc_brca1_func_assay_score ON info.vid = t_oc_brca1_func_assay_score.vid
+                ) t_oc_brca1_func_assay_score ON
+                    info.vid = t_oc_brca1_func_assay_score.vid
                 
                 LEFT OUTER JOIN (
                     SELECT
@@ -656,7 +683,13 @@ def annotate_vcf(
                 transcript_likely_lof_v.transcript_likely_lof AS transcript_likely_lof,
                 nmd_v.nmd AS nmd,
                 hgnc_v.hgnc_name AS hgnc_name,
-                hgnc_v.hgnc_group AS hgnc_family
+                hgnc_v.hgnc_group AS hgnc_family,
+                lof_v.gene_id AS lof_gene_id,
+                lof_v.gene_name AS lof_gene_name,
+                lof_v.number_of_transcripts_in_gene AS 
+                    lof_number_of_transcripts_in_gene,
+                lof_v.percent_of_transcripts_affected AS
+                    lof_percent_of_transcripts_affected
             FROM
                 variants
             INNER JOIN
@@ -683,6 +716,10 @@ def annotate_vcf(
                 hgnc_v
             ON 
                 variants.vid = hgnc_v.vid
+            LEFT JOIN
+                lof_v
+            ON 
+                variants.vid = lof_v.vid
             WHERE
                 variants.vid IN (SELECT vid from filtered_vids)
                 and
