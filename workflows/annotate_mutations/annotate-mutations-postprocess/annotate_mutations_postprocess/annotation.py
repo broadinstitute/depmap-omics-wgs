@@ -24,10 +24,13 @@ def annotate_vcf(
         logging.info(f"Reading schema and Parquet files from {parquet_dir_path}")
         db.sql(f"IMPORT DATABASE '{parquet_dir_path}'")
 
+        # convert vals to wide view
         make_vals_wide_view(db)
-        make_filters_view(db)
 
+        # make views for all filters and global filter for high-quality variants
+        make_filters_view(db)
         make_quality_vids_view(db, min_af, min_depth)
+        # all views/queries after this point should filter on quality_vids
 
         make_info_wide_view(db)
 
@@ -38,7 +41,7 @@ def annotate_vcf(
         make_vep_table(db)
         make_oncogene_tsg_view(db)
 
-        make_rescued_vids_view(db, max_brca1_func_assay_score)
+        make_rescues_view(db, max_brca1_func_assay_score)
         make_filtered_vids_view(db, max_pop_af)
 
         make_maf_table(db)
@@ -204,7 +207,8 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
                 t_hess_driver.hess_driver,
                 t_hess_signature.hess_signature,
                 t_oc_pharmgkb_id.oc_pharmgkb_id,
-                t_oc_provean_prediction.oc_provean_prediction
+                t_oc_provean_prediction.oc_provean_prediction,
+                t_oc_revel_score.oc_revel_score
             FROM
                 info
 
@@ -348,6 +352,16 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
                 WHERE
                     k = 'oc_provean_prediction'
             ) t_oc_provean_prediction ON info.vid = t_oc_provean_prediction.vid
+
+            LEFT OUTER JOIN (
+                SELECT
+                    vid,
+                    v_float AS oc_revel_score
+                FROM
+                    info
+                WHERE
+                    k = 'oc_revel_score'
+            ) t_oc_revel_score ON info.vid = t_oc_revel_score.vid
 
             WHERE info.vid IN (SELECT vid FROM quality_vids)
         )
@@ -596,13 +610,14 @@ def make_oncogene_tsg_view(db: duckdb.DuckDBPyConnection) -> None:
     """)
 
 
-def make_rescued_vids_view(
+def make_rescues_view(
     db: duckdb.DuckDBPyConnection, max_brca1_func_assay_score: float
 ) -> None:
     db.sql(f"""
-        CREATE OR REPLACE VIEW rescued_vids AS (
+        CREATE OR REPLACE VIEW rescues AS (
             SELECT
-                DISTINCT vid
+                DISTINCT vid,
+                TRUE AS rescued
             FROM
                 info
             WHERE
@@ -701,7 +716,7 @@ def make_filtered_vids_view(db: duckdb.DuckDBPyConnection, max_pop_af: float) ->
                 vid IN (SELECT vid FROM quality_vids)
                 AND (
                     -- vid is rescued
-                    vid IN (SELECT vid FROM rescued_vids)
+                    vid IN (SELECT vid FROM rescues)
                     -- vid is a valid somatic alteration
                     OR (
                         vid IN (
@@ -772,7 +787,6 @@ def make_maf_table(db: duckdb.DuckDBPyConnection) -> None:
             pos VARCHAR,
             ref VARCHAR,
             alt VARCHAR,
-            DepMap_ID VARCHAR,
             af FLOAT,
             alt_count UINTEGER,
             am_class VARCHAR,
@@ -782,8 +796,6 @@ def make_maf_table(db: duckdb.DuckDBPyConnection) -> None:
             civic_id VARCHAR,
             civic_score FLOAT,
             dbsnp_rs_id VARCHAR,
-            dida_id VARCHAR,
-            dida_name VARCHAR,
             dna_change VARCHAR,
             dp VARCHAR,
             ensembl_feature_id VARCHAR,
@@ -802,7 +814,6 @@ def make_maf_table(db: duckdb.DuckDBPyConnection) -> None:
             hgnc_name VARCHAR,
             hugo_symbol VARCHAR,
             intron VARCHAR,
-            likely_lof BOOLEAN,
             lof_gene_id VARCHAR,
             lof_gene_name VARCHAR,
             lof_number_of_transcripts_in_gene UINTEGER,
@@ -839,108 +850,115 @@ def make_maf_table(db: duckdb.DuckDBPyConnection) -> None:
     """)
 
     db.sql("""
-        SELECT
-            variants.vid,
-            variants.chrom AS chrom,
-            variants.pos AS pos,
-            variants.ref AS ref,
-            variants.alt AS alt,
-            vals_wide.ref_count AS ref_count,
-            vals_wide.alt_count AS alt_count,
-            vals_wide.af AS af,
-            vals_wide.dp AS dp,
-            vals_wide.gt AS gt,
-            vals_wide.ps AS ps,
-            info_wide.oc_brca1_func_assay_score AS brca1_func_score,
-            info_wide.civic_desc AS civic_description,
-            info_wide.civic_id AS civic_id,
-            info_wide.civic_score AS civic_score,
-            info_wide.rs AS dbsnp_rs_id,
-            info_wide.gc_prop AS gc_content,
-            info_wide.mc AS molecular_consequence,
-            info_wide.oc_gtex_gtex_gene AS gtex_gene,
-            info_wide.oc_gwas_catalog_disease AS gwas_disease,
-            info_wide.oc_gwas_catalog_pmid AS gwas_pmid,
-            info_wide.hess_driver AS hess_driver,
-            info_wide.hess_signature AS hess_signature,
-            info_wide.oc_pharmgkb_id AS pharmgkb_id,
-            info_wide.oc_provean_prediction AS provean_prediction,
-            vep.am_class AS am_class,
-            vep.am_pathogenicity AS am_pathogenicity,
-            vep.hgvsc AS dna_change,
-            vep.feature AS ensembl_feature_id,
-            vep.gene AS ensembl_gene_id,
-            vep.exon AS exon,
-            vep.gnom_ade_af AS gnomade_af,
-            vep.gnom_adg_af AS gnomadg_af,
-            vep.symbol AS hugo_symbol,
-            vep.intron AS intron,
-            vep.poly_phen AS polyphen,
-            vep.hgvsp AS protein_change,
-            vep.sift AS sift,
-            vep.uniprot_isoform AS uniprot_id,
-            vep.consequence AS variant_info,
-            vep.variant_class AS variant_type,
-            vep.biotype AS vep_biotype,
-            vep.clin_sig AS vep_clin_sig,
-            vep.ensp AS vep_ensp,
-            vep.existing_variation AS vep_existing_variation,
-            vep.hgnc_id AS vep_hgnc_id,
-            vep.impact AS vep_impact,
-            vep.loftool AS vep_loftool,
-            vep.mane_select AS vep_mane_select,
-            vep.pli_gene_value AS vep_pli_gene_value,
-            vep.somatic AS vep_somatic,
-            vep.swissprot AS vep_swissprot,
-            transcript_likely_lof_v.transcript_likely_lof AS transcript_likely_lof,
-            nmd_v.nmd AS nmd,
-            hgnc_v.hgnc_name AS hgnc_name,
-            hgnc_v.hgnc_group AS hgnc_family,
-            lof_v.gene_id AS lof_gene_id,
-            lof_v.gene_name AS lof_gene_name,
-            lof_v.number_of_transcripts_in_gene AS
-                lof_number_of_transcripts_in_gene,
-            lof_v.percent_of_transcripts_affected AS
-                lof_percent_of_transcripts_affected,
-            oncogene_tsg.oncogene_high_impact AS oncogene_high_impact,
-            oncogene_tsg.tumor_suppressor_high_impact AS
-                tumor_suppressor_high_impact
-        FROM
-            variants
-        INNER JOIN
-            vals_wide
-        ON
-            variants.vid = vals_wide.vid
-        LEFT JOIN
-            info_wide
-        ON
-            variants.vid = info_wide.vid
-        LEFT JOIN
-            vep
-        ON
-            variants.vid = vep.vid
-        LEFT JOIN
-            transcript_likely_lof_v
-        ON
-            variants.vid = transcript_likely_lof_v.vid
-        LEFT JOIN
-            nmd_v
-        ON
-            variants.vid = nmd_v.vid
-        LEFT JOIN
-            hgnc_v
-        ON
-            variants.vid = hgnc_v.vid
-        LEFT JOIN
-            lof_v
-        ON
-            variants.vid = lof_v.vid
-        LEFT JOIN
-            oncogene_tsg
-        ON
-            variants.vid = oncogene_tsg.vid
-        WHERE
-            variants.vid IN (SELECT vid from filtered_vids)
-            and
-            chrom is not null
+        INSERT INTO
+            maf
+        BY NAME (
+            SELECT
+                variants.chrom AS chrom,
+                variants.pos AS pos,
+                variants.ref AS ref,
+                variants.alt AS alt,
+                vals_wide.ref_count AS ref_count,
+                vals_wide.alt_count AS alt_count,
+                vals_wide.af AS af,
+                vals_wide.dp AS dp,
+                vals_wide.gt AS gt,
+                vals_wide.ps AS ps,
+                info_wide.oc_brca1_func_assay_score AS brca1_func_score,
+                info_wide.civic_desc AS civic_description,
+                info_wide.civic_id AS civic_id,
+                info_wide.civic_score AS civic_score,
+                info_wide.rs AS dbsnp_rs_id,
+                info_wide.gc_prop AS gc_content,
+                info_wide.mc AS molecular_consequence,
+                info_wide.oc_gtex_gtex_gene AS gtex_gene,
+                info_wide.oc_gwas_catalog_disease AS gwas_disease,
+                info_wide.oc_gwas_catalog_pmid AS gwas_pmid,
+                info_wide.hess_driver AS hess_driver,
+                info_wide.hess_signature AS hess_signature,
+                info_wide.oc_pharmgkb_id AS pharmgkb_id,
+                info_wide.oc_provean_prediction AS provean_prediction,
+                info_wide.oc_revel_score AS revel_score,
+                vep.am_class AS am_class,
+                vep.am_pathogenicity AS am_pathogenicity,
+                vep.hgvsc AS dna_change,
+                vep.feature AS ensembl_feature_id,
+                vep.gene AS ensembl_gene_id,
+                vep.exon AS exon,
+                vep.gnom_ade_af AS gnomade_af,
+                vep.gnom_adg_af AS gnomadg_af,
+                vep.symbol AS hugo_symbol,
+                vep.intron AS intron,
+                vep.poly_phen AS polyphen,
+                vep.hgvsp AS protein_change,
+                vep.sift AS sift,
+                vep.uniprot_isoform AS uniprot_id,
+                vep.consequence AS variant_info,
+                vep.variant_class AS variant_type,
+                vep.biotype AS vep_biotype,
+                vep.clin_sig AS vep_clin_sig,
+                vep.ensp AS vep_ensp,
+                vep.existing_variation AS vep_existing_variation,
+                vep.hgnc_id AS vep_hgnc_id,
+                vep.impact AS vep_impact,
+                vep.loftool AS vep_loftool,
+                vep.mane_select AS vep_mane_select,
+                vep.pli_gene_value AS vep_pli_gene_value,
+                vep.somatic AS vep_somatic,
+                vep.swissprot AS vep_swissprot,
+                transcript_likely_lof_v.transcript_likely_lof AS transcript_likely_lof,
+                nmd_v.nmd AS nmd,
+                hgnc_v.hgnc_name AS hgnc_name,
+                hgnc_v.hgnc_group AS hgnc_family,
+                lof_v.gene_id AS lof_gene_id,
+                lof_v.gene_name AS lof_gene_name,
+                lof_v.number_of_transcripts_in_gene AS
+                    lof_number_of_transcripts_in_gene,
+                lof_v.percent_of_transcripts_affected AS
+                    lof_percent_of_transcripts_affected,
+                oncogene_tsg.oncogene_high_impact AS oncogene_high_impact,
+                oncogene_tsg.tumor_suppressor_high_impact AS
+                    tumor_suppressor_high_impact,
+                rescues.rescued AS rescue
+            FROM
+                variants
+            INNER JOIN
+                vals_wide
+            ON
+                variants.vid = vals_wide.vid
+            LEFT JOIN
+                info_wide
+            ON
+                variants.vid = info_wide.vid
+            LEFT JOIN
+                vep
+            ON
+                variants.vid = vep.vid
+            LEFT JOIN
+                transcript_likely_lof_v
+            ON
+                variants.vid = transcript_likely_lof_v.vid
+            LEFT JOIN
+                nmd_v
+            ON
+                variants.vid = nmd_v.vid
+            LEFT JOIN
+                hgnc_v
+            ON
+                variants.vid = hgnc_v.vid
+            LEFT JOIN
+                lof_v
+            ON
+                variants.vid = lof_v.vid
+            LEFT JOIN
+                oncogene_tsg
+            ON
+                variants.vid = oncogene_tsg.vid
+            LEFT JOIN
+                rescues
+            ON
+                variants.vid = rescues.vid
+            WHERE
+                variants.vid IN (SELECT vid from filtered_vids)
+        )
     """)

@@ -75,7 +75,7 @@
     "annotate_mutations.snpeff_snpsift.docker_image_hash_or_tag": "\"@sha256:3dbd2c668cf598861b075eaca3482cb9554de04cdcc2aac4629b7e13e127fcca\"",
     "annotate_mutations.split_vcf_by_chrom.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/bcftools\"",
     "annotate_mutations.split_vcf_by_chrom.docker_image_hash_or_tag": "\"@sha256:2514b00e7866254a03a2a1cc519150f19da3687efa0acc0437fdeb98bf82d9f1\"",
-    "annotate_mutations.url_encoded_col_name_regexes": "[\"^civic_desc$\", \"^clndn$\", \"^clnvi$\", \"^oc_\", \"^oncokb_muteff$\", \"^oncokb_oncogenic$\", \"^hgnc$\"]",
+    "annotate_mutations.url_encoded_col_name_regexes": "[\"^civic_desc$\", \"^clndn$\", \"^clnvi$\", \"^oc_\", \"^oncokb_muteff$\", \"^oncokb_oncogenic$\", \"^hgnc\"]",
     "annotate_mutations.use_gnomad": "true",
     "annotate_mutations.vcf_to_duckdb.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/vcf-to-duckdb\"",
     "annotate_mutations.vcf_to_duckdb.docker_image_hash_or_tag": "\"@sha256:0ed1e31ed3635ae0481b6a360822c75f6d54da26033fd5bf266aea9b5b9e3f30\"",
