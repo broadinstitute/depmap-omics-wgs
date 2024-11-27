@@ -874,7 +874,7 @@ def make_maf_table(db: duckdb.DuckDBPyConnection) -> None:
                 info_wide.oc_gtex_gtex_gene AS gtex_gene,
                 info_wide.oc_gwas_catalog_disease AS gwas_disease,
                 info_wide.oc_gwas_catalog_pmid AS gwas_pmid,
-                info_wide.hess_driver AS hess_driver,
+                coalesce(info_wide.hess_driver, FALSE) AS hess_driver,
                 info_wide.hess_signature AS hess_signature,
                 info_wide.oc_pharmgkb_id AS pharmgkb_id,
                 info_wide.oc_provean_prediction AS provean_prediction,
@@ -916,10 +916,11 @@ def make_maf_table(db: duckdb.DuckDBPyConnection) -> None:
                     lof_number_of_transcripts_in_gene,
                 lof_v.percent_of_transcripts_affected AS
                     lof_percent_of_transcripts_affected,
-                oncogene_tsg.oncogene_high_impact AS oncogene_high_impact,
-                oncogene_tsg.tumor_suppressor_high_impact AS
+                coalesce(oncogene_tsg.oncogene_high_impact, FALSE) AS
+                    oncogene_high_impact,
+                coalesce(oncogene_tsg.tumor_suppressor_high_impact, FALSE) AS
                     tumor_suppressor_high_impact,
-                rescues.rescued AS rescue
+                coalesce(rescues.rescued, FALSE) AS rescue
             FROM
                 variants
             INNER JOIN
@@ -960,5 +961,9 @@ def make_maf_table(db: duckdb.DuckDBPyConnection) -> None:
                 variants.vid = rescues.vid
             WHERE
                 variants.vid IN (SELECT vid from filtered_vids)
+            ORDER BY
+                replace(replace(chrom[4:], 'X', '23'), 'Y', '24')::INTEGER,
+                pos,
+                alt
         )
     """)
