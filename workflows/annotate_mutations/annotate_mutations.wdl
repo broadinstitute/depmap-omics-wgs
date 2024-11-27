@@ -699,10 +699,18 @@ task annot_with_bcftools {
                 | sort --key="1,1V" --key="2,2n" --key="3,3" --key="4,4" \
                 > "${ONCOKB_TAB_BASENAME}_to_fix.tsv"
 
-            # URL encode space characters (violates VCF 4.2 spec)
+            # URL encode space characters (violates VCF 4.2 spec) and replace True/False
+            # with 1/0 in hotspot column
             awk -F "\t" '{
                 gsub(/ /, "%20", $6);
                 gsub(/ /, "%20", $7);
+
+                if ($8 == "True") {
+                    $8 = 1
+                } else if ($8 == "False") {
+                    $8 = 0
+                }
+
                 print
             }' OFS="\t" "${ONCOKB_TAB_BASENAME}_to_fix.tsv" > "${ONCOKB_TAB_BASENAME}.tsv"
             rm "${ONCOKB_TAB_BASENAME}_to_fix.tsv"
@@ -718,7 +726,7 @@ task annot_with_bcftools {
                 >> oncokb.hdr.vcf
             echo '##INFO=<ID=ONCOKB_MUTEFF,Number=1,Type=String,Description="OncoKB mutation effect">' \
                 >> oncokb.hdr.vcf
-            echo '##INFO=<ID=ONCOKB_HOTSPOT,Number=1,Type=String,Description="OncoKB hotspot">' \
+            echo '##INFO=<ID=ONCOKB_HOTSPOT,Number=0,Type=Flag,Description="OncoKB hotspot">' \
                 >> oncokb.hdr.vcf
 
             bcftools annotate \
