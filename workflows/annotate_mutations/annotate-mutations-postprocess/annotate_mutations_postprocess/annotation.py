@@ -8,6 +8,7 @@ import duckdb
 def annotate_vcf(
     db_path: Path,
     parquet_dir_path: Path,
+    out_file_path: Path,
     min_af: float = 0.15,
     min_depth: int = 2,
     max_pop_af: float = 1e-05,
@@ -44,7 +45,10 @@ def annotate_vcf(
         make_rescues_view(db, max_brca1_func_assay_score)
         make_filtered_vids_view(db, max_pop_af)
 
-        make_maf_table(db)
+        make_somatic_variants_table(db)
+
+        somatic_variants = db.table("somatic_variants").df()
+        somatic_variants.to_parquet(out_file_path, index=False)
 
 
 def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
@@ -780,9 +784,9 @@ def make_filtered_vids_view(db: duckdb.DuckDBPyConnection, max_pop_af: float) ->
     """)
 
 
-def make_maf_table(db: duckdb.DuckDBPyConnection) -> None:
+def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
     db.sql("""
-        CREATE TABLE IF NOT EXISTS maf (
+        CREATE TABLE IF NOT EXISTS somatic_variants (
             chrom VARCHAR,
             pos VARCHAR,
             ref VARCHAR,
@@ -851,7 +855,7 @@ def make_maf_table(db: duckdb.DuckDBPyConnection) -> None:
 
     db.sql("""
         INSERT INTO
-            maf
+            somatic_variants
         BY NAME (
             SELECT
                 variants.chrom AS chrom,

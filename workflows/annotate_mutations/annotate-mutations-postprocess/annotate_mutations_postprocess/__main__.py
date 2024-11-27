@@ -56,9 +56,11 @@ def merge_info(
 
 @app.command()
 def vcf_to_depmap(
-    db: Annotated[Path, typer.Option()], parquet_dir: Annotated[Path, typer.Option()]
+    db: Annotated[Path, typer.Option()],
+    parquet_dir: Annotated[Path, typer.Option()],
+    out_file: Annotated[Path, typer.Option()],
 ) -> None:
-    annotate_vcf(db_path=db, parquet_dir_path=parquet_dir)
+    annotate_vcf(db_path=db, parquet_dir_path=parquet_dir, out_file_path=out_file)
 
 
 if __name__ == "__main__":
