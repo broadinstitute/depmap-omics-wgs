@@ -11,6 +11,7 @@ def annotate_vcf(
     min_af: float = 0.15,
     min_depth: int = 2,
     max_pop_af: float = 1e-05,
+    max_brca1_func_assay_score: float = -1.328,
 ) -> None:
     logging.info("Annotating VCF")
 
@@ -37,12 +38,13 @@ def annotate_vcf(
         make_vep_table(db)
         make_oncogene_tsg_view(db)
 
+        make_rescued_vids_view(db, max_brca1_func_assay_score)
         make_filtered_vids_view(db, max_pop_af)
 
         make_maf_table(db)
 
 
-def make_vals_wide_view(db):
+def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
     db.sql("""
         CREATE OR REPLACE VIEW vals_wide AS (
             SELECT
@@ -55,7 +57,7 @@ def make_vals_wide_view(db):
                 t_ps.ps
             FROM
                 vals
-            
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -64,8 +66,8 @@ def make_vals_wide_view(db):
                     vals
                 WHERE
                     k = 'ad'
-            ) t_ad ON vals.vid = t_ad.vid 
-            
+            ) t_ad ON vals.vid = t_ad.vid
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -74,8 +76,8 @@ def make_vals_wide_view(db):
                     vals
                 WHERE
                     k = 'af'
-            ) t_af ON vals.vid = t_af.vid 
-            
+            ) t_af ON vals.vid = t_af.vid
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -85,7 +87,7 @@ def make_vals_wide_view(db):
                 WHERE
                     k = 'dp'
             ) t_dp ON vals.vid = t_dp.vid
-            
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -94,8 +96,8 @@ def make_vals_wide_view(db):
                     vals
                 WHERE
                     k = 'gt'
-            ) t_gt ON vals.vid = t_gt.vid 
-            
+            ) t_gt ON vals.vid = t_gt.vid
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -104,12 +106,12 @@ def make_vals_wide_view(db):
                     vals
                 WHERE
                     k = 'ps'
-            ) t_ps ON vals.vid = t_ps.vid 
+            ) t_ps ON vals.vid = t_ps.vid
         )
     """)
 
 
-def make_filters_view(db):
+def make_filters_view(db: duckdb.DuckDBPyConnection) -> None:
     db.sql("""
         CREATE OR REPLACE VIEW filters AS (
             WITH val_filters AS (
@@ -133,7 +135,7 @@ def make_filters_view(db):
                 lower(filter) AS filter
             FROM
                 val_filters
-            UNION 
+            UNION
             SELECT
                 vid,
                 lower(filter) AS filter
@@ -143,7 +145,9 @@ def make_filters_view(db):
     """)
 
 
-def make_quality_vids_view(db, min_af, min_depth):
+def make_quality_vids_view(
+    db: duckdb.DuckDBPyConnection, min_af: float, min_depth: int
+) -> None:
     db.sql(f"""
         CREATE OR REPLACE VIEW quality_vids AS (
             SELECT
@@ -151,7 +155,6 @@ def make_quality_vids_view(db, min_af, min_depth):
             FROM
                 variants
             WHERE
-                -- quality checks
                 vid IN (
                     SELECT
                         vid
@@ -183,7 +186,7 @@ def make_quality_vids_view(db, min_af, min_depth):
     """)
 
 
-def make_info_wide_view(db):
+def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
     db.sql("""
         CREATE OR REPLACE VIEW info_wide AS (
             SELECT
@@ -215,7 +218,7 @@ def make_info_wide_view(db):
                     k = 'oc_brca1_func_assay_score'
             ) t_oc_brca1_func_assay_score ON
                 info.vid = t_oc_brca1_func_assay_score.vid
-            
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -225,7 +228,7 @@ def make_info_wide_view(db):
                 WHERE
                     k = 'civic_desc'
             ) t_civic_desc ON info.vid = t_civic_desc.vid
-            
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -235,7 +238,7 @@ def make_info_wide_view(db):
                 WHERE
                     k = 'civic_id'
             ) t_civic_id ON info.vid = t_civic_id.vid
-            
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -245,7 +248,7 @@ def make_info_wide_view(db):
                 WHERE
                     k = 'civic_score'
             ) t_civic_score ON info.vid = t_civic_score.vid
-            
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -255,7 +258,7 @@ def make_info_wide_view(db):
                 WHERE
                     k = 'rs'
             ) t_rs ON info.vid = t_rs.vid
-            
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -265,7 +268,7 @@ def make_info_wide_view(db):
                 WHERE
                     k = 'gc_prop'
             ) t_gc_prop ON info.vid = t_gc_prop.vid
-            
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -275,7 +278,7 @@ def make_info_wide_view(db):
                 WHERE
                     k = 'mc'
             ) t_mc ON info.vid = t_mc.vid
-            
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -285,7 +288,7 @@ def make_info_wide_view(db):
                 WHERE
                     k = 'oc_gtex_gtex_gene'
             ) t_oc_gtex_gtex_gene ON info.vid = t_oc_gtex_gtex_gene.vid
-            
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -295,7 +298,7 @@ def make_info_wide_view(db):
                 WHERE
                     k = 'oc_gwas_catalog_disease'
             ) t_oc_gwas_catalog_disease ON info.vid = t_oc_gwas_catalog_disease.vid
-            
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -305,7 +308,7 @@ def make_info_wide_view(db):
                 WHERE
                     k = 'oc_gwas_catalog_pmid'
             ) t_oc_gwas_catalog_pmid ON info.vid = t_oc_gwas_catalog_pmid.vid
-            
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -315,7 +318,7 @@ def make_info_wide_view(db):
                 WHERE
                     k = 'hess'
             ) t_hess_driver ON info.vid = t_hess_driver.vid
-            
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -325,7 +328,7 @@ def make_info_wide_view(db):
                 WHERE
                     k = 'hess'
             ) t_hess_signature ON info.vid = t_hess_signature.vid
-            
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -335,7 +338,7 @@ def make_info_wide_view(db):
                 WHERE
                     k = 'oc_pharmgkb_id'
             ) t_oc_pharmgkb_id ON info.vid = t_oc_pharmgkb_id.vid
-            
+
             LEFT OUTER JOIN (
                 SELECT
                     vid,
@@ -345,13 +348,13 @@ def make_info_wide_view(db):
                 WHERE
                     k = 'oc_provean_prediction'
             ) t_oc_provean_prediction ON info.vid = t_oc_provean_prediction.vid
-        
+
             WHERE info.vid IN (SELECT vid FROM quality_vids)
         )
     """)
 
 
-def make_transcript_likely_lof_view(db):
+def make_transcript_likely_lof_view(db: duckdb.DuckDBPyConnection) -> None:
     db.sql("""
         CREATE OR REPLACE VIEW transcript_likely_lof_v AS (
             WITH exploded AS (
@@ -387,7 +390,7 @@ def make_transcript_likely_lof_view(db):
     """)
 
 
-def make_nmd_view(db):
+def make_nmd_view(db: duckdb.DuckDBPyConnection) -> None:
     db.sql("""
         CREATE OR REPLACE VIEW nmd_v AS (
             WITH exploded AS (
@@ -410,7 +413,7 @@ def make_nmd_view(db):
     """)
 
 
-def make_lof_view(db):
+def make_lof_view(db: duckdb.DuckDBPyConnection) -> None:
     db.sql("""
         CREATE OR REPLACE VIEW lof_v AS (
             WITH exploded AS (
@@ -440,7 +443,7 @@ def make_lof_view(db):
     """)
 
 
-def make_hgnc_view(db):
+def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
     db.sql("""
         CREATE OR REPLACE VIEW hgnc_v AS (
             WITH hgnc_name_exploded AS (
@@ -497,7 +500,7 @@ def make_hgnc_view(db):
     """)
 
 
-def make_vep_table(db):
+def make_vep_table(db: duckdb.DuckDBPyConnection) -> None:
     # this is a physical table due to the relative slowness of the `vep_exploded` CTE
     db.sql("""
         CREATE TABLE IF NOT EXISTS vep
@@ -554,7 +557,7 @@ def make_vep_table(db):
     """)
 
 
-def make_oncogene_tsg_view(db):
+def make_oncogene_tsg_view(db: duckdb.DuckDBPyConnection) -> None:
     db.sql("""
         CREATE OR REPLACE VIEW oncogene_tsg AS (
             WITH oncogene_v AS (
@@ -593,7 +596,101 @@ def make_oncogene_tsg_view(db):
     """)
 
 
-def make_filtered_vids_view(db, max_pop_af):
+def make_rescued_vids_view(
+    db: duckdb.DuckDBPyConnection, max_brca1_func_assay_score: float
+) -> None:
+    db.sql(f"""
+        CREATE OR REPLACE VIEW rescued_vids AS (
+            SELECT
+                DISTINCT vid
+            FROM
+                info
+            WHERE
+                vid IN (SELECT vid FROM quality_vids)
+                AND (
+                    (
+                        k = 'oncokb_muteff'
+                        AND
+                        v_varchar IN ('Loss-of-function', 'Gain-of-function')
+                    )
+                    OR
+                    (
+                        k = 'oncokb_oncogenic'
+                        AND
+                        v_varchar = 'Oncogenic'
+                    )
+                    OR
+                    (
+                        k = 'oncokb_hotspot'
+                        AND
+                        v_boolean
+                    )
+                    OR
+                    (
+                        k = 'cmc_tier'
+                        AND
+                        v_integer = 1
+                    )
+                    OR
+                    (
+                        k = 'oc_brca1_func_assay_score'
+                        AND
+                        v_float <= {max_brca1_func_assay_score}
+                    )
+                    OR
+                    vid IN (
+                        SELECT
+                            vid
+                        FROM
+                            oncogene_tsg
+                        WHERE
+                            oncogene_high_impact OR tumor_suppressor_high_impact
+                    )
+                    OR
+                    vid IN (
+                        SELECT
+                            vid
+                        FROM
+                            info
+                        WHERE
+                            k = 'hess'
+                    )
+                    OR
+                    vid IN (
+                        SELECT
+                            variants.vid
+                        FROM
+                            variants
+                        INNER JOIN
+                            vep
+                        ON
+                            variants.vid = vep.vid
+                        WHERE
+                            variants.pos BETWEEN 1295054 AND 1295365
+                            AND
+                            vep.symbol = 'TERT'
+                    )
+                    OR
+                    vid IN (
+                        SELECT
+                            variants.vid
+                        FROM
+                            variants
+                        INNER JOIN
+                            vep
+                        ON
+                            variants.vid = vep.vid
+                        WHERE
+                            variants.pos BETWEEN 116771825 AND 116771840
+                            AND
+                            vep.symbol = 'MET'
+                    )
+                )
+            )
+    """)
+
+
+def make_filtered_vids_view(db: duckdb.DuckDBPyConnection, max_pop_af: float) -> None:
     db.sql(f"""
         CREATE OR REPLACE VIEW filtered_vids AS (
             SELECT
@@ -602,56 +699,73 @@ def make_filtered_vids_view(db, max_pop_af):
                 variants
             WHERE
                 vid IN (SELECT vid FROM quality_vids)
-                AND
-                vid IN (
-                    SELECT
-                        vid
-                    FROM
-                        vep
-                    WHERE
-                        -- important splice event
-                        (
-                            contains(consequence, 'splice')
-                            AND
-                            impact IN ('HIGH', 'MODERATE')
+                AND (
+                    -- vid is rescued
+                    vid IN (SELECT vid FROM rescued_vids)
+                    -- vid is a valid somatic alteration
+                    OR (
+                        vid IN (
+                            SELECT
+                                vid
+                            FROM
+                                vep
+                            WHERE
+                                -- important splice event
+                                (
+                                    contains(consequence, 'splice')
+                                    AND
+                                    impact IN ('HIGH', 'MODERATE')
+                                )
+                                OR
+                                -- protein sequence has changed
+                                (
+                                    hgvsp IS NOT NULL
+                                    AND
+                                    NOT ends_with(hgvsp, '=')
+                                )
                         )
-                        OR
-                        -- protein sequence has changed
-                        (
-                            hgvsp IS NOT NULL
-                            AND
-                            NOT ends_with(hgvsp, '=')
+                        AND
+                        -- not in a segmental duplication nor repeatmasker region
+                        vid NOT IN (
+                            SELECT
+                                vid
+                            FROM
+                                info
+                            WHERE
+                                k IN ('segdup', 'rm')
+                                AND
+                                v_boolean
                         )
-                )
-                AND
-                -- not in a segmental duplication nor repeatmasker region
-                vid NOT IN (
-                    SELECT
-                        vid
-                    FROM
-                        info
-                    WHERE
-                        k in ('segdup', 'rm', 'pon')
                         AND
-                        v_boolean
-                )
-                AND
-                -- max population prevalence per gnomAD
-                vid IN (
-                    SELECT
-                        vid
-                    FROM
-                        vep
-                    WHERE
-                        coalesce(gnom_ade_af, 0) <= {max_pop_af}
-                        AND
-                        coalesce(gnom_adg_af, 0) <= {max_pop_af}
+                        -- max population prevalence per gnomAD
+                        vid IN (
+                            SELECT
+                                vid
+                            FROM
+                                vep
+                            WHERE
+                                coalesce(gnom_ade_af, 0) <= {max_pop_af}
+                                AND
+                                coalesce(gnom_adg_af, 0) <= {max_pop_af}
+                                AND
+                                vid NOT IN (
+                                    SELECT
+                                        vid
+                                    FROM
+                                        info
+                                    WHERE
+                                        k  = 'pon'
+                                        AND
+                                        v_boolean
+                                )
+                        )
+                    )
                 )
         )
     """)
 
 
-def make_maf_table(db):
+def make_maf_table(db: duckdb.DuckDBPyConnection) -> None:
     db.sql("""
         CREATE TABLE IF NOT EXISTS maf (
             chrom VARCHAR,
@@ -784,7 +898,7 @@ def make_maf_table(db):
             hgnc_v.hgnc_group AS hgnc_family,
             lof_v.gene_id AS lof_gene_id,
             lof_v.gene_name AS lof_gene_name,
-            lof_v.number_of_transcripts_in_gene AS 
+            lof_v.number_of_transcripts_in_gene AS
                 lof_number_of_transcripts_in_gene,
             lof_v.percent_of_transcripts_affected AS
                 lof_percent_of_transcripts_affected,
@@ -795,35 +909,35 @@ def make_maf_table(db):
             variants
         INNER JOIN
             vals_wide
-        ON 
+        ON
             variants.vid = vals_wide.vid
         LEFT JOIN
             info_wide
-        ON 
+        ON
             variants.vid = info_wide.vid
         LEFT JOIN
             vep
-        ON 
+        ON
             variants.vid = vep.vid
         LEFT JOIN
             transcript_likely_lof_v
-        ON 
+        ON
             variants.vid = transcript_likely_lof_v.vid
         LEFT JOIN
             nmd_v
-        ON 
+        ON
             variants.vid = nmd_v.vid
         LEFT JOIN
             hgnc_v
-        ON 
+        ON
             variants.vid = hgnc_v.vid
         LEFT JOIN
             lof_v
-        ON 
+        ON
             variants.vid = lof_v.vid
         LEFT JOIN
             oncogene_tsg
-        ON 
+        ON
             variants.vid = oncogene_tsg.vid
         WHERE
             variants.vid IN (SELECT vid from filtered_vids)
