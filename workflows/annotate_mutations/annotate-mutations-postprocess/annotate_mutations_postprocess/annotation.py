@@ -520,6 +520,7 @@ def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
 
 def make_vep_table(db: duckdb.DuckDBPyConnection) -> None:
     # this is a physical table due to the relative slowness of the `vep_exploded` CTE
+    # and the fact it gets queried several times later
     db.sql("""
         CREATE TABLE IF NOT EXISTS vep
         AS
