@@ -52,6 +52,8 @@ def annotate_vcf(
 
 
 def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
+    logging.info('Making vals_wide view')
+
     db.sql("""
         CREATE OR REPLACE VIEW vals_wide AS (
             SELECT
@@ -119,6 +121,8 @@ def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_filters_view(db: duckdb.DuckDBPyConnection) -> None:
+    logging.info('Making filters view')
+
     db.sql("""
         CREATE OR REPLACE VIEW filters AS (
             WITH val_filters AS (
@@ -155,6 +159,8 @@ def make_filters_view(db: duckdb.DuckDBPyConnection) -> None:
 def make_quality_vids_view(
     db: duckdb.DuckDBPyConnection, min_af: float, min_depth: int
 ) -> None:
+    logging.info('Making quality_vids view')
+
     db.sql(f"""
         CREATE OR REPLACE VIEW quality_vids AS (
             SELECT
@@ -194,6 +200,8 @@ def make_quality_vids_view(
 
 
 def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
+    logging.info('Making info_wide view')
+
     db.sql("""
         CREATE OR REPLACE VIEW info_wide AS (
             SELECT
@@ -373,6 +381,8 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_transcript_likely_lof_view(db: duckdb.DuckDBPyConnection) -> None:
+    logging.info('Making transcript_likely_lof_v view')
+
     db.sql("""
         CREATE OR REPLACE VIEW transcript_likely_lof_v AS (
             WITH exploded AS (
@@ -409,6 +419,8 @@ def make_transcript_likely_lof_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_nmd_view(db: duckdb.DuckDBPyConnection) -> None:
+    logging.info('Making nmd_v view')
+
     db.sql("""
         CREATE OR REPLACE VIEW nmd_v AS (
             WITH exploded AS (
@@ -432,6 +444,8 @@ def make_nmd_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_lof_view(db: duckdb.DuckDBPyConnection) -> None:
+    logging.info('Making lof_v view')
+
     db.sql("""
         CREATE OR REPLACE VIEW lof_v AS (
             WITH exploded AS (
@@ -462,6 +476,8 @@ def make_lof_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
+    logging.info('Making hgnc_v view')
+
     db.sql("""
         CREATE OR REPLACE VIEW hgnc_v AS (
             WITH hgnc_name_exploded AS (
@@ -519,6 +535,8 @@ def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_vep_table(db: duckdb.DuckDBPyConnection) -> None:
+    logging.info('Making vep table')
+
     # this is a physical table due to the relative slowness of the `vep_exploded` CTE
     # and the fact it gets queried several times later
     db.sql("""
@@ -577,6 +595,8 @@ def make_vep_table(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_oncogene_tsg_view(db: duckdb.DuckDBPyConnection) -> None:
+    logging.info('Making oncogene_tsg view')
+
     db.sql("""
         CREATE OR REPLACE VIEW oncogene_tsg AS (
             WITH oncogene_v AS (
@@ -618,6 +638,8 @@ def make_oncogene_tsg_view(db: duckdb.DuckDBPyConnection) -> None:
 def make_rescues_view(
     db: duckdb.DuckDBPyConnection, max_brca1_func_assay_score: float
 ) -> None:
+    logging.info('Making rescues view')
+
     db.sql(f"""
         CREATE OR REPLACE VIEW rescues AS (
             SELECT
@@ -711,6 +733,8 @@ def make_rescues_view(
 
 
 def make_filtered_vids_view(db: duckdb.DuckDBPyConnection, max_pop_af: float) -> None:
+    logging.info('Making filtered_vids view')
+
     db.sql(f"""
         CREATE OR REPLACE VIEW filtered_vids AS (
             SELECT
@@ -786,6 +810,8 @@ def make_filtered_vids_view(db: duckdb.DuckDBPyConnection, max_pop_af: float) ->
 
 
 def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
+    logging.info('Making somatic_variants table')
+
     db.sql("""
         CREATE TABLE IF NOT EXISTS somatic_variants (
             chrom VARCHAR,
