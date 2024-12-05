@@ -5,7 +5,7 @@ from pathlib import Path
 import duckdb
 
 
-def annotate_vcf(
+def convert_duckdb_to_maf(
     db_path: Path,
     parquet_dir_path: Path,
     out_file_path: Path,
@@ -47,12 +47,11 @@ def annotate_vcf(
 
         make_somatic_variants_table(db)
 
-        somatic_variants = db.table("somatic_variants").df()
-        somatic_variants.to_parquet(out_file_path, index=False)
+        write_out_file(db, out_file_path)
 
 
 def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
-    logging.info('Making vals_wide view')
+    logging.info("Making vals_wide view")
 
     db.sql("""
         CREATE OR REPLACE VIEW vals_wide AS (
@@ -121,7 +120,7 @@ def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_filters_view(db: duckdb.DuckDBPyConnection) -> None:
-    logging.info('Making filters view')
+    logging.info("Making filters view")
 
     db.sql("""
         CREATE OR REPLACE VIEW filters AS (
@@ -159,7 +158,7 @@ def make_filters_view(db: duckdb.DuckDBPyConnection) -> None:
 def make_quality_vids_view(
     db: duckdb.DuckDBPyConnection, min_af: float, min_depth: int
 ) -> None:
-    logging.info('Making quality_vids view')
+    logging.info("Making quality_vids view")
 
     db.sql(f"""
         CREATE OR REPLACE VIEW quality_vids AS (
@@ -200,7 +199,7 @@ def make_quality_vids_view(
 
 
 def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
-    logging.info('Making info_wide view')
+    logging.info("Making info_wide view")
 
     db.sql("""
         CREATE OR REPLACE VIEW info_wide AS (
@@ -381,7 +380,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_transcript_likely_lof_view(db: duckdb.DuckDBPyConnection) -> None:
-    logging.info('Making transcript_likely_lof_v view')
+    logging.info("Making transcript_likely_lof_v view")
 
     db.sql("""
         CREATE OR REPLACE VIEW transcript_likely_lof_v AS (
@@ -419,7 +418,7 @@ def make_transcript_likely_lof_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_nmd_view(db: duckdb.DuckDBPyConnection) -> None:
-    logging.info('Making nmd_v view')
+    logging.info("Making nmd_v view")
 
     db.sql("""
         CREATE OR REPLACE VIEW nmd_v AS (
@@ -444,7 +443,7 @@ def make_nmd_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_lof_view(db: duckdb.DuckDBPyConnection) -> None:
-    logging.info('Making lof_v view')
+    logging.info("Making lof_v view")
 
     db.sql("""
         CREATE OR REPLACE VIEW lof_v AS (
@@ -463,10 +462,12 @@ def make_lof_view(db: duckdb.DuckDBPyConnection) -> None:
                 vid,
                 string_agg(v_json->>'$.gene_name', ';') AS gene_name,
                 string_agg(v_json->>'$.gene_id', ';') AS gene_id,
-                string_agg(v_json->>'$.number_of_transcripts_in_gene', ';') AS
-                    number_of_transcripts_in_gene,
-                string_agg(v_json->>'$.percent_of_transcripts_affected', ';') AS
-                    percent_of_transcripts_affected
+                string_agg(
+                    v_json->>'$.number_of_transcripts_in_gene', ';'
+                )::USMALLINT AS number_of_transcripts_in_gene,
+                string_agg(
+                    v_json->>'$.percent_of_transcripts_affected', ';'
+                )::FLOAT AS prop_of_transcripts_affected
             FROM
                 exploded
             GROUP BY
@@ -476,7 +477,7 @@ def make_lof_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
-    logging.info('Making hgnc_v view')
+    logging.info("Making hgnc_v view")
 
     db.sql("""
         CREATE OR REPLACE VIEW hgnc_v AS (
@@ -535,7 +536,7 @@ def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_vep_table(db: duckdb.DuckDBPyConnection) -> None:
-    logging.info('Making vep table')
+    logging.info("Making vep table")
 
     # this is a physical table due to the relative slowness of the `vep_exploded` CTE
     # and the fact it gets queried several times later
@@ -595,7 +596,7 @@ def make_vep_table(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_oncogene_tsg_view(db: duckdb.DuckDBPyConnection) -> None:
-    logging.info('Making oncogene_tsg view')
+    logging.info("Making oncogene_tsg view")
 
     db.sql("""
         CREATE OR REPLACE VIEW oncogene_tsg AS (
@@ -638,7 +639,7 @@ def make_oncogene_tsg_view(db: duckdb.DuckDBPyConnection) -> None:
 def make_rescues_view(
     db: duckdb.DuckDBPyConnection, max_brca1_func_assay_score: float
 ) -> None:
-    logging.info('Making rescues view')
+    logging.info("Making rescues view")
 
     db.sql(f"""
         CREATE OR REPLACE VIEW rescues AS (
@@ -733,7 +734,7 @@ def make_rescues_view(
 
 
 def make_filtered_vids_view(db: duckdb.DuckDBPyConnection, max_pop_af: float) -> None:
-    logging.info('Making filtered_vids view')
+    logging.info("Making filtered_vids view")
 
     db.sql(f"""
         CREATE OR REPLACE VIEW filtered_vids AS (
@@ -810,12 +811,12 @@ def make_filtered_vids_view(db: duckdb.DuckDBPyConnection, max_pop_af: float) ->
 
 
 def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
-    logging.info('Making somatic_variants table')
+    logging.info("Making somatic_variants table")
 
     db.sql("""
         CREATE TABLE IF NOT EXISTS somatic_variants (
             chrom VARCHAR,
-            pos VARCHAR,
+            pos UINTEGER,
             ref VARCHAR,
             alt VARCHAR,
             af FLOAT,
@@ -828,7 +829,7 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
             civic_score FLOAT,
             dbsnp_rs_id VARCHAR,
             dna_change VARCHAR,
-            dp VARCHAR,
+            dp USMALLINT,
             ensembl_feature_id VARCHAR,
             ensembl_gene_id VARCHAR,
             exon VARCHAR,
@@ -848,7 +849,7 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
             lof_gene_id VARCHAR,
             lof_gene_name VARCHAR,
             lof_number_of_transcripts_in_gene UINTEGER,
-            lof_percent_of_transcripts_affected FLOAT,
+            lof_prop_of_transcripts_affected FLOAT,
             molecular_consequence VARCHAR,
             nmd VARCHAR,
             oncogene_high_impact BOOLEAN,
@@ -856,7 +857,7 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
             polyphen VARCHAR,
             protein_change VARCHAR,
             provean_prediction VARCHAR,
-            ps VARCHAR,
+            ps UINTEGER,
             ref_count UINTEGER,
             rescue BOOLEAN,
             revel_score FLOAT,
@@ -945,8 +946,8 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
                 lof_v.gene_name AS lof_gene_name,
                 lof_v.number_of_transcripts_in_gene AS
                     lof_number_of_transcripts_in_gene,
-                lof_v.percent_of_transcripts_affected AS
-                    lof_percent_of_transcripts_affected,
+                lof_v.prop_of_transcripts_affected AS
+                    lof_prop_of_transcripts_affected,
                 coalesce(oncogene_tsg.oncogene_high_impact, FALSE) AS
                     oncogene_high_impact,
                 coalesce(oncogene_tsg.tumor_suppressor_high_impact, FALSE) AS
@@ -998,3 +999,77 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
                 alt
         )
     """)
+
+
+def write_out_file(db: duckdb.DuckDBPyConnection, out_file_path: Path) -> None:
+    somatic_variants = db.table("somatic_variants").df()
+
+    somatic_variants = somatic_variants.astype(
+        {
+            "chrom": "string",
+            "pos": "UInt32",
+            "ref": "string",
+            "alt": "string",
+            "af": "Float32",
+            "alt_count": "UInt32",
+            "am_class": "string",
+            "am_pathogenicity": "Float32",
+            "brca1_func_score": "Float32",
+            "civic_description": "string",
+            "civic_id": "string",
+            "civic_score": "Float32",
+            "dbsnp_rs_id": "string",
+            "dna_change": "string",
+            "dp": "UInt32",
+            "ensembl_feature_id": "string",
+            "ensembl_gene_id": "string",
+            "exon": "string",
+            "gc_content": "Float32",
+            "gnomade_af": "Float32",
+            "gnomadg_af": "Float32",
+            "gt": "string",
+            "gtex_gene": "string",
+            "gwas_disease": "string",
+            "gwas_pmid": "string",
+            "hess_driver": "boolean",
+            "hess_signature": "string",
+            "hgnc_family": "string",
+            "hgnc_name": "string",
+            "hugo_symbol": "string",
+            "intron": "string",
+            "lof_gene_id": "string",
+            "lof_gene_name": "string",
+            "lof_number_of_transcripts_in_gene": "UInt32",
+            "lof_prop_of_transcripts_affected": "Float32",
+            "molecular_consequence": "string",
+            "nmd": "string",
+            "oncogene_high_impact": "boolean",
+            "pharmgkb_id": "string",
+            "polyphen": "string",
+            "protein_change": "string",
+            "provean_prediction": "string",
+            "ps": "UInt32",
+            "ref_count": "UInt32",
+            "rescue": "boolean",
+            "revel_score": "Float32",
+            "sift": "string",
+            "transcript_likely_lof": "string",
+            "tumor_suppressor_high_impact": "boolean",
+            "uniprot_id": "string",
+            "variant_info": "string",
+            "variant_type": "string",
+            "vep_biotype": "string",
+            "vep_clin_sig": "string",
+            "vep_ensp": "string",
+            "vep_existing_variation": "string",
+            "vep_hgnc_id": "string",
+            "vep_impact": "string",
+            "vep_loftool": "Float32",
+            "vep_mane_select": "string",
+            "vep_pli_gene_value": "Float32",
+            "vep_somatic": "string",
+            "vep_swissprot": "string",
+        }
+    )
+
+    somatic_variants.to_parquet(out_file_path, index=False)

@@ -7,7 +7,7 @@ import tomllib
 import typer
 from vcf_info_merger import info_merge_vcfs
 
-from annotate_mutations_postprocess.annotation import annotate_vcf
+from annotate_mutations_postprocess.maf import convert_duckdb_to_maf
 
 pd.set_option("display.max_columns", 30)
 pd.set_option("display.max_colwidth", 50)
@@ -55,12 +55,14 @@ def merge_info(
 
 
 @app.command()
-def vcf_to_depmap(
+def duckdb_to_maf(
     db: Annotated[Path, typer.Option()],
     parquet_dir: Annotated[Path, typer.Option()],
     out_file: Annotated[Path, typer.Option()],
 ) -> None:
-    annotate_vcf(db_path=db, parquet_dir_path=parquet_dir, out_file_path=out_file)
+    convert_duckdb_to_maf(
+        db_path=db, parquet_dir_path=parquet_dir, out_file_path=out_file
+    )
 
 
 if __name__ == "__main__":
