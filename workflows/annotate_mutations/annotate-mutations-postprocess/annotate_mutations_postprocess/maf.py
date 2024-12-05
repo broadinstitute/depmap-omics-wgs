@@ -828,7 +828,7 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
             pos UINTEGER,
             ref VARCHAR,
             alt VARCHAR,
-            af FLOAT,
+            af DECIMAL(),
             alt_count UINTEGER,
             am_class VARCHAR,
             am_pathogenicity FLOAT,
