@@ -142,12 +142,16 @@ class TestConvertDuckdbToMaf:
         expected = pd.DataFrame([], columns=list(maf_dtypes.keys())).astype(maf_dtypes)
         assert_frame_equal(observed, expected)
 
-    def test_oncokb_muteff_lof(self, db: duckdb.DuckDBPyConnection) -> None:
+    def test_oncokb_muteff(self, db: duckdb.DuckDBPyConnection) -> None:
         db.sql("""
             INSERT INTO variants(
                 vid, chrom, pos, ref, alt
             ) VALUES (
                 1, 'chr1', 100, 'G', 'C'
+            ), (
+                2, 'chr2', 200, 'A', 'T'
+            ), (
+                3, 'chr3', 300, 'A', 'T'
             );
             
             INSERT INTO vals(
@@ -156,6 +160,14 @@ class TestConvertDuckdbToMaf:
                 1, 'af', NULL, NULL, 0.3, NULL
             ), (
                 1, 'dp', NULL, 20, NULL, NULL
+            ), (
+                2, 'af', NULL, NULL, 0.3, NULL
+            ), (
+                2, 'dp', NULL, 20, NULL, NULL
+            ), (
+                3, 'af', NULL, NULL, 0.3, NULL
+            ), (
+                3, 'dp', NULL, 20, NULL, NULL
             );
             
             INSERT INTO info(
@@ -164,7 +176,13 @@ class TestConvertDuckdbToMaf:
             ) VALUES (
                 1, 'oncokb_muteff', 'Loss-of-function', NULL, NULL, NULL,
                 NULL, NULL, NULL 
-            )
+            ), (
+                2, 'oncokb_muteff', 'Gain-of-function', NULL, NULL, NULL,
+                NULL, NULL, NULL 
+            ), (
+                3, 'oncokb_muteff', 'other', NULL, NULL, NULL,
+                NULL, NULL, NULL 
+            );
         """)
 
         make_views(db)
@@ -237,7 +255,182 @@ class TestConvertDuckdbToMaf:
                     "vep_pli_gene_value": None,
                     "vep_somatic": None,
                     "vep_swissprot": None,
-                }
+                },
+                {
+                    "chrom": "chr2",
+                    "pos": 200,
+                    "ref": "A",
+                    "alt": "T",
+                    "af": 0.3,
+                    "alt_count": None,
+                    "am_class": None,
+                    "am_pathogenicity": None,
+                    "brca1_func_score": None,
+                    "civic_description": None,
+                    "civic_id": None,
+                    "civic_score": None,
+                    "dbsnp_rs_id": None,
+                    "dna_change": None,
+                    "dp": 20,
+                    "ensembl_feature_id": None,
+                    "ensembl_gene_id": None,
+                    "exon": None,
+                    "gc_content": None,
+                    "gnomade_af": None,
+                    "gnomadg_af": None,
+                    "gt": None,
+                    "gtex_gene": None,
+                    "gwas_disease": None,
+                    "gwas_pmid": None,
+                    "hess_driver": False,
+                    "hess_signature": None,
+                    "hgnc_family": None,
+                    "hgnc_name": None,
+                    "hugo_symbol": None,
+                    "intron": None,
+                    "lof_gene_id": None,
+                    "lof_gene_name": None,
+                    "lof_number_of_transcripts_in_gene": None,
+                    "lof_prop_of_transcripts_affected": None,
+                    "molecular_consequence": None,
+                    "nmd": None,
+                    "oncogene_high_impact": False,
+                    "pharmgkb_id": None,
+                    "polyphen": None,
+                    "protein_change": None,
+                    "provean_prediction": None,
+                    "ps": None,
+                    "ref_count": None,
+                    "rescue": True,
+                    "revel_score": None,
+                    "sift": None,
+                    "transcript_likely_lof": None,
+                    "tumor_suppressor_high_impact": False,
+                    "uniprot_id": None,
+                    "variant_info": None,
+                    "variant_type": None,
+                    "vep_biotype": None,
+                    "vep_clin_sig": None,
+                    "vep_ensp": None,
+                    "vep_existing_variation": None,
+                    "vep_hgnc_id": None,
+                    "vep_impact": None,
+                    "vep_loftool": None,
+                    "vep_mane_select": None,
+                    "vep_pli_gene_value": None,
+                    "vep_somatic": None,
+                    "vep_swissprot": None,
+                },
+            ]
+        ).astype(maf_dtypes)
+
+        assert_frame_equal(observed, expected)
+
+    def test_oncokb_oncogenic(self, db: duckdb.DuckDBPyConnection) -> None:
+        db.sql("""
+            INSERT INTO variants(
+                vid, chrom, pos, ref, alt
+            ) VALUES (
+                1, 'chr1', 100, 'G', 'C'
+            ), (
+                2, 'chr2', 200, 'A', 'T'
+            );
+            
+            INSERT INTO vals(
+                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+            ) VALUES (
+                1, 'af', NULL, NULL, 0.3, NULL
+            ), (
+                1, 'dp', NULL, 20, NULL, NULL
+            ), (
+                2, 'af', NULL, NULL, 0.3, NULL
+            ), (
+                2, 'dp', NULL, 20, NULL, NULL
+            );
+            
+            INSERT INTO info(
+                vid, k, v_varchar, v_integer, v_float, v_boolean,
+                v_varchar_arr, v_integer_arr, v_json_arr
+            ) VALUES (
+                1, 'oncokb_oncogenic', 'Oncogenic', NULL, NULL, NULL,
+                NULL, NULL, NULL 
+            ), (
+                2, 'oncokb_oncogenic', 'not', NULL, NULL, NULL,
+                NULL, NULL, NULL 
+            );
+        """)
+
+        make_views(db)
+
+        observed = get_somatic_variants_as_df(db)
+
+        expected = pd.DataFrame(
+            [
+                {
+                    "chrom": "chr1",
+                    "pos": 100,
+                    "ref": "G",
+                    "alt": "C",
+                    "af": 0.3,
+                    "alt_count": None,
+                    "am_class": None,
+                    "am_pathogenicity": None,
+                    "brca1_func_score": None,
+                    "civic_description": None,
+                    "civic_id": None,
+                    "civic_score": None,
+                    "dbsnp_rs_id": None,
+                    "dna_change": None,
+                    "dp": 20,
+                    "ensembl_feature_id": None,
+                    "ensembl_gene_id": None,
+                    "exon": None,
+                    "gc_content": None,
+                    "gnomade_af": None,
+                    "gnomadg_af": None,
+                    "gt": None,
+                    "gtex_gene": None,
+                    "gwas_disease": None,
+                    "gwas_pmid": None,
+                    "hess_driver": False,
+                    "hess_signature": None,
+                    "hgnc_family": None,
+                    "hgnc_name": None,
+                    "hugo_symbol": None,
+                    "intron": None,
+                    "lof_gene_id": None,
+                    "lof_gene_name": None,
+                    "lof_number_of_transcripts_in_gene": None,
+                    "lof_prop_of_transcripts_affected": None,
+                    "molecular_consequence": None,
+                    "nmd": None,
+                    "oncogene_high_impact": False,
+                    "pharmgkb_id": None,
+                    "polyphen": None,
+                    "protein_change": None,
+                    "provean_prediction": None,
+                    "ps": None,
+                    "ref_count": None,
+                    "rescue": True,
+                    "revel_score": None,
+                    "sift": None,
+                    "transcript_likely_lof": None,
+                    "tumor_suppressor_high_impact": False,
+                    "uniprot_id": None,
+                    "variant_info": None,
+                    "variant_type": None,
+                    "vep_biotype": None,
+                    "vep_clin_sig": None,
+                    "vep_ensp": None,
+                    "vep_existing_variation": None,
+                    "vep_hgnc_id": None,
+                    "vep_impact": None,
+                    "vep_loftool": None,
+                    "vep_mane_select": None,
+                    "vep_pli_gene_value": None,
+                    "vep_somatic": None,
+                    "vep_swissprot": None,
+                },
             ]
         ).astype(maf_dtypes)
 
