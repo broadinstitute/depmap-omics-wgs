@@ -4,9 +4,14 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 import duckdb
 import pandas as pd
+import pytest
 from pandas.testing import assert_frame_equal
 
-from annotate_mutations_postprocess.maf import convert_duckdb_to_maf
+from annotate_mutations_postprocess.maf import (
+    convert_duckdb_to_maf,
+    get_somatic_variants_as_df,
+    make_views,
+)
 
 maf_dtypes = {
     "chrom": "string",
@@ -75,74 +80,70 @@ maf_dtypes = {
 }
 
 
-class TestMaf:
-    def test_noop(self):
-        with TemporaryDirectory() as tmpdir:
-            db_path = NamedTemporaryFile(dir=tmpdir, suffix="duckdb").name
-            parquet_dir_path = os.path.join(tmpdir, "parquet")
-            out_file_path = NamedTemporaryFile(dir=tmpdir, suffix="parquet").name
+@pytest.fixture(scope="class")
+def db_setup() -> None:
+    with TemporaryDirectory() as tmpdir:
+        db_path = NamedTemporaryFile(dir=tmpdir, suffix="duckdb").name
 
-            with duckdb.connect(db_path) as db:
-                db.sql("""
-                    CREATE TABLE val_info_types(
-                        id VARCHAR,
-                        number VARCHAR,
-                        "type" VARCHAR,
-                        description VARCHAR,
-                        kind VARCHAR,
-                        has_children BOOLEAN,
-                        parent_id VARCHAR,
-                        ix UBIGINT,
-                        col_def VARCHAR,
-                        is_list BOOLEAN,
-                        v_col_name VARCHAR,
-                        id_snake VARCHAR
-                    );
-                    
-                    CREATE TABLE variants(
-                        vid UINTEGER PRIMARY KEY,
-                        chrom VARCHAR NOT NULL,
-                        pos UINTEGER NOT NULL,
-                        id VARCHAR,
-                        "ref" VARCHAR,
-                        alt VARCHAR,
-                        qual VARCHAR,
-                        filters VARCHAR[]
-                    );
-                    
-                    CREATE TABLE vals(vid UINTEGER,
-                        k VARCHAR NOT NULL,
-                        v_integer_arr INTEGER[],
-                        v_float FLOAT,
-                        v_integer INTEGER,
-                        v_varchar VARCHAR,
-                        FOREIGN KEY (vid) REFERENCES variants(vid)
-                    );
-                    
-                    CREATE TABLE info(
-                        vid UINTEGER,
-                        k VARCHAR NOT NULL,
-                        v_varchar VARCHAR,
-                        v_integer INTEGER,
-                        v_float FLOAT,
-                        v_integer_arr INTEGER[],
-                        v_boolean BOOLEAN,
-                        v_varchar_arr VARCHAR[],
-                        v_json_arr JSON[],
-                        FOREIGN KEY (vid) REFERENCES variants(vid)
-                    );
-                """)
+        with duckdb.connect(db_path) as db:
+            db.sql("""
+                CREATE TABLE variants(
+                    vid UINTEGER PRIMARY KEY,
+                    chrom VARCHAR NOT NULL,
+                    pos UINTEGER NOT NULL,
+                    id VARCHAR,
+                    "ref" VARCHAR,
+                    alt VARCHAR,
+                    qual VARCHAR,
+                    filters VARCHAR[]
+                );
+                
+                CREATE TABLE vals(
+                    vid UINTEGER,
+                    k VARCHAR NOT NULL,
+                    v_integer_arr INTEGER[],
+                    v_float FLOAT,
+                    v_integer INTEGER,
+                    v_varchar VARCHAR,
+                    FOREIGN KEY (vid) REFERENCES variants(vid)
+                );
+                
+                CREATE TABLE info(
+                    vid UINTEGER,
+                    k VARCHAR NOT NULL,
+                    v_varchar VARCHAR,
+                    v_integer INTEGER,
+                    v_float FLOAT,
+                    v_integer_arr INTEGER[],
+                    v_boolean BOOLEAN,
+                    v_varchar_arr VARCHAR[],
+                    v_json_arr JSON[],
+                    FOREIGN KEY (vid) REFERENCES variants(vid)
+                );
+            """)
 
-                db.sql(f"EXPORT DATABASE '{parquet_dir_path}' (FORMAT PARQUET)")
+            yield db
 
-            os.remove(db_path)
 
-            convert_duckdb_to_maf(
-                Path(db_path), Path(parquet_dir_path), Path(out_file_path)
-            )
+@pytest.fixture
+def db(db_setup: duckdb.DuckDBPyConnection) -> None:
+    db_setup.sql("""
+        DROP TABLE IF EXISTS somatic_variants;
+        DROP TABLE IF EXISTS vep;
+        
+        TRUNCATE TABLE info;
+        TRUNCATE TABLE vals;
+        TRUNCATE TABLE variants;
+    """)
 
-            observed = pd.read_parquet(out_file_path)
-            expected = pd.DataFrame([], columns=list(maf_dtypes.keys())).astype(
-                maf_dtypes
-            )
-            assert_frame_equal(observed, expected)
+    yield db_setup
+
+
+@pytest.mark.usefixtures("db_setup")
+class TestConvertDuckdbToMaf:
+    def test_noop(self, db: duckdb.DuckDBPyConnection) -> None:
+        make_views(db)
+
+        observed = get_somatic_variants_as_df(db)
+        expected = pd.DataFrame([], columns=list(maf_dtypes.keys())).astype(maf_dtypes)
+        assert_frame_equal(observed, expected)

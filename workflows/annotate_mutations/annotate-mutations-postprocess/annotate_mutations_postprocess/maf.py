@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import duckdb
+import pandas as pd
 
 
 def convert_duckdb_to_maf(
@@ -25,29 +26,37 @@ def convert_duckdb_to_maf(
         logging.info(f"Reading schema and Parquet files from {parquet_dir_path}")
         db.sql(f"IMPORT DATABASE '{parquet_dir_path}'")
 
-        # convert vals to wide view
-        make_vals_wide_view(db)
+        make_views(db, min_af, min_depth, max_pop_af, max_brca1_func_assay_score)
 
-        # make views for all filters and global filter for high-quality variants
-        make_filters_view(db)
-        make_quality_vids_view(db, min_af, min_depth)
-        # all views/queries after this point should filter on quality_vids
+        somatic_variants = get_somatic_variants_as_df(db)
+        somatic_variants.to_parquet(out_file_path, index=False)
 
-        make_info_wide_view(db)
 
-        make_transcript_likely_lof_view(db)
-        make_nmd_view(db)
-        make_lof_view(db)
-        make_hgnc_view(db)
-        make_vep_table(db)
-        make_oncogene_tsg_view(db)
+def make_views(
+    db: duckdb.DuckDBPyConnection,
+    min_af: float = 0.15,
+    min_depth: int = 2,
+    max_pop_af: float = 1e-05,
+    max_brca1_func_assay_score: float = -1.328,
+):
+    # convert vals to wide view
+    make_vals_wide_view(db)
 
-        make_rescues_view(db, max_brca1_func_assay_score)
-        make_filtered_vids_view(db, max_pop_af)
+    # make views for all filters and global filter for high-quality variants
+    make_filters_view(db)
+    make_quality_vids_view(db, min_af, min_depth)
 
-        make_somatic_variants_table(db)
-
-        write_out_file(db, out_file_path)
+    # all views/queries after this point should filter on quality_vids
+    make_info_wide_view(db)
+    make_transcript_likely_lof_view(db)
+    make_nmd_view(db)
+    make_lof_view(db)
+    make_hgnc_view(db)
+    make_vep_table(db)
+    make_oncogene_tsg_view(db)
+    make_rescues_view(db, max_brca1_func_assay_score)
+    make_filtered_vids_view(db, max_pop_af)
+    make_somatic_variants_table(db)
 
 
 def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
@@ -1001,75 +1010,75 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
     """)
 
 
-def write_out_file(db: duckdb.DuckDBPyConnection, out_file_path: Path) -> None:
-    somatic_variants = db.table("somatic_variants").df()
-
-    somatic_variants = somatic_variants.astype(
-        {
-            "chrom": "string",
-            "pos": "UInt32",
-            "ref": "string",
-            "alt": "string",
-            "af": "Float32",
-            "alt_count": "UInt32",
-            "am_class": "string",
-            "am_pathogenicity": "Float32",
-            "brca1_func_score": "Float32",
-            "civic_description": "string",
-            "civic_id": "string",
-            "civic_score": "Float32",
-            "dbsnp_rs_id": "string",
-            "dna_change": "string",
-            "dp": "UInt32",
-            "ensembl_feature_id": "string",
-            "ensembl_gene_id": "string",
-            "exon": "string",
-            "gc_content": "Float32",
-            "gnomade_af": "Float32",
-            "gnomadg_af": "Float32",
-            "gt": "string",
-            "gtex_gene": "string",
-            "gwas_disease": "string",
-            "gwas_pmid": "string",
-            "hess_driver": "boolean",
-            "hess_signature": "string",
-            "hgnc_family": "string",
-            "hgnc_name": "string",
-            "hugo_symbol": "string",
-            "intron": "string",
-            "lof_gene_id": "string",
-            "lof_gene_name": "string",
-            "lof_number_of_transcripts_in_gene": "UInt32",
-            "lof_prop_of_transcripts_affected": "Float32",
-            "molecular_consequence": "string",
-            "nmd": "string",
-            "oncogene_high_impact": "boolean",
-            "pharmgkb_id": "string",
-            "polyphen": "string",
-            "protein_change": "string",
-            "provean_prediction": "string",
-            "ps": "UInt32",
-            "ref_count": "UInt32",
-            "rescue": "boolean",
-            "revel_score": "Float32",
-            "sift": "string",
-            "transcript_likely_lof": "string",
-            "tumor_suppressor_high_impact": "boolean",
-            "uniprot_id": "string",
-            "variant_info": "string",
-            "variant_type": "string",
-            "vep_biotype": "string",
-            "vep_clin_sig": "string",
-            "vep_ensp": "string",
-            "vep_existing_variation": "string",
-            "vep_hgnc_id": "string",
-            "vep_impact": "string",
-            "vep_loftool": "Float32",
-            "vep_mane_select": "string",
-            "vep_pli_gene_value": "Float32",
-            "vep_somatic": "string",
-            "vep_swissprot": "string",
-        }
+def get_somatic_variants_as_df(db: duckdb.DuckDBPyConnection) -> pd.DataFrame:
+    return (
+        db.table("somatic_variants")
+        .df()
+        .astype(
+            {
+                "chrom": "string",
+                "pos": "UInt32",
+                "ref": "string",
+                "alt": "string",
+                "af": "Float32",
+                "alt_count": "UInt32",
+                "am_class": "string",
+                "am_pathogenicity": "Float32",
+                "brca1_func_score": "Float32",
+                "civic_description": "string",
+                "civic_id": "string",
+                "civic_score": "Float32",
+                "dbsnp_rs_id": "string",
+                "dna_change": "string",
+                "dp": "UInt32",
+                "ensembl_feature_id": "string",
+                "ensembl_gene_id": "string",
+                "exon": "string",
+                "gc_content": "Float32",
+                "gnomade_af": "Float32",
+                "gnomadg_af": "Float32",
+                "gt": "string",
+                "gtex_gene": "string",
+                "gwas_disease": "string",
+                "gwas_pmid": "string",
+                "hess_driver": "boolean",
+                "hess_signature": "string",
+                "hgnc_family": "string",
+                "hgnc_name": "string",
+                "hugo_symbol": "string",
+                "intron": "string",
+                "lof_gene_id": "string",
+                "lof_gene_name": "string",
+                "lof_number_of_transcripts_in_gene": "UInt32",
+                "lof_prop_of_transcripts_affected": "Float32",
+                "molecular_consequence": "string",
+                "nmd": "string",
+                "oncogene_high_impact": "boolean",
+                "pharmgkb_id": "string",
+                "polyphen": "string",
+                "protein_change": "string",
+                "provean_prediction": "string",
+                "ps": "UInt32",
+                "ref_count": "UInt32",
+                "rescue": "boolean",
+                "revel_score": "Float32",
+                "sift": "string",
+                "transcript_likely_lof": "string",
+                "tumor_suppressor_high_impact": "boolean",
+                "uniprot_id": "string",
+                "variant_info": "string",
+                "variant_type": "string",
+                "vep_biotype": "string",
+                "vep_clin_sig": "string",
+                "vep_ensp": "string",
+                "vep_existing_variation": "string",
+                "vep_hgnc_id": "string",
+                "vep_impact": "string",
+                "vep_loftool": "Float32",
+                "vep_mane_select": "string",
+                "vep_pli_gene_value": "Float32",
+                "vep_somatic": "string",
+                "vep_swissprot": "string",
+            }
+        )
     )
-
-    somatic_variants.to_parquet(out_file_path, index=False)
