@@ -224,8 +224,8 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
                 t_oc_gtex_gtex_gene.oc_gtex_gtex_gene,
                 t_oc_gwas_catalog_disease.oc_gwas_catalog_disease,
                 t_oc_gwas_catalog_pmid.oc_gwas_catalog_pmid,
-                t_hess_driver.hess_driver,
-                t_hess_signature.hess_signature,
+                t_hess.hess_driver,
+                t_hess.hess_signature,
                 t_oc_pharmgkb_id.oc_pharmgkb_id,
                 t_oc_provean_prediction.oc_provean_prediction,
                 t_oc_revel_score.oc_revel_score
@@ -336,22 +336,13 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
+                    v_varchar AS hess_signature,
                     TRUE AS hess_driver
                 FROM
                     info
                 WHERE
                     k = 'hess'
-            ) t_hess_driver ON info.vid = t_hess_driver.vid
-
-            LEFT OUTER JOIN (
-                SELECT
-                    vid,
-                    v_varchar AS hess_signature
-                FROM
-                    info
-                WHERE
-                    k = 'hess'
-            ) t_hess_signature ON info.vid = t_hess_signature.vid
+            ) t_hess ON info.vid = t_hess.vid
 
             LEFT OUTER JOIN (
                 SELECT
