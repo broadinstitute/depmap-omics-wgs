@@ -709,6 +709,8 @@ def make_rescues_view(
                         ON
                             variants.vid = vep.vid
                         WHERE
+                            variants.chrom = 'chr5'
+                            AND
                             variants.pos BETWEEN 1295054 AND 1295365
                             AND
                             vep.symbol = 'TERT'
@@ -724,6 +726,8 @@ def make_rescues_view(
                         ON
                             variants.vid = vep.vid
                         WHERE
+                            variants.chrom = 'chr7'
+                            AND
                             variants.pos BETWEEN 116771825 AND 116771840
                             AND
                             vep.symbol = 'MET'
