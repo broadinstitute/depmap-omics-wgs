@@ -134,7 +134,7 @@ def db(db_setup: duckdb.DuckDBPyConnection) -> None:
 
 
 @pytest.mark.usefixtures("db_setup")
-class TestConvertDuckdbToMaf:
+class Test:
     def test_noop(self, db: duckdb.DuckDBPyConnection) -> None:
         make_views(db)
 
@@ -144,7 +144,7 @@ class TestConvertDuckdbToMaf:
 
 
 @pytest.mark.usefixtures("db_setup")
-class TestConvertDuckdbToMafFilter:
+class TestFilter:
     def test_filter(self, db: duckdb.DuckDBPyConnection) -> None:
         db.sql("""
             INSERT INTO variants(
@@ -158,40 +158,34 @@ class TestConvertDuckdbToMafFilter:
             );
             
             INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+                vid, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'af', NULL, 0.3
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'dp', 20, NULL
             ), (
-                2, 'af', NULL, NULL, 0.3, NULL
+                2, 'af', NULL, 0.3
             ), (
-                2, 'dp', NULL, 20, NULL, NULL
+                2, 'dp', 20, NULL
             ), (
-                3, 'af', NULL, NULL, 0.3, NULL
+                3, 'af', NULL, 0.3
             ), (
-                3, 'dp', NULL, 20, NULL, NULL
+                3, 'dp', 20, NULL
             );
             
             --any rescue state will work for this test
             INSERT INTO info(
-                vid, k, v_varchar, v_integer, v_float, v_boolean,
-                v_varchar_arr, v_integer_arr, v_json_arr
+                vid, k, v_varchar
             ) VALUES (
-                1, 'oncokb_muteff', 'Loss-of-function', NULL, NULL, NULL,
-                NULL, NULL, NULL 
+                1, 'oncokb_muteff', 'Loss-of-function'
             ), (
-                1, 'as_filter_status', 'SITE', NULL, NULL, NULL,
-                NULL, NULL, NULL 
+                1, 'as_filter_status', 'SITE|SITE'
             ), (
-                2, 'oncokb_muteff', 'Loss-of-function', NULL, NULL, NULL,
-                NULL, NULL, NULL 
+                2, 'oncokb_muteff', 'Loss-of-function'
             ), (
-                3, 'oncokb_muteff', 'Loss-of-function', NULL, NULL, NULL,
-                NULL, NULL, NULL 
+                3, 'oncokb_muteff', 'Loss-of-function'
             ), (
-                3, 'as_filter_status', 'strand_bias', NULL, NULL, NULL,
-                NULL, NULL, NULL 
+                3, 'as_filter_status', 'strand_bias|SITE'
             );
         """)
 
@@ -273,7 +267,7 @@ class TestConvertDuckdbToMafFilter:
 
 
 @pytest.mark.usefixtures("db_setup")
-class TestConvertDuckdbToMafRescue:
+class TestRescue:
     def test_oncokb_muteff(self, db: duckdb.DuckDBPyConnection) -> None:
         db.sql("""
             INSERT INTO variants(
@@ -287,33 +281,29 @@ class TestConvertDuckdbToMafRescue:
             );
             
             INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+                vid, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'af', NULL, 0.3
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'dp', 20, NULL
             ), (
-                2, 'af', NULL, NULL, 0.3, NULL
+                2, 'af', NULL, 0.3
             ), (
-                2, 'dp', NULL, 20, NULL, NULL
+                2, 'dp', 20, NULL
             ), (
-                3, 'af', NULL, NULL, 0.3, NULL
+                3, 'af', NULL, 0.3
             ), (
-                3, 'dp', NULL, 20, NULL, NULL
+                3, 'dp', 20, NULL
             );
             
             INSERT INTO info(
-                vid, k, v_varchar, v_integer, v_float, v_boolean,
-                v_varchar_arr, v_integer_arr, v_json_arr
+                vid, k, v_varchar
             ) VALUES (
-                1, 'oncokb_muteff', 'Loss-of-function', NULL, NULL, NULL,
-                NULL, NULL, NULL 
+                1, 'oncokb_muteff', 'Loss-of-function'
             ), (
-                2, 'oncokb_muteff', 'Gain-of-function', NULL, NULL, NULL,
-                NULL, NULL, NULL 
+                2, 'oncokb_muteff', 'Gain-of-function'
             ), (
-                3, 'oncokb_muteff', 'other', NULL, NULL, NULL,
-                NULL, NULL, NULL 
+                3, 'oncokb_muteff', 'other'
             );
         """)
 
@@ -469,26 +459,23 @@ class TestConvertDuckdbToMafRescue:
             );
             
             INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+                vid, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'af', NULL, 0.3
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'dp', 20, NULL
             ), (
-                2, 'af', NULL, NULL, 0.3, NULL
+                2, 'af', NULL, 0.3
             ), (
-                2, 'dp', NULL, 20, NULL, NULL
+                2, 'dp', 20, NULL
             );
             
             INSERT INTO info(
-                vid, k, v_varchar, v_integer, v_float, v_boolean,
-                v_varchar_arr, v_integer_arr, v_json_arr
+                vid, k, v_varchar
             ) VALUES (
-                1, 'oncokb_oncogenic', 'Oncogenic', NULL, NULL, NULL,
-                NULL, NULL, NULL 
+                1, 'oncokb_oncogenic', 'Oncogenic'
             ), (
-                2, 'oncokb_oncogenic', 'not', NULL, NULL, NULL,
-                NULL, NULL, NULL 
+                2, 'oncokb_oncogenic', 'not'
             );
         """)
 
@@ -579,23 +566,21 @@ class TestConvertDuckdbToMafRescue:
             );
             
             INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+                vid, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'af', NULL, 0.3
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'dp', 20, NULL
             ), (
-                2, 'af', NULL, NULL, 0.3, NULL
+                2, 'af', NULL, 0.3
             ), (
-                2, 'dp', NULL, 20, NULL, NULL
+                2, 'dp', 20, NULL
             );
             
             INSERT INTO info(
-                vid, k, v_varchar, v_integer, v_float, v_boolean,
-                v_varchar_arr, v_integer_arr, v_json_arr
+                vid, k, v_boolean
             ) VALUES (
-                1, 'oncokb_hotspot', NULL, NULL, NULL, TRUE,
-                NULL, NULL, NULL 
+                1, 'oncokb_hotspot', TRUE
             );
         """)
 
@@ -686,26 +671,23 @@ class TestConvertDuckdbToMafRescue:
             );
             
             INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+                vid, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'af', NULL, 0.3
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'dp', 20, NULL
             ), (
-                2, 'af', NULL, NULL, 0.3, NULL
+                2, 'af', NULL, 0.3
             ), (
-                2, 'dp', NULL, 20, NULL, NULL
+                2, 'dp', 20, NULL
             );
             
             INSERT INTO info(
-                vid, k, v_varchar, v_integer, v_float, v_boolean,
-                v_varchar_arr, v_integer_arr, v_json_arr
+                vid, k, v_integer
             ) VALUES (
-                1, 'cmc_tier', NULL, 1, NULL, NULL,
-                NULL, NULL, NULL 
+                1, 'cmc_tier', 1 
             ), (
-                2, 'cmc_tier', NULL, 3, NULL, NULL,
-                NULL, NULL, NULL 
+                2, 'cmc_tier', 3 
             );
         """)
 
@@ -796,26 +778,23 @@ class TestConvertDuckdbToMafRescue:
             );
             
             INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+                vid, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'af', NULL, 0.3
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'dp', 20, NULL
             ), (
-                2, 'af', NULL, NULL, 0.3, NULL
+                2, 'af', NULL, 0.3
             ), (
-                2, 'dp', NULL, 20, NULL, NULL
+                2, 'dp', 20, NULL
             );
             
             INSERT INTO info(
-                vid, k, v_varchar, v_integer, v_float, v_boolean,
-                v_varchar_arr, v_integer_arr, v_json_arr
+                vid, k, v_float
             ) VALUES (
-                1, 'oc_brca1_func_assay_score', NULL, NULL, -1.5, NULL,
-                NULL, NULL, NULL 
+                1, 'oc_brca1_func_assay_score', -1.5
             ), (
-                2, 'oc_brca1_func_assay_score', NULL, NULL, -0.9, NULL,
-                NULL, NULL, NULL 
+                2, 'oc_brca1_func_assay_score', -0.9
             );
         """)
 
@@ -908,39 +887,33 @@ class TestConvertDuckdbToMafRescue:
             );
             
             INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+                vid, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'af', NULL, 0.3
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'dp', 20, NULL
             ), (
-                2, 'af', NULL, NULL, 0.3, NULL
+                2, 'af', NULL, 0.3
             ), (
-                2, 'dp', NULL, 20, NULL, NULL
+                2, 'dp', 20, NULL
             ), (
-                3, 'af', NULL, NULL, 0.3, NULL
+                3, 'af', NULL, 0.3
             ), (
-                3, 'dp', NULL, 20, NULL, NULL
+                3, 'dp', 20, NULL
             );
             
             INSERT INTO info(
-                vid, k, v_varchar, v_integer, v_float, v_boolean,
-                v_varchar_arr, v_integer_arr, v_json_arr
+                vid, k, v_boolean, v_json_arr
             ) VALUES (
-                1, 'oncogene', NULL, NULL, NULL, TRUE,
-                NULL, NULL, NULL 
+                1, 'oncogene', TRUE, NULL 
             ), (
-                1, 'csq', NULL, NULL, NULL, NULL,
-                NULL, NULL, ['{"impact": "HIGH"}']
+                1, 'csq', NULL, ['{"impact": "HIGH"}']
             ), (
-                2, 'oncogene', NULL, NULL, NULL, TRUE,
-                NULL, NULL, NULL 
+                2, 'oncogene', TRUE, NULL 
             ), (
-                2, 'csq', NULL, NULL, NULL, NULL,
-                NULL, NULL, ['{"impact": "LOW"}']
+                2, 'csq', NULL, ['{"impact": "LOW"}']
             ), (
-                3, 'oncogene', NULL, NULL, NULL, TRUE,
-                NULL, NULL, NULL 
+                3, 'oncogene', TRUE, NULL 
             );
         """)
 
@@ -1033,39 +1006,33 @@ class TestConvertDuckdbToMafRescue:
             );
             
             INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+                vid, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'af', NULL, 0.3
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'dp', 20, NULL
             ), (
-                2, 'af', NULL, NULL, 0.3, NULL
+                2, 'af', NULL, 0.3
             ), (
-                2, 'dp', NULL, 20, NULL, NULL
+                2, 'dp', 20, NULL
             ), (
-                3, 'af', NULL, NULL, 0.3, NULL
+                3, 'af', NULL, 0.3
             ), (
-                3, 'dp', NULL, 20, NULL, NULL
+                3, 'dp', 20, NULL
             );
             
             INSERT INTO info(
-                vid, k, v_varchar, v_integer, v_float, v_boolean,
-                v_varchar_arr, v_integer_arr, v_json_arr
+                vid, k, v_boolean, v_json_arr
             ) VALUES (
-                1, 'tsg', NULL, NULL, NULL, TRUE,
-                NULL, NULL, NULL 
+                1, 'tsg', TRUE, NULL 
             ), (
-                1, 'csq', NULL, NULL, NULL, NULL,
-                NULL, NULL, ['{"impact": "HIGH"}']
+                1, 'csq', NULL, ['{"impact": "HIGH"}']
             ), (
-                2, 'tsg', NULL, NULL, NULL, TRUE,
-                NULL, NULL, NULL 
+                2, 'tsg', TRUE, NULL 
             ), (
-                2, 'csq', NULL, NULL, NULL, NULL,
-                NULL, NULL, ['{"impact": "LOW"}']
+                2, 'csq', NULL, ['{"impact": "LOW"}']
             ), (
-                3, 'tsg', NULL, NULL, NULL, TRUE,
-                NULL, NULL, NULL 
+                3, 'tsg', TRUE, NULL 
             );
         """)
 
@@ -1156,23 +1123,21 @@ class TestConvertDuckdbToMafRescue:
             );
             
             INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+                vid, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'af', NULL, 0.3
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'dp', 20, NULL
             ), (
-                2, 'af', NULL, NULL, 0.3, NULL
+                2, 'af', NULL, 0.3
             ), (
-                2, 'dp', NULL, 20, NULL, NULL
+                2, 'dp', 20, NULL
             );
             
             INSERT INTO info(
-                vid, k, v_varchar, v_integer, v_float, v_boolean,
-                v_varchar_arr, v_integer_arr, v_json_arr
+                vid, k, v_varchar
             ) VALUES (
-                1, 'hess', 'sig', NULL, NULL, NULL,
-                NULL, NULL, NULL 
+                1, 'hess', 'sig'
             );
         """)
 
@@ -1263,23 +1228,21 @@ class TestConvertDuckdbToMafRescue:
             );
             
             INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+                vid, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'af', NULL, 0.3
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'dp', 20, NULL
             ), (
-                2, 'af', NULL, NULL, 0.3, NULL
+                2, 'af', NULL, 0.3
             ), (
-                2, 'dp', NULL, 20, NULL, NULL
+                2, 'dp', 20, NULL
             );
             
             INSERT INTO info(
-                vid, k, v_varchar, v_integer, v_float, v_boolean,
-                v_varchar_arr, v_integer_arr, v_json_arr
+                vid, k, v_json_arr
             ) VALUES (
-                1, 'csq', NULL, NULL, NULL, NULL,
-                NULL, NULL, ['{"symbol": "TERT"}']
+                1, 'csq', ['{"symbol": "TERT"}']
             );
         """)
 
@@ -1370,23 +1333,21 @@ class TestConvertDuckdbToMafRescue:
             );
             
             INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+                vid, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'af', NULL, 0.3
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'dp', 20, NULL
             ), (
-                2, 'af', NULL, NULL, 0.3, NULL
+                2, 'af', NULL, 0.3
             ), (
-                2, 'dp', NULL, 20, NULL, NULL
+                2, 'dp', 20, NULL
             );
             
             INSERT INTO info(
-                vid, k, v_varchar, v_integer, v_float, v_boolean,
-                v_varchar_arr, v_integer_arr, v_json_arr
+                vid, k, v_json_arr
             ) VALUES (
-                1, 'csq', NULL, NULL, NULL, NULL,
-                NULL, NULL, ['{"symbol": "MET"}']
+                1, 'csq', ['{"symbol": "MET"}']
             );
         """)
 
@@ -1455,6 +1416,492 @@ class TestConvertDuckdbToMafRescue:
                     "vep_existing_variation": None,
                     "vep_hgnc_id": None,
                     "vep_impact": None,
+                    "vep_loftool": None,
+                    "vep_mane_select": None,
+                    "vep_pli_gene_value": None,
+                    "vep_somatic": None,
+                    "vep_swissprot": None,
+                },
+            ]
+        ).astype(maf_dtypes)
+
+        assert_frame_equal(observed, expected)
+
+
+@pytest.mark.usefixtures("db_setup")
+class TestFilteredVids:
+    def test_splice_event(self, db: duckdb.DuckDBPyConnection) -> None:
+        db.sql("""
+            INSERT INTO variants(
+                vid, chrom, pos, ref, alt
+            ) VALUES (
+                1, 'chr1', 100, 'G', 'C'
+            ), (
+                2, 'chr2', 200, 'A', 'T'
+            ), (
+                3, 'chr3', 300, 'A', 'T'
+            );
+            
+            INSERT INTO vals(
+                vid, k, v_integer, v_float
+            ) VALUES (
+                1, 'af', NULL, 0.3
+            ), (
+                1, 'dp', 20, NULL
+            ), (
+                2, 'af', NULL, 0.3
+            ), (
+                2, 'dp', 20, NULL
+            ), (
+                3, 'af', NULL, 0.3
+            ), (
+                3, 'dp', 20, NULL
+            );
+            
+            INSERT INTO info(
+                vid, k, v_json_arr
+            ) VALUES (
+                1, 'csq', ['{"impact": "HIGH", "consequence": "foo&splice_region"}']
+            ), (
+                2, 'csq', ['{"impact": "HIGH", "consequence": "other"}']
+            ), (
+                3, 'csq', ['{"impact": "LOW", "consequence": "splice"}']
+            );
+        """)
+
+        make_views(db)
+
+        observed = get_somatic_variants_as_df(db)
+
+        expected = pd.DataFrame(
+            [
+                {
+                    "chrom": "chr1",
+                    "pos": 100,
+                    "ref": "G",
+                    "alt": "C",
+                    "af": 0.3,
+                    "alt_count": None,
+                    "am_class": None,
+                    "am_pathogenicity": None,
+                    "brca1_func_score": None,
+                    "civic_description": None,
+                    "civic_id": None,
+                    "civic_score": None,
+                    "dbsnp_rs_id": None,
+                    "dna_change": None,
+                    "dp": 20,
+                    "ensembl_feature_id": None,
+                    "ensembl_gene_id": None,
+                    "exon": None,
+                    "gc_content": None,
+                    "gnomade_af": None,
+                    "gnomadg_af": None,
+                    "gt": None,
+                    "gtex_gene": None,
+                    "gwas_disease": None,
+                    "gwas_pmid": None,
+                    "hess_driver": False,
+                    "hess_signature": None,
+                    "hgnc_family": None,
+                    "hgnc_name": None,
+                    "hugo_symbol": None,
+                    "intron": None,
+                    "lof_gene_id": None,
+                    "lof_gene_name": None,
+                    "lof_number_of_transcripts_in_gene": None,
+                    "lof_prop_of_transcripts_affected": None,
+                    "molecular_consequence": None,
+                    "nmd": None,
+                    "oncogene_high_impact": False,
+                    "pharmgkb_id": None,
+                    "polyphen": None,
+                    "protein_change": None,
+                    "provean_prediction": None,
+                    "ps": None,
+                    "ref_count": None,
+                    "rescue": False,
+                    "revel_score": None,
+                    "sift": None,
+                    "transcript_likely_lof": None,
+                    "tumor_suppressor_high_impact": False,
+                    "uniprot_id": None,
+                    "variant_info": "foo&splice_region",
+                    "variant_type": None,
+                    "vep_biotype": None,
+                    "vep_clin_sig": None,
+                    "vep_ensp": None,
+                    "vep_existing_variation": None,
+                    "vep_hgnc_id": None,
+                    "vep_impact": "HIGH",
+                    "vep_loftool": None,
+                    "vep_mane_select": None,
+                    "vep_pli_gene_value": None,
+                    "vep_somatic": None,
+                    "vep_swissprot": None,
+                },
+            ]
+        ).astype(maf_dtypes)
+
+        assert_frame_equal(observed, expected)
+
+    def test_protein_change(self, db: duckdb.DuckDBPyConnection) -> None:
+        db.sql("""
+            INSERT INTO variants(
+                vid, chrom, pos, ref, alt
+            ) VALUES (
+                1, 'chr1', 100, 'G', 'C'
+            ), (
+                2, 'chr2', 200, 'A', 'T'
+            ), (
+                3, 'chr3', 300, 'A', 'T'
+            );
+            
+            INSERT INTO vals(
+                vid, k, v_integer, v_float
+            ) VALUES (
+                1, 'af', NULL, 0.3
+            ), (
+                1, 'dp', 20, NULL
+            ), (
+                2, 'af', NULL, 0.3
+            ), (
+                2, 'dp', 20, NULL
+            ), (
+                3, 'af', NULL, 0.3
+            ), (
+                3, 'dp', 20, NULL
+            );
+            
+            INSERT INTO info(
+                vid, k, v_json_arr
+            ) VALUES (
+                1, 'csq', ['{"impact": "HIGH", "hgvsp": "ENSP15.3:p.Glu32del"}']
+            ), (
+                2, 'csq', ['{"impact": "HIGH", "hgvsp": "ENSP30.3:p.Asp637="}']
+            ), (
+                3, 'csq', ['{"impact": "LOW", "hgvsp": null}']
+            );
+        """)
+
+        make_views(db)
+
+        observed = get_somatic_variants_as_df(db)
+
+        expected = pd.DataFrame(
+            [
+                {
+                    "chrom": "chr1",
+                    "pos": 100,
+                    "ref": "G",
+                    "alt": "C",
+                    "af": 0.3,
+                    "alt_count": None,
+                    "am_class": None,
+                    "am_pathogenicity": None,
+                    "brca1_func_score": None,
+                    "civic_description": None,
+                    "civic_id": None,
+                    "civic_score": None,
+                    "dbsnp_rs_id": None,
+                    "dna_change": None,
+                    "dp": 20,
+                    "ensembl_feature_id": None,
+                    "ensembl_gene_id": None,
+                    "exon": None,
+                    "gc_content": None,
+                    "gnomade_af": None,
+                    "gnomadg_af": None,
+                    "gt": None,
+                    "gtex_gene": None,
+                    "gwas_disease": None,
+                    "gwas_pmid": None,
+                    "hess_driver": False,
+                    "hess_signature": None,
+                    "hgnc_family": None,
+                    "hgnc_name": None,
+                    "hugo_symbol": None,
+                    "intron": None,
+                    "lof_gene_id": None,
+                    "lof_gene_name": None,
+                    "lof_number_of_transcripts_in_gene": None,
+                    "lof_prop_of_transcripts_affected": None,
+                    "molecular_consequence": None,
+                    "nmd": None,
+                    "oncogene_high_impact": False,
+                    "pharmgkb_id": None,
+                    "polyphen": None,
+                    "protein_change": "ENSP15.3:p.Glu32del",
+                    "provean_prediction": None,
+                    "ps": None,
+                    "ref_count": None,
+                    "rescue": False,
+                    "revel_score": None,
+                    "sift": None,
+                    "transcript_likely_lof": None,
+                    "tumor_suppressor_high_impact": False,
+                    "uniprot_id": None,
+                    "variant_info": None,
+                    "variant_type": None,
+                    "vep_biotype": None,
+                    "vep_clin_sig": None,
+                    "vep_ensp": None,
+                    "vep_existing_variation": None,
+                    "vep_hgnc_id": None,
+                    "vep_impact": "HIGH",
+                    "vep_loftool": None,
+                    "vep_mane_select": None,
+                    "vep_pli_gene_value": None,
+                    "vep_somatic": None,
+                    "vep_swissprot": None,
+                },
+            ]
+        ).astype(maf_dtypes)
+
+        assert_frame_equal(observed, expected)
+
+    def test_segdup_rm(self, db: duckdb.DuckDBPyConnection) -> None:
+        db.sql("""
+            INSERT INTO variants(
+                vid, chrom, pos, ref, alt
+            ) VALUES (
+                1, 'chr1', 100, 'G', 'C'
+            ), (
+                2, 'chr2', 200, 'A', 'T'
+            ), (
+                3, 'chr3', 300, 'A', 'T'
+            );
+            
+            INSERT INTO vals(
+                vid, k, v_integer, v_float
+            ) VALUES (
+                1, 'af', NULL, 0.3
+            ), (
+                1, 'dp', 20, NULL
+            ), (
+                2, 'af', NULL, 0.3
+            ), (
+                2, 'dp', 20, NULL
+            ), (
+                3, 'af', NULL, 0.3
+            ), (
+                3, 'dp', 20, NULL
+            );
+            
+            INSERT INTO info(
+                vid, k, v_json_arr
+            ) VALUES (
+                1, 'csq', ['{"impact": "HIGH", "consequence": "splice"}']
+            ), (
+                2, 'csq', ['{"impact": "HIGH", "consequence": "splice"}']
+            ), (
+                3, 'csq', ['{"impact": "HIGH", "consequence": "splice"}']
+            );
+            
+            -- undo some of the previous positive selections
+            INSERT INTO info(
+                vid, k, v_boolean
+            ) VALUES (
+                2, 'segdup', TRUE
+            ), (
+                3, 'rm', TRUE
+            );
+        """)
+
+        make_views(db)
+
+        observed = get_somatic_variants_as_df(db)
+
+        expected = pd.DataFrame(
+            [
+                {
+                    "chrom": "chr1",
+                    "pos": 100,
+                    "ref": "G",
+                    "alt": "C",
+                    "af": 0.3,
+                    "alt_count": None,
+                    "am_class": None,
+                    "am_pathogenicity": None,
+                    "brca1_func_score": None,
+                    "civic_description": None,
+                    "civic_id": None,
+                    "civic_score": None,
+                    "dbsnp_rs_id": None,
+                    "dna_change": None,
+                    "dp": 20,
+                    "ensembl_feature_id": None,
+                    "ensembl_gene_id": None,
+                    "exon": None,
+                    "gc_content": None,
+                    "gnomade_af": None,
+                    "gnomadg_af": None,
+                    "gt": None,
+                    "gtex_gene": None,
+                    "gwas_disease": None,
+                    "gwas_pmid": None,
+                    "hess_driver": False,
+                    "hess_signature": None,
+                    "hgnc_family": None,
+                    "hgnc_name": None,
+                    "hugo_symbol": None,
+                    "intron": None,
+                    "lof_gene_id": None,
+                    "lof_gene_name": None,
+                    "lof_number_of_transcripts_in_gene": None,
+                    "lof_prop_of_transcripts_affected": None,
+                    "molecular_consequence": None,
+                    "nmd": None,
+                    "oncogene_high_impact": False,
+                    "pharmgkb_id": None,
+                    "polyphen": None,
+                    "protein_change": None,
+                    "provean_prediction": None,
+                    "ps": None,
+                    "ref_count": None,
+                    "rescue": False,
+                    "revel_score": None,
+                    "sift": None,
+                    "transcript_likely_lof": None,
+                    "tumor_suppressor_high_impact": False,
+                    "uniprot_id": None,
+                    "variant_info": "splice",
+                    "variant_type": None,
+                    "vep_biotype": None,
+                    "vep_clin_sig": None,
+                    "vep_ensp": None,
+                    "vep_existing_variation": None,
+                    "vep_hgnc_id": None,
+                    "vep_impact": "HIGH",
+                    "vep_loftool": None,
+                    "vep_mane_select": None,
+                    "vep_pli_gene_value": None,
+                    "vep_somatic": None,
+                    "vep_swissprot": None,
+                },
+            ]
+        ).astype(maf_dtypes)
+
+        assert_frame_equal(observed, expected)
+
+    def test_gnomad(self, db: duckdb.DuckDBPyConnection) -> None:
+        db.sql("""
+            INSERT INTO variants(
+                vid, chrom, pos, ref, alt
+            ) VALUES (
+                1, 'chr1', 100, 'G', 'C'
+            ), (
+                2, 'chr2', 200, 'A', 'T'
+            ), (
+                3, 'chr3', 300, 'A', 'T'
+            ), (
+                4, 'chr4', 400, 'A', 'T'
+            );
+            
+            INSERT INTO vals(
+                vid, k, v_integer, v_float
+            ) VALUES (
+                1, 'af', NULL, 0.3
+            ), (
+                1, 'dp', 20, NULL
+            ), (
+                2, 'af', NULL, 0.3
+            ), (
+                2, 'dp', 20, NULL
+            ), (
+                3, 'af', NULL, 0.3
+            ), (
+                3, 'dp', 20, NULL
+            ), (
+                4, 'af', NULL, 0.3
+            ), (
+                4, 'dp', 20, NULL
+            );
+            
+            INSERT INTO info(
+                vid, k, v_json_arr
+            ) VALUES (
+                1, 'csq', ['{"impact": "HIGH", "consequence": "splice", "gnom_ade_af": 0.000001, "gnom_adg_af": 0.000002}']
+            ), (
+                2, 'csq', ['{"impact": "HIGH", "consequence": "splice", "gnom_ade_af": 0.000001, "gnom_adg_af": 0.1}']
+            ), (
+                3, 'csq', ['{"impact": "HIGH", "consequence": "splice", "gnom_ade_af": null, "gnom_adg_af": 0.1}']
+            ), (
+                4, 'csq', ['{"impact": "HIGH", "consequence": "splice", "gnom_ade_af": 0.000001, "gnom_adg_af": 0.000002}']
+            );
+            
+            INSERT INTO info(
+                vid, k, v_boolean
+            ) VALUES (
+                4, 'pon', TRUE
+            )
+        """)
+
+        make_views(db)
+
+        observed = get_somatic_variants_as_df(db)
+
+        expected = pd.DataFrame(
+            [
+                {
+                    "chrom": "chr1",
+                    "pos": 100,
+                    "ref": "G",
+                    "alt": "C",
+                    "af": 0.3,
+                    "alt_count": None,
+                    "am_class": None,
+                    "am_pathogenicity": None,
+                    "brca1_func_score": None,
+                    "civic_description": None,
+                    "civic_id": None,
+                    "civic_score": None,
+                    "dbsnp_rs_id": None,
+                    "dna_change": None,
+                    "dp": 20,
+                    "ensembl_feature_id": None,
+                    "ensembl_gene_id": None,
+                    "exon": None,
+                    "gc_content": None,
+                    "gnomade_af": 0.000001,
+                    "gnomadg_af": 0.000002,
+                    "gt": None,
+                    "gtex_gene": None,
+                    "gwas_disease": None,
+                    "gwas_pmid": None,
+                    "hess_driver": False,
+                    "hess_signature": None,
+                    "hgnc_family": None,
+                    "hgnc_name": None,
+                    "hugo_symbol": None,
+                    "intron": None,
+                    "lof_gene_id": None,
+                    "lof_gene_name": None,
+                    "lof_number_of_transcripts_in_gene": None,
+                    "lof_prop_of_transcripts_affected": None,
+                    "molecular_consequence": None,
+                    "nmd": None,
+                    "oncogene_high_impact": False,
+                    "pharmgkb_id": None,
+                    "polyphen": None,
+                    "protein_change": None,
+                    "provean_prediction": None,
+                    "ps": None,
+                    "ref_count": None,
+                    "rescue": False,
+                    "revel_score": None,
+                    "sift": None,
+                    "transcript_likely_lof": None,
+                    "tumor_suppressor_high_impact": False,
+                    "uniprot_id": None,
+                    "variant_info": "splice",
+                    "variant_type": None,
+                    "vep_biotype": None,
+                    "vep_clin_sig": None,
+                    "vep_ensp": None,
+                    "vep_existing_variation": None,
+                    "vep_hgnc_id": None,
+                    "vep_impact": "HIGH",
                     "vep_loftool": None,
                     "vep_mane_select": None,
                     "vep_pli_gene_value": None,

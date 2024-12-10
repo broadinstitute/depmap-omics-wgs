@@ -588,7 +588,33 @@ def make_vep_table(db: duckdb.DuckDBPyConnection) -> None:
             )
             SELECT
                 vid,
-                csq.*
+                csq.am_class,
+                csq.am_pathogenicity,
+                csq.biotype,
+                csq.clin_sig,
+                csq.consequence,
+                csq.ensp,
+                csq.existing_variation,
+                csq.exon,
+                csq.feature,
+                csq.gene,
+                csq.gnom_ade_af,
+                csq.gnom_adg_af,
+                csq.hgnc_id,
+                csq.hgvsc,
+                url_decode(csq.hgvsp) AS hgvsp,
+                csq.impact,
+                csq.intron,
+                csq.loftool,
+                csq.mane_select,
+                csq.pli_gene_value,
+                csq.poly_phen,
+                csq.sift,
+                csq.somatic,
+                csq.swissprot,
+                csq.symbol,
+                csq.uniprot_isoform,
+                csq.variant_class
             FROM
                 vep_exploded
         )
