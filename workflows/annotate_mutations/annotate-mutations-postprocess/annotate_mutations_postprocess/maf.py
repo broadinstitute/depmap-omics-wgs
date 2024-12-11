@@ -256,7 +256,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_varchar AS civic_id
+                    v_integer AS civic_id
                 FROM
                     info
                 WHERE
@@ -936,11 +936,11 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
                 info_wide.oc_gtex_gtex_gene AS gtex_gene,
                 info_wide.oc_gwas_catalog_disease AS gwas_disease,
                 info_wide.oc_gwas_catalog_pmid AS gwas_pmid,
-                coalesce(info_wide.hess_driver, FALSE) AS hess_driver,
-                info_wide.hess_signature AS hess_signature,
                 info_wide.oc_pharmgkb_id AS pharmgkb_id,
                 info_wide.oc_provean_prediction AS provean_prediction,
                 info_wide.oc_revel_score AS revel_score,
+                coalesce(info_wide.hess_driver, FALSE) AS hess_driver,
+                info_wide.hess_signature AS hess_signature,
                 vep.am_class AS am_class,
                 vep.am_pathogenicity AS am_pathogenicity,
                 vep.hgvsc AS dna_change,
