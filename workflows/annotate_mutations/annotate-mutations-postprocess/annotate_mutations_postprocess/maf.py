@@ -425,7 +425,7 @@ def make_nmd_view(db: duckdb.DuckDBPyConnection) -> None:
             WITH exploded AS (
                 SELECT
                     vid,
-                    unnest(v_json_arr) AS v_json
+                    v_json_arr[1] AS v_json --there is only actually one value here
                 FROM
                     info
                 WHERE
@@ -495,7 +495,7 @@ def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
             hgnc_name_concat AS (
                 SELECT
                     vid,
-                    string_agg(v_varchar, '; ') AS hgnc_name
+                    string_agg(v_varchar, ';') AS hgnc_name
                 FROM
                     hgnc_name_exploded
                 GROUP BY
@@ -515,7 +515,7 @@ def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
             hgnc_group_concat AS (
                 SELECT
                     vid,
-                    string_agg(v_varchar, '; ') AS hgnc_group
+                    string_agg(v_varchar, ';') AS hgnc_group
                 FROM
                     hgnc_group_exploded
                 GROUP BY
@@ -1030,6 +1030,7 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
         )
     """)
 
+    # if we end up with duplicate variants, we must a fan trap due to a missing group by
     dups = db.sql(
         """
             SELECT
