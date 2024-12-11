@@ -1030,6 +1030,28 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
         )
     """)
 
+    dups = db.sql(
+        """
+            SELECT
+                chrom,
+                pos,
+                ref,
+                alt
+            FROM
+                somatic_variants
+            GROUP BY
+                chrom,
+                pos,
+                ref,
+                alt
+            HAVING
+                count(*) > 1
+        """
+    )
+
+    if len(dups) > 0:
+        raise ValueError(f"{len(dups)} duplicate variants in final result set:\n{dups}")
+
 
 def get_somatic_variants_as_df(db: duckdb.DuckDBPyConnection) -> pd.DataFrame:
     return (
