@@ -92,27 +92,20 @@ def db_setup() -> None:
                     filters VARCHAR[]
                 );
                 
-                CREATE TABLE vals(
-                    vid UINTEGER,
+                CREATE TABLE vals_info(
+                    vid UINTEGER REFERENCES variants (vid),
+                    kind VARCHAR,
                     k VARCHAR NOT NULL,
-                    v_varchar VARCHAR,
-                    v_integer INTEGER,
-                    v_float FLOAT,
-                    v_integer_arr INTEGER[],
-                    FOREIGN KEY (vid) REFERENCES variants(vid)
-                );
-                
-                CREATE TABLE info(
-                    vid UINTEGER,
-                    k VARCHAR NOT NULL,
-                    v_varchar VARCHAR,
-                    v_integer INTEGER,
-                    v_float FLOAT,
                     v_boolean BOOLEAN,
+                    v_varchar VARCHAR,
+                    v_integer INTEGER,
+                    v_float FLOAT,
+                    v_json JSON,
+                    v_boolean_arr BOOLEAN[],
                     v_varchar_arr VARCHAR[],
                     v_integer_arr INTEGER[],
-                    v_json_arr JSON[],
-                    FOREIGN KEY (vid) REFERENCES variants(vid)
+                    v_float_arr FLOAT[],
+                    v_json_arr JSON[]
                 );
             """)
 
@@ -125,8 +118,7 @@ def db(db_setup: duckdb.DuckDBPyConnection) -> None:
         DROP TABLE IF EXISTS somatic_variants;
         DROP TABLE IF EXISTS vep;
         
-        TRUNCATE TABLE info;
-        TRUNCATE TABLE vals;
+        TRUNCATE TABLE vals_info;
         TRUNCATE TABLE variants;
     """)
 
@@ -157,35 +149,35 @@ class TestFilter:
                 3, 'chr3', 300, 'A', 'T', ['PASS']
             );
             
-            INSERT INTO vals(
-                vid, k, v_integer, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, 0.3
+                1, 'val', 'af', NULL, 0.3
             ), (
-                1, 'dp', 20, NULL
+                1, 'val', 'dp', 20, NULL
             ), (
-                2, 'af', NULL, 0.3
+                2, 'val', 'af', NULL, 0.3
             ), (
-                2, 'dp', 20, NULL
+                2, 'val', 'dp', 20, NULL
             ), (
-                3, 'af', NULL, 0.3
+                3, 'val', 'af', NULL, 0.3
             ), (
-                3, 'dp', 20, NULL
+                3, 'val', 'dp', 20, NULL
             );
             
             --any rescue state will work for this test
-            INSERT INTO info(
-                vid, k, v_varchar
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar
             ) VALUES (
-                1, 'oncokb_muteff', 'Loss-of-function'
+                1, 'info', 'oncokb_muteff', 'Loss-of-function'
             ), (
-                1, 'as_filter_status', 'SITE|SITE'
+                1, 'info', 'as_filter_status', 'SITE|SITE'
             ), (
-                2, 'oncokb_muteff', 'Loss-of-function'
+                2, 'info', 'oncokb_muteff', 'Loss-of-function'
             ), (
-                3, 'oncokb_muteff', 'Loss-of-function'
+                3, 'info', 'oncokb_muteff', 'Loss-of-function'
             ), (
-                3, 'as_filter_status', 'strand_bias|SITE'
+                3,'info', 'as_filter_status', 'strand_bias|SITE'
             );
         """)
 
@@ -280,30 +272,30 @@ class TestRescue:
                 3, 'chr3', 300, 'A', 'T'
             );
             
-            INSERT INTO vals(
-                vid, k, v_integer, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, 0.3
+                1, 'val', 'af', NULL, 0.3
             ), (
-                1, 'dp', 20, NULL
+                1, 'val', 'dp', 20, NULL
             ), (
-                2, 'af', NULL, 0.3
+                2, 'val', 'af', NULL, 0.3
             ), (
-                2, 'dp', 20, NULL
+                2, 'val', 'dp', 20, NULL
             ), (
-                3, 'af', NULL, 0.3
+                3, 'val', 'af', NULL, 0.3
             ), (
-                3, 'dp', 20, NULL
+                3, 'val', 'dp', 20, NULL
             );
             
-            INSERT INTO info(
-                vid, k, v_varchar
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar
             ) VALUES (
-                1, 'oncokb_muteff', 'Loss-of-function'
+                1, 'info', 'oncokb_muteff', 'Loss-of-function'
             ), (
-                2, 'oncokb_muteff', 'Gain-of-function'
+                2, 'info', 'oncokb_muteff', 'Gain-of-function'
             ), (
-                3, 'oncokb_muteff', 'other'
+                3, 'info', 'oncokb_muteff', 'other'
             );
         """)
 
@@ -458,24 +450,24 @@ class TestRescue:
                 2, 'chr2', 200, 'A', 'T'
             );
             
-            INSERT INTO vals(
-                vid, k, v_integer, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, 0.3
+                1, 'val', 'af', NULL, 0.3
             ), (
-                1, 'dp', 20, NULL
+                1, 'val', 'dp', 20, NULL
             ), (
-                2, 'af', NULL, 0.3
+                2, 'val', 'af', NULL, 0.3
             ), (
-                2, 'dp', 20, NULL
+                2, 'val', 'dp', 20, NULL
             );
             
-            INSERT INTO info(
-                vid, k, v_varchar
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar
             ) VALUES (
-                1, 'oncokb_oncogenic', 'Oncogenic'
+                1, 'info', 'oncokb_oncogenic', 'Oncogenic'
             ), (
-                2, 'oncokb_oncogenic', 'not'
+                2,'info',  'oncokb_oncogenic', 'not'
             );
         """)
 
@@ -565,22 +557,22 @@ class TestRescue:
                 2, 'chr2', 200, 'A', 'T'
             );
             
-            INSERT INTO vals(
-                vid, k, v_integer, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, 0.3
+                1, 'val', 'af', NULL, 0.3
             ), (
-                1, 'dp', 20, NULL
+                1, 'val', 'dp', 20, NULL
             ), (
-                2, 'af', NULL, 0.3
+                2, 'val', 'af', NULL, 0.3
             ), (
-                2, 'dp', 20, NULL
+                2, 'val', 'dp', 20, NULL
             );
             
-            INSERT INTO info(
-                vid, k, v_boolean
+            INSERT INTO vals_info(
+                vid, kind, k, v_boolean
             ) VALUES (
-                1, 'oncokb_hotspot', TRUE
+                1, 'info', 'oncokb_hotspot', TRUE
             );
         """)
 
@@ -670,24 +662,24 @@ class TestRescue:
                 2, 'chr2', 200, 'A', 'T'
             );
             
-            INSERT INTO vals(
-                vid, k, v_integer, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, 0.3
+                1, 'val', 'af', NULL, 0.3
             ), (
-                1, 'dp', 20, NULL
+                1, 'val', 'dp', 20, NULL
             ), (
-                2, 'af', NULL, 0.3
+                2, 'val', 'af', NULL, 0.3
             ), (
-                2, 'dp', 20, NULL
+                2, 'val', 'dp', 20, NULL
             );
             
-            INSERT INTO info(
-                vid, k, v_integer
+            INSERT INTO vals_info(
+                vid, kind, k, v_integer
             ) VALUES (
-                1, 'cmc_tier', 1 
+                1, 'info', 'cmc_tier', 1 
             ), (
-                2, 'cmc_tier', 3 
+                2, 'info', 'cmc_tier', 3 
             );
         """)
 
@@ -777,24 +769,24 @@ class TestRescue:
                 2, 'chr2', 200, 'A', 'T'
             );
             
-            INSERT INTO vals(
-                vid, k, v_integer, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, 0.3
+                1, 'val', 'af', NULL, 0.3
             ), (
-                1, 'dp', 20, NULL
+                1, 'val', 'dp', 20, NULL
             ), (
-                2, 'af', NULL, 0.3
+                2, 'val', 'af', NULL, 0.3
             ), (
-                2, 'dp', 20, NULL
+                2, 'val', 'dp', 20, NULL
             );
             
-            INSERT INTO info(
-                vid, k, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_float
             ) VALUES (
-                1, 'oc_brca1_func_assay_score', -1.5
+                1, 'info', 'oc_brca1_func_assay_score', -1.5
             ), (
-                2, 'oc_brca1_func_assay_score', -0.9
+                2, 'info', 'oc_brca1_func_assay_score', -0.9
             );
         """)
 
@@ -886,34 +878,34 @@ class TestRescue:
                 3, 'chr3', 300, 'A', 'T'
             );
             
-            INSERT INTO vals(
-                vid, k, v_integer, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, 0.3
+                1, 'val', 'af', NULL, 0.3
             ), (
-                1, 'dp', 20, NULL
+                1, 'val', 'dp', 20, NULL
             ), (
-                2, 'af', NULL, 0.3
+                2, 'val', 'af', NULL, 0.3
             ), (
-                2, 'dp', 20, NULL
+                2, 'val', 'dp', 20, NULL
             ), (
-                3, 'af', NULL, 0.3
+                3, 'val', 'af', NULL, 0.3
             ), (
-                3, 'dp', 20, NULL
+                3, 'val', 'dp', 20, NULL
             );
             
-            INSERT INTO info(
-                vid, k, v_boolean, v_json_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_boolean, v_json_arr
             ) VALUES (
-                1, 'oncogene', TRUE, NULL 
+                1, 'info', 'oncogene', TRUE, NULL 
             ), (
-                1, 'csq', NULL, ['{"impact": "HIGH"}']
+                1, 'info', 'csq', NULL, ['{"impact": "HIGH"}']
             ), (
-                2, 'oncogene', TRUE, NULL 
+                2, 'info', 'oncogene', TRUE, NULL 
             ), (
-                2, 'csq', NULL, ['{"impact": "LOW"}']
+                2, 'info', 'csq', NULL, ['{"impact": "LOW"}']
             ), (
-                3, 'oncogene', TRUE, NULL 
+                3, 'info', 'oncogene', TRUE, NULL 
             );
         """)
 
@@ -1005,34 +997,34 @@ class TestRescue:
                 3, 'chr3', 300, 'A', 'T'
             );
             
-            INSERT INTO vals(
-                vid, k, v_integer, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, 0.3
+                1, 'val', 'af', NULL, 0.3
             ), (
-                1, 'dp', 20, NULL
+                1, 'val', 'dp', 20, NULL
             ), (
-                2, 'af', NULL, 0.3
+                2, 'val', 'af', NULL, 0.3
             ), (
-                2, 'dp', 20, NULL
+                2, 'val', 'dp', 20, NULL
             ), (
-                3, 'af', NULL, 0.3
+                3, 'val', 'af', NULL, 0.3
             ), (
-                3, 'dp', 20, NULL
+                3, 'val', 'dp', 20, NULL
             );
             
-            INSERT INTO info(
-                vid, k, v_boolean, v_json_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_boolean, v_json_arr
             ) VALUES (
-                1, 'tsg', TRUE, NULL 
+                1, 'info', 'tsg', TRUE, NULL 
             ), (
-                1, 'csq', NULL, ['{"impact": "HIGH"}']
+                1, 'info', 'csq', NULL, ['{"impact": "HIGH"}']
             ), (
-                2, 'tsg', TRUE, NULL 
+                2, 'info', 'tsg', TRUE, NULL 
             ), (
-                2, 'csq', NULL, ['{"impact": "LOW"}']
+                2, 'info', 'csq', NULL, ['{"impact": "LOW"}']
             ), (
-                3, 'tsg', TRUE, NULL 
+                3, 'info', 'tsg', TRUE, NULL 
             );
         """)
 
@@ -1122,22 +1114,22 @@ class TestRescue:
                 2, 'chr2', 200, 'A', 'T'
             );
             
-            INSERT INTO vals(
-                vid, k, v_integer, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, 0.3
+                1, 'val', 'af', NULL, 0.3
             ), (
-                1, 'dp', 20, NULL
+                1, 'val', 'dp', 20, NULL
             ), (
-                2, 'af', NULL, 0.3
+                2, 'val', 'af', NULL, 0.3
             ), (
-                2, 'dp', 20, NULL
+                2, 'val', 'dp', 20, NULL
             );
             
-            INSERT INTO info(
-                vid, k, v_varchar
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar
             ) VALUES (
-                1, 'hess', 'sig'
+                1, 'info', 'hess', 'sig'
             );
         """)
 
@@ -1227,22 +1219,22 @@ class TestRescue:
                 2, 'chr2', 200, 'A', 'T'
             );
             
-            INSERT INTO vals(
-                vid, k, v_integer, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, 0.3
+                1, 'val', 'af', NULL, 0.3
             ), (
-                1, 'dp', 20, NULL
+                1, 'val', 'dp', 20, NULL
             ), (
-                2, 'af', NULL, 0.3
+                2, 'val', 'af', NULL, 0.3
             ), (
-                2, 'dp', 20, NULL
+                2, 'val', 'dp', 20, NULL
             );
             
-            INSERT INTO info(
-                vid, k, v_json_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_json_arr
             ) VALUES (
-                1, 'csq', ['{"symbol": "TERT"}']
+                1, 'info', 'csq', ['{"symbol": "TERT"}']
             );
         """)
 
@@ -1332,22 +1324,22 @@ class TestRescue:
                 2, 'chr2', 200, 'A', 'T'
             );
             
-            INSERT INTO vals(
-                vid, k, v_integer, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, 0.3
+                1, 'val', 'af', NULL, 0.3
             ), (
-                1, 'dp', 20, NULL
+                1, 'val', 'dp', 20, NULL
             ), (
-                2, 'af', NULL, 0.3
+                2, 'val', 'af', NULL, 0.3
             ), (
-                2, 'dp', 20, NULL
+                2, 'val', 'dp', 20, NULL
             );
             
-            INSERT INTO info(
-                vid, k, v_json_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_json_arr
             ) VALUES (
-                1, 'csq', ['{"symbol": "MET"}']
+                1, 'info', 'csq', ['{"symbol": "MET"}']
             );
         """)
 
@@ -1442,30 +1434,30 @@ class TestFilteredVids:
                 3, 'chr3', 300, 'A', 'T'
             );
             
-            INSERT INTO vals(
-                vid, k, v_integer, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, 0.3
+                1, 'val', 'af', NULL, 0.3
             ), (
-                1, 'dp', 20, NULL
+                1, 'val', 'dp', 20, NULL
             ), (
-                2, 'af', NULL, 0.3
+                2, 'val', 'af', NULL, 0.3
             ), (
-                2, 'dp', 20, NULL
+                2, 'val', 'dp', 20, NULL
             ), (
-                3, 'af', NULL, 0.3
+                3, 'val', 'af', NULL, 0.3
             ), (
-                3, 'dp', 20, NULL
+                3, 'val', 'dp', 20, NULL
             );
             
-            INSERT INTO info(
-                vid, k, v_json_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_json_arr
             ) VALUES (
-                1, 'csq', ['{"impact": "HIGH", "consequence": "foo&splice_region"}']
+                1, 'info', 'csq', ['{"impact": "HIGH", "consequence": "foo&splice_region"}']
             ), (
-                2, 'csq', ['{"impact": "HIGH", "consequence": "other"}']
+                2, 'info', 'csq', ['{"impact": "HIGH", "consequence": "other"}']
             ), (
-                3, 'csq', ['{"impact": "LOW", "consequence": "splice"}']
+                3, 'info', 'csq', ['{"impact": "LOW", "consequence": "splice"}']
             );
         """)
 
@@ -1557,30 +1549,30 @@ class TestFilteredVids:
                 3, 'chr3', 300, 'A', 'T'
             );
             
-            INSERT INTO vals(
-                vid, k, v_integer, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, 0.3
+                1, 'val', 'af', NULL, 0.3
             ), (
-                1, 'dp', 20, NULL
+                1, 'val', 'dp', 20, NULL
             ), (
-                2, 'af', NULL, 0.3
+                2, 'val', 'af', NULL, 0.3
             ), (
-                2, 'dp', 20, NULL
+                2, 'val', 'dp', 20, NULL
             ), (
-                3, 'af', NULL, 0.3
+                3, 'val', 'af', NULL, 0.3
             ), (
-                3, 'dp', 20, NULL
+                3, 'val', 'dp', 20, NULL
             );
             
-            INSERT INTO info(
-                vid, k, v_json_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_json_arr
             ) VALUES (
-                1, 'csq', ['{"impact": "HIGH", "hgvsp": "ENSP15.3:p.Glu32del"}']
+                1, 'info', 'csq', ['{"impact": "HIGH", "hgvsp": "ENSP15.3:p.Glu32del"}']
             ), (
-                2, 'csq', ['{"impact": "HIGH", "hgvsp": "ENSP30.3:p.Asp637="}']
+                2, 'info', 'csq', ['{"impact": "HIGH", "hgvsp": "ENSP30.3:p.Asp637="}']
             ), (
-                3, 'csq', ['{"impact": "LOW", "hgvsp": null}']
+                3, 'info', 'csq', ['{"impact": "LOW", "hgvsp": null}']
             );
         """)
 
@@ -1672,39 +1664,39 @@ class TestFilteredVids:
                 3, 'chr3', 300, 'A', 'T'
             );
             
-            INSERT INTO vals(
-                vid, k, v_integer, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, 0.3
+                1, 'val', 'af', NULL, 0.3
             ), (
-                1, 'dp', 20, NULL
+                1, 'val', 'dp', 20, NULL
             ), (
-                2, 'af', NULL, 0.3
+                2, 'val', 'af', NULL, 0.3
             ), (
-                2, 'dp', 20, NULL
+                2, 'val', 'dp', 20, NULL
             ), (
-                3, 'af', NULL, 0.3
+                3, 'val', 'af', NULL, 0.3
             ), (
-                3, 'dp', 20, NULL
+                3, 'val', 'dp', 20, NULL
             );
             
-            INSERT INTO info(
-                vid, k, v_json_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_json_arr
             ) VALUES (
-                1, 'csq', ['{"impact": "HIGH", "consequence": "splice"}']
+                1, 'info', 'csq', ['{"impact": "HIGH", "consequence": "splice"}']
             ), (
-                2, 'csq', ['{"impact": "HIGH", "consequence": "splice"}']
+                2, 'info', 'csq', ['{"impact": "HIGH", "consequence": "splice"}']
             ), (
-                3, 'csq', ['{"impact": "HIGH", "consequence": "splice"}']
+                3, 'info', 'csq', ['{"impact": "HIGH", "consequence": "splice"}']
             );
             
             --undo some of the previous positive selections
-            INSERT INTO info(
-                vid, k, v_boolean
+            INSERT INTO vals_info(
+                vid, kind, k, v_boolean
             ) VALUES (
-                2, 'segdup', TRUE
+                2, 'info', 'segdup', TRUE
             ), (
-                3, 'rm', TRUE
+                3, 'info', 'rm', TRUE
             );
         """)
 
@@ -1798,42 +1790,42 @@ class TestFilteredVids:
                 4, 'chr4', 400, 'A', 'T'
             );
             
-            INSERT INTO vals(
-                vid, k, v_integer, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_integer, v_float
             ) VALUES (
-                1, 'af', NULL, 0.3
+                1, 'val', 'af', NULL, 0.3
             ), (
-                1, 'dp', 20, NULL
+                1, 'val', 'dp', 20, NULL
             ), (
-                2, 'af', NULL, 0.3
+                2, 'val', 'af', NULL, 0.3
             ), (
-                2, 'dp', 20, NULL
+                2, 'val', 'dp', 20, NULL
             ), (
-                3, 'af', NULL, 0.3
+                3, 'val', 'af', NULL, 0.3
             ), (
-                3, 'dp', 20, NULL
+                3, 'val', 'dp', 20, NULL
             ), (
-                4, 'af', NULL, 0.3
+                4, 'val', 'af', NULL, 0.3
             ), (
-                4, 'dp', 20, NULL
+                4, 'val', 'dp', 20, NULL
             );
             
-            INSERT INTO info(
-                vid, k, v_json_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_json_arr
             ) VALUES (
-                1, 'csq', ['{"impact": "HIGH", "consequence": "splice", "gnom_ade_af": 0.000001, "gnom_adg_af": 0.000002}']
+                1, 'info', 'csq', ['{"impact": "HIGH", "consequence": "splice", "gnom_ade_af": 0.000001, "gnom_adg_af": 0.000002}']
             ), (
-                2, 'csq', ['{"impact": "HIGH", "consequence": "splice", "gnom_ade_af": 0.000001, "gnom_adg_af": 0.1}']
+                2, 'info', 'csq', ['{"impact": "HIGH", "consequence": "splice", "gnom_ade_af": 0.000001, "gnom_adg_af": 0.1}']
             ), (
-                3, 'csq', ['{"impact": "HIGH", "consequence": "splice", "gnom_ade_af": null, "gnom_adg_af": 0.1}']
+                3, 'info', 'csq', ['{"impact": "HIGH", "consequence": "splice", "gnom_ade_af": null, "gnom_adg_af": 0.1}']
             ), (
-                4, 'csq', ['{"impact": "HIGH", "consequence": "splice", "gnom_ade_af": 0.000001, "gnom_adg_af": 0.000002}']
+                4, 'info', 'csq', ['{"impact": "HIGH", "consequence": "splice", "gnom_ade_af": 0.000001, "gnom_adg_af": 0.000002}']
             );
             
-            INSERT INTO info(
-                vid, k, v_boolean
+            INSERT INTO vals_info(
+                vid, kind, k, v_boolean
             ) VALUES (
-                4, 'pon', TRUE
+                4, 'info', 'pon', TRUE
             )
         """)
 
@@ -1924,19 +1916,19 @@ class TestColumns:
                 1, 'chr1', 100, 'G', 'C'
             );
             
-            INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar, v_integer, v_float, v_integer_arr
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'val', 'af', NULL, NULL, 0.3, NULL
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'val', 'dp', NULL, 20, NULL, NULL
             );
             
             --any rescue state will work for this test
-            INSERT INTO info(
-                vid, k, v_varchar
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar
             ) VALUES (
-                1, 'oncokb_muteff', 'Loss-of-function'
+                1, 'info', 'oncokb_muteff', 'Loss-of-function'
             );
         """)
 
@@ -2024,25 +2016,25 @@ class TestColumns:
                 1, 'chr1', 100, 'G', 'C'
             );
             
-            INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar, v_integer, v_float, v_integer_arr
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'val', 'af', NULL, NULL, 0.3, NULL
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'val', 'dp', NULL, 20, NULL, NULL
             ), (
-                1, 'ad', NULL, 20, NULL, [5, 15]
+                1, 'val', 'ad', NULL, 20, NULL, [5, 15]
             ), (
-                1, 'gt', '1|1', NULL, NULL, NULL
+                1, 'val', 'gt', '1|1', NULL, NULL, NULL
             ), (
-                1, 'ps', NULL, 175160788, NULL, NULL
+                1, 'val', 'ps', NULL, 175160788, NULL, NULL
             );
             
             --any rescue state will work for this test
-            INSERT INTO info(
-                vid, k, v_varchar
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar
             ) VALUES (
-                1, 'oncokb_muteff', 'Loss-of-function'
+                1, 'info', 'oncokb_muteff', 'Loss-of-function'
             );
         """)
 
@@ -2130,75 +2122,75 @@ class TestColumns:
                 1, 'chr1', 100, 'G', 'C'
             );
             
-            INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar, v_integer, v_float, v_integer_arr
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'val', 'af', NULL, NULL, 0.3, NULL
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'val', 'dp', NULL, 20, NULL, NULL
             );
             
             --any rescue state will work for this test
-            INSERT INTO info(
-                vid, k, v_varchar
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar
             ) VALUES (
-                1, 'oncokb_muteff', 'Loss-of-function'
+                1, 'info', 'oncokb_muteff', 'Loss-of-function'
             );
             
-            INSERT INTO info(
-                vid, k, v_varchar, v_integer, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar, v_integer, v_float
             ) VALUES (
-                1, 'civic_desc', 'civic description', NULL, NULL
+                1, 'info', 'civic_desc', 'civic description', NULL, NULL
             ), (
-                1, 'civic_id', NULL, 123, NULL
+                1, 'info', 'civic_id', NULL, 123, NULL
             ), (
-                1, 'civic_score', NULL, NULL, 45.0
+                1, 'info', 'civic_score', NULL, NULL, 45.0
             );
 
-            INSERT INTO info(
-                vid, k, v_varchar_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar_arr
             ) VALUES (
-                1, 'rs', ['346575']
+                1, 'info', 'rs', ['346575']
             );
 
-            INSERT INTO info(
-                vid, k, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_float
             ) VALUES (
-                1, 'gc_prop', 0.321
+                1, 'info', 'gc_prop', 0.321
             );
 
-            INSERT INTO info(
-                vid, k, v_varchar_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar_arr
             ) VALUES (
-                1, 'mc', ['SO:0001627|intron', 'SO:0001819|synonymous']
+                1, 'info', 'mc', ['SO:0001627|intron', 'SO:0001819|synonymous']
             );
 
-            INSERT INTO info(
-                vid, k, v_varchar
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar
             ) VALUES (
-                1, 'oc_gtex_gtex_gene', 'LINC00339|LINC00339'
+                1, 'info', 'oc_gtex_gtex_gene', 'LINC00339|LINC00339'
             ), (
-                1, 'oc_gwas_catalog_disease', 'Alzehimer''s'
+                1, 'info', 'oc_gwas_catalog_disease', 'Alzehimer''s'
             ), (
-                1, 'oc_gwas_catalog_pmid', '27863252'
+                1, 'info', 'oc_gwas_catalog_pmid', '27863252'
             ), (
-                1, 'oc_pharmgkb_id', 'PA166153763'
+                1, 'info', 'oc_pharmgkb_id', 'PA166153763'
             ), (
-                1, 'oc_provean_prediction', 'Damaging'
+                1, 'info', 'oc_provean_prediction', 'Damaging'
             );
             
-            INSERT INTO info(
-                vid, k, v_float
+            INSERT INTO vals_info(
+                vid, kind, k, v_float
             ) VALUES (
-                1, 'oc_brca1_func_assay_score', -1.5
+                1, 'info', 'oc_brca1_func_assay_score', -1.5
             ), (
-                1, 'oc_revel_score', 0.012
+                1, 'info', 'oc_revel_score', 0.012
             );
 
-            INSERT INTO info(
-                vid, k, v_varchar
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar
             ) VALUES (
-                1, 'hess', 'sig'
+                1, 'info', 'hess', 'sig'
             );
         """)
 
@@ -2286,25 +2278,25 @@ class TestColumns:
                 1, 'chr1', 100, 'G', 'C'
             );
             
-            INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar, v_integer, v_float, v_integer_arr
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'val', 'af', NULL, NULL, 0.3, NULL
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'val', 'dp', NULL, 20, NULL, NULL
             );
             
             --any rescue state will work for this test
-            INSERT INTO info(
-                vid, k, v_varchar
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar
             ) VALUES (
-                1, 'oncokb_muteff', 'Loss-of-function'
+                1, 'info', 'oncokb_muteff', 'Loss-of-function'
             );
             
-            INSERT INTO info(
-                vid, k, v_boolean, v_json_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_boolean, v_json_arr
             ) VALUES (
-                1, 'csq', NULL, ['{
+                1, 'info', 'csq', NULL, ['{
                     "am_class": "likely_benign",
                     "am_pathogenicity": 0.1949,
                     "biotype": "lncRNA",
@@ -2420,25 +2412,25 @@ class TestColumns:
                 1, 'chr1', 100, 'G', 'C'
             );
             
-            INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar, v_integer, v_float, v_integer_arr
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'val', 'af', NULL, NULL, 0.3, NULL
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'val', 'dp', NULL, 20, NULL, NULL
             );
             
             --any rescue state will work for this test
-            INSERT INTO info(
-                vid, k, v_varchar
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar
             ) VALUES (
-                1, 'oncokb_muteff', 'Loss-of-function'
+                1, 'info', 'oncokb_muteff', 'Loss-of-function'
             );
             
-            INSERT INTO info(
-                vid, k, v_varchar
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar
             ) VALUES (
-                1, 'oc_revel_all', '[["E1",0.7,0.2],["E2",0.8,0.4],["E3",0.5,0.9]]'
+                1, 'info', 'oc_revel_all', '[["E1",0.7,0.2],["E2",0.8,0.4],["E3",0.5,0.9]]'
             );
         """)
 
@@ -2526,25 +2518,25 @@ class TestColumns:
                 1, 'chr1', 100, 'G', 'C'
             );
             
-            INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar, v_integer, v_float, v_integer_arr
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'val', 'af', NULL, NULL, 0.3, NULL
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'val', 'dp', NULL, 20, NULL, NULL
             );
             
             --any rescue state will work for this test
-            INSERT INTO info(
-                vid, k, v_varchar
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar
             ) VALUES (
-                1, 'oncokb_muteff', 'Loss-of-function'
+                1, 'info', 'oncokb_muteff', 'Loss-of-function'
             );
             
-            INSERT INTO info(
-                vid, k, v_json_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_json_arr
             ) VALUES (
-                1, 'nmd', ['{
+                1, 'info', 'nmd', ['{
                     "gene_name": "LRRC20",
                     "gene_id": "E1.15",
                     "number_of_transcripts_in_gene": "1",
@@ -2639,35 +2631,35 @@ class TestColumns:
                 2, 'chr2', 200, 'A', 'T'
             );
             
-            INSERT INTO vals(
-                vid, k, v_varchar, v_integer, v_float, v_integer_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar, v_integer, v_float, v_integer_arr
             ) VALUES (
-                1, 'af', NULL, NULL, 0.3, NULL
+                1, 'val', 'af', NULL, NULL, 0.3, NULL
             ), (
-                1, 'dp', NULL, 20, NULL, NULL
+                1, 'val', 'dp', NULL, 20, NULL, NULL
             ), (
-                2, 'af', NULL, NULL, 0.3, NULL
+                2, 'val', 'af', NULL, NULL, 0.3, NULL
             ), (
-                2, 'dp', NULL, 20, NULL, NULL
+                2, 'val', 'dp', NULL, 20, NULL, NULL
             );
             
             --any rescue state will work for this test
-            INSERT INTO info(
-                vid, k, v_varchar
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar
             ) VALUES (
-                1, 'oncokb_muteff', 'Loss-of-function'
+                1, 'info', 'oncokb_muteff', 'Loss-of-function'
             ), (
-                2, 'oncokb_muteff', 'Loss-of-function'
+                2, 'info', 'oncokb_muteff', 'Loss-of-function'
             );
             
-            INSERT INTO info(
-                vid, k, v_varchar_arr
+            INSERT INTO vals_info(
+                vid, kind, k, v_varchar_arr
             ) VALUES (
-                1, 'hgnc_name', ['name1', 'name2']
+                1, 'info', 'hgnc_name', ['name1', 'name2']
             ), (
-                1, 'hgnc_group', ['group1']
+                1, 'info', 'hgnc_group', ['group1']
             ), (
-                2, 'hgnc_name', ['nameA']
+                2, 'info', 'hgnc_name', ['nameA']
             );
         """)
 

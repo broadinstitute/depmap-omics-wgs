@@ -39,6 +39,9 @@ def make_views(
     max_pop_af: float = 1e-05,
     max_brca1_func_assay_score: float = -1.328,
 ):
+    # separate vals_info table into two views
+    make_vals_info_views(db)
+
     # convert vals to wide view
     make_vals_wide_view(db)
 
@@ -57,6 +60,32 @@ def make_views(
     make_rescues_view(db, max_brca1_func_assay_score)
     make_filtered_vids_view(db, max_pop_af)
     make_somatic_variants_table(db)
+
+
+def make_vals_info_views(db: duckdb.DuckDBPyConnection) -> None:
+    logging.info("Making vals and info views")
+
+    db.sql("""
+        CREATE OR REPLACE VIEW vals AS (
+            SELECT
+                *
+            FROM
+                vals_info
+            WHERE
+                kind = 'val'
+        )
+    """)
+
+    db.sql("""
+        CREATE OR REPLACE VIEW info AS (
+            SELECT
+                *
+            FROM
+                vals_info
+            WHERE
+                kind = 'info'
+        )
+    """)
 
 
 def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
@@ -133,7 +162,7 @@ def make_filters_view(db: duckdb.DuckDBPyConnection) -> None:
 
     db.sql("""
         CREATE OR REPLACE VIEW filters AS (
-            WITH val_filters AS (
+            WITH variant_filters AS (
                 SELECT
                     vid,
                     unnest(filters) AS filter
@@ -153,7 +182,7 @@ def make_filters_view(db: duckdb.DuckDBPyConnection) -> None:
                 vid,
                 lower(filter) AS filter
             FROM
-                val_filters
+                variant_filters
             UNION
             SELECT
                 vid,
