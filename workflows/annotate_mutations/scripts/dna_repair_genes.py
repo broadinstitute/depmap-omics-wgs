@@ -4,7 +4,7 @@ import pandas as pd
 from _csv import QUOTE_NONE
 
 df = pd.read_table(
-    "https://storage.googleapis.com/broad-public-datasets/funcotator/funcotator_dataSources.v1.7.20200521s/dna_repair_genes/hg19/dnaRepairGenes.20180524T145835.csv",
+    "https://storage.googleapis.com/broad-public-datasets/funcotator/funcotator_dataSources.v1.8.hg19.20230908s/dna_repair_genes/hg19/dnaRepairGenes.20230628T135455.csv",
     sep="|",
     quoting=QUOTE_NONE,
     dtype="string",
