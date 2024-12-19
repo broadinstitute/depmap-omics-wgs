@@ -21,5 +21,3 @@ RUN poetry install --only main --no-root --no-cache
 
 COPY annotate_mutations_postprocess ./annotate_mutations_postprocess
 RUN poetry install --only-root
-
-COPY config.toml ./

@@ -1,11 +1,9 @@
 import logging
 from pathlib import Path
-from typing import Annotated, Any, List
+from typing import Annotated
 
 import pandas as pd
-import tomllib
 import typer
-from vcf_info_merger import info_merge_vcfs
 
 from annotate_mutations_postprocess.maf import convert_duckdb_to_maf
 
@@ -21,8 +19,6 @@ pd.set_option("mode.chained_assignment", "warn")
 
 app = typer.Typer()
 
-config: dict[str, Any] = {}
-
 
 # noinspection PyUnusedLocal
 def done(*args, **kwargs):
@@ -30,28 +26,12 @@ def done(*args, **kwargs):
 
 
 @app.callback(result_callback=done)
-def main(
-    ctx: typer.Context,
-    config_path: Annotated[Path, typer.Option(exists=True)],
-):
+def main():
     logging.basicConfig(
         format="%(asctime)s %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
         level=logging.INFO,
     )
-
-    with open(config_path, "rb") as f:
-        config.update(tomllib.load(f))
-
-    ctx.obj = config
-
-
-@app.command()
-def merge_info(
-    vcf: Annotated[List[Path], typer.Option(exists=True)],
-    out: Annotated[Path, typer.Option()],
-) -> None:
-    info_merge_vcfs(vcf_paths=vcf, out_path=out)
 
 
 @app.command()
