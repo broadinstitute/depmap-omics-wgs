@@ -62,7 +62,7 @@
     "annotate_mutations.open_cravat.docker_image_hash_or_tag": "\"@sha256:5bbfee3502d06f5638ab269af90779ef6fcdc2a30e691bfdf03b5c93c9f76696\"",
     "annotate_mutations.open_cravat_data_sources_url": "\"gs://cds-pipelines/data/open-cravat/2024-07-01\"",
     "annotate_mutations.postprocess.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/annotate-mutations-postprocess\"",
-    "annotate_mutations.postprocess.docker_image_hash_or_tag": "\"@sha256:02cb58b2aa45e94ef4e5fc22d6223f826fc74661ce29fb0696c1f794b97f0577\"",
+    "annotate_mutations.postprocess.docker_image_hash_or_tag": "\"@sha256:ca333c64a8c999fd708d419b96c84b61ad4f5abd4fb3e4b62421476bdd3f568f\"",
     "annotate_mutations.ref_dict": "this.ref_dict",
     "annotate_mutations.ref_fasta": "this.ref_fasta",
     "annotate_mutations.ref_fasta_bgz": "\"gs://cds-pipelines/data/vep/Homo_sapiens.GRCh38.dna.primary_assembly.fa.bgz\"",
