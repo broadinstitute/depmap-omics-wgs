@@ -255,6 +255,11 @@ workflow annotate_mutations {
             url_encoded_col_name_regexes = url_encoded_col_name_regexes
     }
 
+    call postprocess {
+        input:
+            duckdb = vcf_to_duckdb.duckdb
+    }
+
 #    call vcf2maf {
 #        input:
 #            vcf = fixed_vcf,
@@ -268,6 +273,7 @@ workflow annotate_mutations {
         File mut_annot_vcf = fixed_vcf
         File mut_annot_vcf_index = index_vcf.vcf_index
         Array[File] mut_duckdb = vcf_to_duckdb.duckdb
+        File somatic_variants = postprocess.somatic_variants
 #        File mut_annot_maf = vcf2maf.maf
     }
 }
@@ -1347,6 +1353,51 @@ task vcf_to_duckdb {
 
     output {
         Array[File] duckdb = glob("parq/*.*")
+    }
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+
+    meta {
+        allowNestedInputs: true
+    }
+}
+
+task postprocess {
+    input {
+        Array[File] duckdb
+
+        String docker_image
+        String docker_image_hash_or_tag
+        Int mem_gb = 8
+        Int cpu = 2
+        Int preemptible = 3
+        Int max_retries = 2
+        Int additional_disk_gb = 0
+    }
+
+    Int disk_space = ceil(3 * size(duckdb, "GiB")) + 10 + additional_disk_gb
+
+    command <<<
+        set -euo pipefail
+
+        mkdir -p parq
+        mv ~{sep=" " duckdb} parq/
+
+        python -m annotate_mutations_postprocess duckdb-to-maf \
+            --db="tmp.duckdb" \
+            --parquet-dir="./parq" \
+            --out-file="somatic_variants.parquet"
+    >>>
+
+    output {
+        File somatic_variants = "somatic_variants.parquet"
     }
 
     runtime {
