@@ -454,7 +454,7 @@ def make_nmd_view(db: duckdb.DuckDBPyConnection) -> None:
             WITH exploded AS (
                 SELECT
                     vid,
-                    v_json_arr[1] AS v_json --there is only actually one value here
+                    v_json_arr[1] AS v_json -- SnpEff actually puts only one value here
                 FROM
                     info
                 WHERE
@@ -479,7 +479,7 @@ def make_lof_view(db: duckdb.DuckDBPyConnection) -> None:
             WITH exploded AS (
                 SELECT
                     vid,
-                    unnest(v_json_arr) AS v_json
+                    v_json_arr[1] AS v_json -- SnpEff actually puts only one value here
                 FROM
                     info
                 WHERE
@@ -489,18 +489,14 @@ def make_lof_view(db: duckdb.DuckDBPyConnection) -> None:
             )
             SELECT
                 vid,
-                string_agg(v_json->>'$.gene_name', ';') AS gene_name,
-                string_agg(v_json->>'$.gene_id', ';') AS gene_id,
-                string_agg(
-                    v_json->>'$.number_of_transcripts_in_gene', ';'
-                )::USMALLINT AS number_of_transcripts_in_gene,
-                string_agg(
-                    v_json->>'$.percent_of_transcripts_affected', ';'
-                )::FLOAT AS prop_of_transcripts_affected
+                v_json->>'$.gene_name' AS gene_name,
+                v_json->>'$.gene_id' AS gene_id,
+                (v_json->>'$.number_of_transcripts_in_gene')::USMALLINT
+                    AS number_of_transcripts_in_gene,
+                (v_json->>'$.percent_of_transcripts_affected')::FLOAT
+                    AS prop_of_transcripts_affected
             FROM
                 exploded
-            GROUP BY
-                vid
         )
     """)
 
