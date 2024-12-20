@@ -1059,25 +1059,24 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
         )
     """)
 
-    # if we end up with duplicate variants, we must a fan trap due to a missing group by
-    dups = db.sql(
-        """
-            SELECT
-                chrom,
-                pos,
-                ref,
-                alt
-            FROM
-                somatic_variants
-            GROUP BY
-                chrom,
-                pos,
-                ref,
-                alt
-            HAVING
-                count(*) > 1
-        """
-    )
+    # if we end up with duplicate variants, we must have introduced a fan trap due to a
+    # missing `group by` somewhere
+    dups = db.sql("""
+        SELECT
+            chrom,
+            pos,
+            ref,
+            alt
+        FROM
+            somatic_variants
+        GROUP BY
+            chrom,
+            pos,
+            ref,
+            alt
+        HAVING
+            count(*) > 1
+    """)
 
     if len(dups) > 0:
         raise ValueError(f"{len(dups)} duplicate variants in final result set:\n{dups}")
