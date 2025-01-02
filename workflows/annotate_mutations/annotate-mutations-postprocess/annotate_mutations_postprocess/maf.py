@@ -247,6 +247,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
                 t_civic_desc.civic_desc,
                 t_civic_id.civic_id,
                 t_civic_score.civic_score,
+                t_cosmic_tier.cosmic_tier,
                 t_rs.rs[1] AS rs,
                 t_gc_prop.gc_prop,
                 list_aggregate(t_mc.mc, 'string_agg', ',') AS mc,
@@ -257,7 +258,10 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
                 t_hess.hess_signature,
                 t_oc_pharmgkb_id.oc_pharmgkb_id,
                 t_oc_provean_prediction.oc_provean_prediction,
-                t_oc_revel_score.oc_revel_score
+                t_oc_revel_score.oc_revel_score,
+                t_oncokb_hotspot.oncokb_hotspot,
+                t_oncokb_muteff.oncokb_muteff,
+                t_oncokb_oncogenic.oncokb_oncogenic
             FROM
                 info
 
@@ -301,6 +305,16 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
                 WHERE
                     k = 'civic_score'
             ) t_civic_score ON info.vid = t_civic_score.vid
+
+            LEFT OUTER JOIN (
+                SELECT
+                    vid,
+                    v_integer AS cosmic_tier
+                FROM
+                    info
+                WHERE
+                    k = 'cmc_tier'
+            ) t_cosmic_tier ON info.vid = t_cosmic_tier.vid
 
             LEFT OUTER JOIN (
                 SELECT
@@ -402,6 +416,36 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
                 WHERE
                     k = 'oc_revel_score'
             ) t_oc_revel_score ON info.vid = t_oc_revel_score.vid
+
+            LEFT OUTER JOIN (
+                SELECT
+                    vid,
+                    v_varchar AS oncokb_muteff
+                FROM
+                    info
+                WHERE
+                    k = 'oncokb_muteff'
+            ) t_oncokb_muteff ON info.vid = t_oncokb_muteff.vid
+
+            LEFT OUTER JOIN (
+                SELECT
+                    vid,
+                    v_boolean AS oncokb_hotspot
+                FROM
+                    info
+                WHERE
+                    k = 'oncokb_hotspot'
+            ) t_oncokb_hotspot ON info.vid = t_oncokb_hotspot.vid
+
+            LEFT OUTER JOIN (
+                SELECT
+                    vid,
+                    v_varchar AS oncokb_oncogenic
+                FROM
+                    info
+                WHERE
+                    k = 'oncokb_oncogenic'
+            ) t_oncokb_oncogenic ON info.vid = t_oncokb_oncogenic.vid
 
             WHERE info.vid IN (SELECT vid FROM quality_vids)
         )
@@ -882,6 +926,7 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
             civic_description VARCHAR,
             civic_id VARCHAR,
             civic_score FLOAT,
+            cosmic_tier UINTEGER,
             dbsnp_rs_id VARCHAR,
             dna_change VARCHAR,
             dp USMALLINT,
@@ -908,6 +953,9 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
             molecular_consequence VARCHAR,
             nmd VARCHAR,
             oncogene_high_impact BOOLEAN,
+            oncokb_effect VARCHAR,
+            oncokb_hotspot BOOLEAN,
+            oncokb_oncogenic VARCHAR,
             pharmgkb_id VARCHAR,
             polyphen VARCHAR,
             protein_change VARCHAR,
@@ -955,6 +1003,7 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
                 info_wide.civic_desc AS civic_description,
                 info_wide.civic_id AS civic_id,
                 info_wide.civic_score AS civic_score,
+                info_wide.cosmic_tier AS cosmic_tier,
                 info_wide.rs AS dbsnp_rs_id,
                 info_wide.gc_prop AS gc_content,
                 info_wide.mc AS molecular_consequence,
@@ -964,6 +1013,9 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
                 info_wide.oc_pharmgkb_id AS pharmgkb_id,
                 info_wide.oc_provean_prediction AS provean_prediction,
                 info_wide.oc_revel_score AS revel_score,
+                info_wide.oncokb_muteff AS oncokb_effect,
+                coalesce(info_wide.oncokb_hotspot, FALSE) AS oncokb_hotspot,
+                info_wide.oncokb_oncogenic AS oncokb_oncogenic,
                 coalesce(info_wide.hess_driver, FALSE) AS hess_driver,
                 info_wide.hess_signature AS hess_signature,
                 vep.am_class AS am_class,
@@ -1096,6 +1148,7 @@ def get_somatic_variants_as_df(db: duckdb.DuckDBPyConnection) -> pd.DataFrame:
                 "civic_description": "string",
                 "civic_id": "string",
                 "civic_score": "Float32",
+                "cosmic_tier": "UInt32",
                 "dbsnp_rs_id": "string",
                 "dna_change": "string",
                 "dp": "UInt32",
@@ -1122,6 +1175,9 @@ def get_somatic_variants_as_df(db: duckdb.DuckDBPyConnection) -> pd.DataFrame:
                 "molecular_consequence": "string",
                 "nmd": "string",
                 "oncogene_high_impact": "boolean",
+                "oncokb_effect": "string",
+                "oncokb_hotspot": "boolean",
+                "oncokb_oncogenic": "string",
                 "pharmgkb_id": "string",
                 "polyphen": "string",
                 "protein_change": "string",
