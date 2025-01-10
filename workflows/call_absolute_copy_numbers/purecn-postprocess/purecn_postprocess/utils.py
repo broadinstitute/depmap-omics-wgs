@@ -47,9 +47,7 @@ def collect_outputs(solution_path: Path, loh_path: Path, out_path: Path) -> None
 
     # write JSON to file
     with open(out_path, "w") as f:
-        json.dump(res, f)
-
-    # json.dump(res, open(out_path, "w"))
+        f.write(json.dumps(res) + "\n")
 
 
 def read_solution(solution_path: Path) -> pd.DataFrame:
@@ -151,9 +149,9 @@ def calculate_cin(
         # remove rows with NaN in 'M' (minor integer copy number) column
         loh = loh.dropna(subset=["m"])
 
-    if allele_specific:
         # write as, e.g., "2/1"
         loh["state"] = loh["c"].astype("str") + "/" + loh["m"].astype("str")
+
     else:
         loh["state"] = loh["c"].astype("str")
 
@@ -163,7 +161,7 @@ def calculate_cin(
     if reference_state == "normal":
         reference_state_cn = "2/1" if allele_specific else "2"
 
-    # calculate proportion of genome matching the reference state
+    # calculate proportion of genome not matching the reference state
     loh["is_reference"] = loh["state"].eq(reference_state_cn)
     return loh.loc[~loh["is_reference"], "size"].sum() / loh["size"].sum()
 

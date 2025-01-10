@@ -8,12 +8,13 @@ packages = [{include = "purecn_postprocess"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"
-pandas = "^2.2.2"
-typer = "^0.12.3"
-click = "^8.1.7"
+pandas = "^2.2.3"
+typer = "^0.12.5"
+click = "^8.1.8"
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.4.8"
+ruff = "^0.4.10"
+pytest = "^8.3.4"
 
 [tool.ruff]
 select = [
