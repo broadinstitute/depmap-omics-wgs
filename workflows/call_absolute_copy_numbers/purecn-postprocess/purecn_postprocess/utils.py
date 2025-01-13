@@ -1,9 +1,11 @@
 import json
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Type
 
 import pandas as pd
 from click import echo
+
+from purecn_postprocess.types import Loh, PanderaBaseSchema, TypedDataFrame
 
 
 def collect_outputs(solution_path: Path, loh_path: Path, out_path: Path) -> None:
@@ -121,7 +123,7 @@ def read_loh(loh_path: Path) -> pd.DataFrame:
     # PureCN outputs non-integer segment copy numbers when they exceed `max.copy.number`
     loh["c"] = loh["c"].round(0).astype("int64")
 
-    return loh
+    return type_data_frame(loh, Loh)
 
 
 def calculate_cin(
@@ -168,7 +170,8 @@ def calculate_cin(
 
 def call_wgd(loh: pd.DataFrame, ploidy: float) -> bool:
     """
-    Call whole genome doubling (WGD).
+    Call whole genome doubling (WGD). Citation:
+    https://www.sciencedirect.com/science/article/pii/S0092867421002944
 
     :param loh: data frame containing the gene call data
     :param ploidy: the ploidy of the sample from the solution data
@@ -187,5 +190,44 @@ def call_wgd(loh: pd.DataFrame, ploidy: float) -> bool:
 
     loh_frac = loh_len / loh["size"].sum()
 
-    # https://www.sciencedirect.com/science/article/pii/S0092867421002944
     return bool(-2 * loh_frac + 3 < ploidy)
+
+
+def type_data_frame(
+    df: pd.DataFrame,
+    pandera_schema: Type[PanderaBaseSchema],
+    remove_unknown_cols: bool = False,
+) -> TypedDataFrame[PanderaBaseSchema]:
+    """
+    Coerce a data frame into one specified by a Pandera schema and optionally remove
+    unknown columns.
+
+    :param df: a data frame
+    :param pandera_schema: a Pandera schema
+    :param remove_unknown_cols: remove columns not specified in the schema
+    :return: a data frame validated with the provided Pandera schema
+    """
+
+    if len(df) == 0:
+        # make an empty data frame that conforms to the Pandera schema
+        s = pandera_schema.to_schema()
+
+        # `example` doesn't know how to instantiate dicts, so do that manually
+        dict_cols = []
+
+        for c in s.columns:
+            if s.columns[c].dtype.type is dict:
+                dict_cols.append(c)
+                s = s.remove_columns([c])
+
+        df = pd.DataFrame(s.example(size=0))
+
+        if len(dict_cols) > 0:
+            for c in dict_cols:
+                df[c] = {}
+
+    elif remove_unknown_cols:
+        df_cols = pandera_schema.to_schema().columns.keys()
+        df = df.loc[:, df_cols]
+
+    return TypedDataFrame[pandera_schema](df)
