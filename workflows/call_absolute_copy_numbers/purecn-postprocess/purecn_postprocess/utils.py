@@ -5,7 +5,7 @@ from typing import Literal, Type
 import pandas as pd
 from click import echo
 
-from purecn_postprocess.types import Loh, PanderaBaseSchema, TypedDataFrame
+from purecn_postprocess.types import Loh, PanderaBaseSchema, Solution, TypedDataFrame
 
 
 def collect_outputs(solution_path: Path, loh_path: Path, out_path: Path) -> None:
@@ -52,7 +52,7 @@ def collect_outputs(solution_path: Path, loh_path: Path, out_path: Path) -> None
         f.write(json.dumps(res) + "\n")
 
 
-def read_solution(solution_path: Path) -> pd.DataFrame:
+def read_solution(solution_path: Path) -> TypedDataFrame[Solution]:
     """
     Read the PureCN solution CSV file and return a data frame with the relevant columns.
 
@@ -80,10 +80,10 @@ def read_solution(solution_path: Path) -> pd.DataFrame:
 
     assert len(purecn_df) == 1
     purecn_df.columns = purecn_df.columns.str.lower()
-    return purecn_df
+    return type_data_frame(purecn_df, Solution)
 
 
-def read_loh(loh_path: Path) -> pd.DataFrame:
+def read_loh(loh_path: Path) -> TypedDataFrame[Loh]:
     """
     Read the PureCN gene calls CSV file and return a data frame with the relevant
     columns.
@@ -127,7 +127,7 @@ def read_loh(loh_path: Path) -> pd.DataFrame:
 
 
 def calculate_cin(
-    loh: pd.DataFrame,
+    loh: TypedDataFrame[Loh],
     allele_specific: bool,
     reference_state: Literal["dominant", "normal"],
 ) -> float:
@@ -168,7 +168,7 @@ def calculate_cin(
     return loh.loc[~loh["is_reference"], "size"].sum() / loh["size"].sum()
 
 
-def call_wgd(loh: pd.DataFrame, ploidy: float) -> bool:
+def call_wgd(loh: TypedDataFrame[Loh], ploidy: float) -> bool:
     """
     Call whole genome doubling (WGD). Citation:
     https://www.sciencedirect.com/science/article/pii/S0092867421002944
@@ -189,8 +189,8 @@ def call_wgd(loh: pd.DataFrame, ploidy: float) -> bool:
     ].sum()
 
     loh_frac = loh_len / loh["size"].sum()
-
-    return bool(-2 * loh_frac + 3 < ploidy)
+    stat = -2 * loh_frac + 3
+    return bool(stat < ploidy)
 
 
 def type_data_frame(

@@ -2,7 +2,7 @@ import pandas as pd
 from pytest import approx
 
 from purecn_postprocess.types import Loh
-from purecn_postprocess.utils import calculate_cin, type_data_frame
+from purecn_postprocess.utils import calculate_cin, call_wgd, type_data_frame
 
 
 class TestCalculateCin:
@@ -87,7 +87,37 @@ class TestCalculateCin:
 
 class TestCallWgd:
     def test_not_wgd(self):
-        pass
+        loh = type_data_frame(
+            pd.DataFrame(
+                [
+                    # support
+                    {"size": 100, "c": 2, "m": 1, "type": "LOH"},
+                    {"size": 200, "c": 2, "m": 1, "type": "COPY-NEUTRAL LOH"},
+                    {"size": 200, "c": 2, "m": 1, "type": "WHOLE ARM COPY-NEUTRAL LOH"},
+                    # reject
+                    {"size": 300, "c": 2, "m": 1, "type": "other"},
+                    {"size": 200, "c": 2, "m": 1, "type": None},
+                ]
+            ),
+            Loh,
+        )
+
+        assert not call_wgd(loh, ploidy=1.9)
 
     def test_wgd(self):
-        pass
+        loh = type_data_frame(
+            pd.DataFrame(
+                [
+                    # support
+                    {"size": 100, "c": 2, "m": 1, "type": "LOH"},
+                    {"size": 200, "c": 2, "m": 1, "type": "COPY-NEUTRAL LOH"},
+                    {"size": 200, "c": 2, "m": 1, "type": "WHOLE ARM COPY-NEUTRAL LOH"},
+                    # reject
+                    {"size": 1000, "c": 2, "m": 1, "type": "other"},
+                    {"size": 1000, "c": 2, "m": 1, "type": None},
+                ]
+            ),
+            Loh,
+        )
+
+        assert not call_wgd(loh, ploidy=2.0)
