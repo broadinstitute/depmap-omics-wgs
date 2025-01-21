@@ -1,5 +1,5 @@
 """
-This script uses the OncoKB API to dopwnload lists of oncogens and tumor suppressor
+This script uses the OncoKB API to dopwnload lists of oncogenes and tumor suppressor
 genes. The files should then be uploaded to GCS.
 """
 
