@@ -553,7 +553,7 @@ task bwa_pe {
     command <<<
         set -euo pipefail
 
-        bwa mem \
+        bwa mem -K 100000000 \
             -t ~{cpu} \
             -T 0 \
             -R "~{readgroup}" \
@@ -608,7 +608,7 @@ task bwa_se {
     command <<<
         set -euo pipefail
 
-        bwa mem \
+        bwa mem -K 100000000 \
             -t ~{cpu} \
             -T 0 \
             -R "~{readgroup}" \

@@ -6,7 +6,8 @@ import pandas as pd
 from click import echo
 from nebelung.terra_workflow import TerraWorkflow
 from nebelung.terra_workspace import TerraWorkspace
-from nebelung.utils import expand_dict_columns, type_data_frame
+from nebelung.utils import type_data_frame
+from pd_flatten import pd_flatten
 
 from gumbo_gql_client import (
     task_entity_insert_input,
@@ -64,7 +65,7 @@ def make_terra_samples(
         ),
         GumboTaskResult,
         remove_unknown_cols=True,
-        mutator=lambda df: expand_dict_columns(df, except_cols=["value"]).rename(
+        mutator=lambda df: pd_flatten(df, except_cols=["value"]).rename(
             columns={"task_entity__sequencing_id": "sample_id", "value__value": "value"}
         ),
     )
