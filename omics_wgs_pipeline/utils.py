@@ -1,10 +1,13 @@
 import json
+import logging
 import uuid
+from pathlib import Path
 from typing import Any, Callable, Iterable, Type
 
 import pandas as pd
-from click import echo
-from google.cloud import storage
+from google.cloud import secretmanager_v1, storage
+from nebelung.terra_workflow import TerraWorkflow
+from nebelung.terra_workspace import TerraWorkspace
 from nebelung.utils import batch_evenly, type_data_frame
 
 from omics_wgs_pipeline.types import (
@@ -15,18 +18,36 @@ from omics_wgs_pipeline.types import (
 )
 
 
-def df_to_model(
-    df: pd.DataFrame, pydantic_schema: Type[PydanticBaseModel]
-) -> list[PydanticBaseModel]:
+def get_hasura_creds(gumbo_env: str) -> dict[str, str]:
     """
-    Convert a Pandas data frame to a Pydantic model.
+    Get URL and password for Hasura GraphQL API.
 
-    :param df: a data frame
-    :param pydantic_schema: the Pydantic schema to cast the data frame to
-    :return: a Pydantic model
+    :param gumbo_env: the Gumbo env to get credentials for ('staging' or 'prod')
+    :return: a dictionary with the GraphQL API URL and password
     """
 
-    return [pydantic_schema(**x) for x in df.to_dict(orient="records")]
+    return {
+        "url": get_secret_from_sm(
+            f"projects/814840278102/secrets/hasura-{gumbo_env}-api-url/versions/latest"
+        ),
+        "password": get_secret_from_sm(
+            f"projects/814840278102/secrets/hasura-admin-secret-{gumbo_env}/versions/latest"
+        ),
+    }
+
+
+def get_secret_from_sm(name: str) -> str:
+    """
+    Get the value of a secret from GCP Secret Manager.
+
+    :param name: the fully-qualified name of a secret
+    :return: the secret's decoded value
+    """
+
+    client = secretmanager_v1.SecretManagerServiceClient()
+    request = secretmanager_v1.AccessSecretVersionRequest(mapping={"name": name})
+    response = client.access_secret_version(request=request)
+    return response.payload.data.decode()
 
 
 def model_to_df(
@@ -65,7 +86,7 @@ def get_gcs_object_metadata(
     :return: data frame of object URLs and metadata
     """
 
-    echo(f"Getting metadata about {len(list(urls))} GCS objects")
+    logging.info(f"Getting metadata about {len(list(urls))} GCS objects")
     storage_client = storage.Client(project=gcp_project_id)
     blobs = {}
 
@@ -118,3 +139,119 @@ def compute_uuidv3(
 
     hash_key = json.dumps(d_subset, sort_keys=True)
     return str(uuid.uuid3(uuid.UUID(uuid_namespace), hash_key))
+
+
+def make_workflow_from_config(
+    config: dict[str, Any], workflow_name: str, **kwargs: Any
+) -> TerraWorkflow:
+    """
+    Make a TerraWorkflow object from a config entry.
+
+    :param config: a config dictionaryu
+    :param workflow_name: the name of the workflow referenced in the config
+    :return: a TerraWorkflow instance
+    """
+
+    return TerraWorkflow(
+        method_namespace=config["terra"][workflow_name]["method_namespace"],
+        method_name=config["terra"][workflow_name]["method_name"],
+        method_config_namespace=config["terra"][workflow_name][
+            "method_config_namespace"
+        ],
+        method_config_name=config["terra"][workflow_name]["method_config_name"],
+        method_synopsis=config["terra"][workflow_name]["method_synopsis"],
+        workflow_wdl_path=Path(
+            config["terra"][workflow_name]["workflow_wdl_path"]
+        ).resolve(),
+        method_config_json_path=Path(
+            config["terra"][workflow_name]["method_config_json_path"]
+        ).resolve(),
+        **kwargs,
+    )
+
+
+def submit_delta_job(
+    terra_workspace: TerraWorkspace,
+    terra_workflow: TerraWorkflow,
+    entity_type: str,
+    entity_set_type: str,
+    entity_id_col: str,
+    check_col: str,
+    resubmit_n_times: int = 1,
+    dry_run: bool = True,
+):
+    """
+    Identify entities in a Terra data table that need to have a workflow run on them by:
+
+        1. checking for the presence of a workflow output in a data table column
+        2. confirming the entity is eligible to be submitted in a job by checking for
+           previous submissions of that same entity to the workflow
+
+    :param terra_workspace: a TerraWorkspace instance
+    :param terra_workflow: a TerraWorkflow instance for the method
+    :param entity_type: the name of the Terra entity type
+    :param entity_set_type: the name of the Terra entity set type for `entity_type`
+    :param entity_id_col: the name of the ID column for the entity type
+    :param check_col: the column in the entity's data table to use for determining
+    whether the entity has already had a workflow run on it
+    :param resubmit_n_times: the number of times to resubmit an entity in the event it
+    has failed in the past
+    :param dry_run: whether to skip updates to external data stores
+    """
+
+    entities = terra_workspace.get_entities(entity_type)
+
+    if check_col not in entities.columns:
+        entities[check_col] = pd.NA
+
+    entities_todo = entities.loc[entities[check_col].isna()]
+
+    if len(entities_todo) == 0:
+        logging.info(f"No {entity_type}s to run {terra_workflow.method_name} for")
+        return
+
+    # get statuses of submitted entity workflow statuses
+    submittable_entities = terra_workspace.check_submittable_entities(
+        entity_type,
+        entity_ids=entities_todo[entity_id_col],
+        terra_workflow=terra_workflow,
+        resubmit_n_times=resubmit_n_times,
+        force_retry=False,
+    )
+
+    logging.info(f"Submittable entities: {submittable_entities}")
+
+    if len(submittable_entities["failed"]) > 0:
+        raise RuntimeError("Some entities have failed too many times")
+
+    # don't submit jobs for entities that are currently running, completed, or failed
+    # too many times
+    entities_todo = entities_todo.loc[
+        entities_todo[entity_id_col].isin(
+            list(
+                submittable_entities["unsubmitted"].union(
+                    submittable_entities["retryable"]
+                )
+            )
+        )
+    ]
+
+    if dry_run:
+        logging.info(f"(skipping) Submitting {terra_workflow.method_name} job")
+        return
+
+    entity_set_id = terra_workspace.create_entity_set(
+        entity_type,
+        entity_ids=entities_todo[entity_id_col],
+        suffix=terra_workflow.method_name,
+    )
+
+    terra_workspace.submit_workflow_run(
+        terra_workflow=terra_workflow,
+        entity=entity_set_id,
+        etype=entity_set_type,
+        expression=f"this.{entity_type}",
+        use_callcache=True,
+        use_reference_disks=False,
+        memory_retry_multiplier=1.5,
+    )

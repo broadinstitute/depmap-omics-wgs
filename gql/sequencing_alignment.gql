@@ -1,0 +1,21 @@
+query WgsSequencingAlignments {
+  records: sequencing_alignment(
+    where: {
+      _and: [
+        {
+          omics_sequencing: {
+            expected_type: { _eq: "wgs" }
+            blacklist: { _neq: true }
+            omics_profile: { blacklist_omics: { _neq: true } }
+          }
+        }
+      ]
+    }
+  ) {
+    index_url
+    reference_genome
+    omics_sequencing_id
+    sequencing_alignment_source
+    url
+  }
+}

@@ -7,15 +7,16 @@ from typing import Annotated, Any
 import pandas as pd
 import tomllib
 import typer
-from nebelung.terra_workflow import TerraWorkflow
 from nebelung.terra_workspace import TerraWorkspace
 
-from omics_wgs_pipeline.data import (
-    delta_preprocess_wgs_samples,
-    make_terra_samples,
-    put_task_results,
-)
+from omics_wgs_pipeline.data import make_terra_samples, put_task_results
 from omics_wgs_pipeline.types import GumboClient
+from omics_wgs_pipeline.utils import (
+    get_hasura_creds,
+    get_secret_from_sm,
+    make_workflow_from_config,
+    submit_delta_job,
+)
 
 pd.set_option("display.max_columns", 30)
 pd.set_option("display.max_colwidth", 50)
@@ -37,28 +38,6 @@ def done(*args, **kwargs):
     logging.info("Done.")
 
 
-def make_workflow_from_config(workflow_name: str) -> TerraWorkflow:
-    """
-    Make a TerraWorkflow object from a config entry.
-
-    :param workflow_name: the name of the workflow referenced in the config
-    :return: a TerraWorkflow instance
-    """
-
-    return TerraWorkflow(
-        repo_namespace=config["terra"]["repo_namespace"],
-        repo_method_name=config["terra"][workflow_name]["repo_method_name"],
-        method_config_name=config["terra"][workflow_name]["method_config_name"],
-        method_synopsis=config["terra"][workflow_name]["method_synopsis"],
-        workflow_wdl_path=Path(
-            config["terra"][workflow_name]["workflow_wdl_path"]
-        ).resolve(),
-        method_config_json_path=Path(
-            config["terra"][workflow_name]["method_config_json_path"]
-        ).resolve(),
-    )
-
-
 @app.callback(result_callback=done)
 def main(
     ctx: typer.Context,
@@ -71,17 +50,30 @@ def main(
     with open(config_path, "rb") as f:
         config.update(tomllib.load(f))
 
+    if config["gumbo_env"] == "dev":
+        gumbo_client = GumboClient(
+            url="http://localhost:8080/v1/graphql",
+            username="dogspa",
+            headers={"X-Hasura-Admin-Secret": "secret"},
+        )
+
+    else:
+        # get URL and password for Gumbo GraphQL API from secrets manager
+        hasura_creds = get_hasura_creds(gumbo_env=config["gumbo_env"])
+
+        gumbo_client = GumboClient(
+            url=hasura_creds["url"],
+            username="dogspa",
+            headers={"X-Hasura-Admin-Secret": hasura_creds["password"]},
+        )
+
     ctx.obj = {
         "terra_workspace": TerraWorkspace(
             workspace_namespace=config["terra"]["workspace_namespace"],
             workspace_name=config["terra"]["workspace_name"],
             owners=json.loads(os.environ["FIRECLOUD_OWNERS"]),
         ),
-        "gumbo_client": GumboClient(
-            url=os.environ["HASURA_URL"],
-            username="omics_wgs_pipeline",
-            headers={"X-Hasura-Admin-Secret": os.environ["HASURA_ADMIN_SECRET"]},
-        ),
+        "gumbo_client": gumbo_client,
     }
 
 
@@ -89,7 +81,15 @@ def main(
 def update_workflow(
     ctx: typer.Context, workflow_name: Annotated[str, typer.Option()]
 ) -> None:
-    terra_workflow = make_workflow_from_config(workflow_name)
+    # need a GitHub PAT for persisting WDL in gists
+    github_pat = get_secret_from_sm(
+        "projects/201811582504/secrets/github-pat-for-wdl-gists/versions/latest"
+    )
+
+    terra_workflow = make_workflow_from_config(
+        config, workflow_name, github_pat=github_pat
+    )
+
     ctx.obj["terra_workspace"].update_workflow(terra_workflow=terra_workflow)
 
 
@@ -102,17 +102,23 @@ def refresh_terra_samples(ctx: typer.Context) -> None:
 
 
 @app.command()
-def run_workflow(
-    ctx: typer.Context, workflow_name: Annotated[str, typer.Option()]
+def delta_job(
+    ctx: typer.Context,
+    workflow_name: Annotated[str, typer.Option()],
+    entity_type: Annotated[str, typer.Option()],
+    entity_set_type: Annotated[str, typer.Option()],
+    entity_id_col: Annotated[str, typer.Option()],
+    check_col: Annotated[str, typer.Option()],
 ) -> None:
-    terra_workflow = make_workflow_from_config(workflow_name)
-
-    if workflow_name == "preprocess_wgs_sample":
-        delta_preprocess_wgs_samples(
-            terra_workspace=ctx.obj["terra_workspace"], terra_workflow=terra_workflow
-        )
-    else:
-        raise NotImplementedError(f"Workflow {workflow_name} not implemented")
+    submit_delta_job(
+        terra_workspace=ctx.obj["terra_workspace"],
+        terra_workflow=make_workflow_from_config(config, workflow_name),
+        entity_type=entity_type,
+        entity_set_type=entity_set_type,
+        entity_id_col=entity_id_col,
+        check_col=check_col,
+        dry_run=config["dry_run"],
+    )
 
 
 @app.command()

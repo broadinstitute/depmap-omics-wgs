@@ -1,26 +1,3 @@
-query WgsSequencings {
-  records: omics_sequencing(
-    where: {
-      blacklist: { _neq: true }
-      _or: [
-        { bam_filepath: { _is_null: false } }
-        { hg19_bam_filepath: { _is_null: false } }
-        { hg38_cram_filepath: { _is_null: false } }
-      ]
-      expected_type: { _eq: "wgs" }
-      omics_profile: { blacklist_omics: { _neq: true } }
-    }
-  ) {
-    hg19_bai_filepath
-    hg19_bam_filepath
-    hg38_crai_filepath
-    hg38_cram_filepath
-    bai_filepath
-    bam_filepath
-    sequencing_id
-  }
-}
-
 query SequencingIds {
   records: omics_sequencing {
     sequencing_id

@@ -12,7 +12,7 @@ from .insert_task_results import InsertTaskResults
 from .insert_terra_sync import InsertTerraSync
 from .sequencing_ids import SequencingIds
 from .sequencing_task_entities import SequencingTaskEntities
-from .wgs_sequencings import WgsSequencings
+from .wgs_sequencing_alignments import WgsSequencingAlignments
 
 
 def gql(q: str) -> str:
@@ -20,31 +20,6 @@ def gql(q: str) -> str:
 
 
 class GumboClient(BaseClient):
-    def wgs_sequencings(self, **kwargs: Any) -> WgsSequencings:
-        query = gql(
-            """
-            query WgsSequencings {
-              records: omics_sequencing(
-                where: {blacklist: {_neq: true}, _or: [{bam_filepath: {_is_null: false}}, {hg19_bam_filepath: {_is_null: false}}, {hg38_cram_filepath: {_is_null: false}}], expected_type: {_eq: "wgs"}, omics_profile: {blacklist_omics: {_neq: true}}}
-              ) {
-                hg19_bai_filepath
-                hg19_bam_filepath
-                hg38_crai_filepath
-                hg38_cram_filepath
-                bai_filepath
-                bam_filepath
-                sequencing_id
-              }
-            }
-            """
-        )
-        variables: Dict[str, object] = {}
-        response = self.execute(
-            query=query, operation_name="WgsSequencings", variables=variables, **kwargs
-        )
-        data = self.get_data(response)
-        return WgsSequencings.model_validate(data)
-
     def sequencing_ids(self, **kwargs: Any) -> SequencingIds:
         query = gql(
             """
@@ -61,6 +36,32 @@ class GumboClient(BaseClient):
         )
         data = self.get_data(response)
         return SequencingIds.model_validate(data)
+
+    def wgs_sequencing_alignments(self, **kwargs: Any) -> WgsSequencingAlignments:
+        query = gql(
+            """
+            query WgsSequencingAlignments {
+              records: sequencing_alignment(
+                where: {_and: [{omics_sequencing: {expected_type: {_eq: "wgs"}, blacklist: {_neq: true}, omics_profile: {blacklist_omics: {_neq: true}}}}]}
+              ) {
+                index_url
+                reference_genome
+                omics_sequencing_id
+                sequencing_alignment_source
+                url
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {}
+        response = self.execute(
+            query=query,
+            operation_name="WgsSequencingAlignments",
+            variables=variables,
+            **kwargs
+        )
+        data = self.get_data(response)
+        return WgsSequencingAlignments.model_validate(data)
 
     def sequencing_task_entities(self, **kwargs: Any) -> SequencingTaskEntities:
         query = gql(

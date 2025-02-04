@@ -23,8 +23,16 @@ class GumboClient(AriadneGumboClient):
         self.username = username  # store username on this object for use in mutations
 
 
+class GumboWgsSequencing(CoercedDataFrame):
+    omics_sequencing_id: Series[pd.StringDtype]
+    sequencing_alignment_source: Series[pd.StringDtype] = pa.Field(isin=["GP", "CDS"])
+    reference_genome: Series[pd.StringDtype]
+    url: Series[pd.StringDtype] = pa.Field(unique=True)
+    index_url: Series[pd.StringDtype] = pa.Field(unique=True)
+
+
 class TerraSample(CoercedDataFrame):
-    sample_id: Series[pd.StringDtype]
+    sample_id: Series[pd.StringDtype] = pa.Field(unique=True)
     delivery_cram_bam: Series[pd.StringDtype] = pa.Field(nullable=True)
     delivery_crai_bai: Series[pd.StringDtype] = pa.Field(nullable=True)
     delivery_file_format: Series[pd.StringDtype] = pa.Field(
@@ -50,16 +58,6 @@ class TerraSample(CoercedDataFrame):
     ref_fasta_index: Series[pd.StringDtype]
     ref_pac: Series[pd.StringDtype]
     ref_sa: Series[pd.StringDtype]
-
-
-class GumboWgsSequencing(CoercedDataFrame):
-    sequencing_id: Series[pd.StringDtype]
-    hg19_bai_filepath: Series[pd.StringDtype] = pa.Field(nullable=True)
-    hg19_bam_filepath: Series[pd.StringDtype] = pa.Field(nullable=True)
-    hg38_crai_filepath: Series[pd.StringDtype] = pa.Field(nullable=True)
-    hg38_cram_filepath: Series[pd.StringDtype] = pa.Field(nullable=True)
-    bai_filepath: Series[pd.StringDtype] = pa.Field(nullable=True)
-    bam_filepath: Series[pd.StringDtype] = pa.Field(nullable=True)
 
 
 class GumboTaskEntity(CoercedDataFrame):

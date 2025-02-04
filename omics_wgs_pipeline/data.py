@@ -1,17 +1,13 @@
 import datetime
 import json
-import pathlib
+import logging
 
 import pandas as pd
-from click import echo
 from nebelung.terra_workflow import TerraWorkflow
 from nebelung.terra_workspace import TerraWorkspace
-from nebelung.utils import type_data_frame
-from pd_flatten import pd_flatten
 
 from gumbo_gql_client import (
     task_entity_insert_input,
-    task_result_bool_exp,
     task_result_insert_input,
 )
 from omics_wgs_pipeline.types import (
@@ -42,141 +38,10 @@ def make_terra_samples(
     """
 
     wgs_sequencings = model_to_df(
-        gumbo_client.wgs_sequencings(),
-        GumboWgsSequencing,
-        remove_unknown_cols=True,
-        mutator=lambda df: df.rename(
-            columns={
-                "hg_19_bai_filepath": "hg19_bai_filepath",
-                "hg_19_bam_filepath": "hg19_bam_filepath",
-                "hg_38_crai_filepath": "hg38_crai_filepath",
-                "hg_38_cram_filepath": "hg38_cram_filepath",
-            }
-        ),
+        gumbo_client.wgs_sequencing_alignments(), GumboWgsSequencing
     )
 
-    task_results = model_to_df(
-        gumbo_client.get_task_results(
-            task_result_bool_exp(
-                workflow_name={
-                    "in_": ["preprocess_wgs_sample", "infer_msi_status"],
-                },  # pyright: ignore
-            )
-        ),
-        GumboTaskResult,
-        remove_unknown_cols=True,
-        mutator=lambda df: pd_flatten(df, except_cols=["value"]).rename(
-            columns={"task_entity__sequencing_id": "sample_id", "value__value": "value"}
-        ),
-    )
-
-    return join_existing_results_to_samples(wgs_sequencings, task_results, ref_urls)
-
-
-def join_existing_results_to_samples(
-    wgs_sequencings: TypedDataFrame[GumboWgsSequencing],
-    task_results: TypedDataFrame[GumboTaskResult],
-    ref_urls: dict[str, dict[str, str]],
-    join_task_results: bool = False,
-) -> TypedDataFrame[TerraSample]:
-    """
-    Make a data frame to upload to Terra as the `sample` data table.
-
-    :param wgs_sequencings: data frame of Gumbo `omics_sequencing` records
-    :param task_results: data frame of Gumbo `task_result` records
-    :param ref_urls: a nested dictionary of genomes and their reference file URLs
-    :param join_task_results: whether to join canonical task results to upserted samples
-    :return: a data frame for the `sample` data table in Terra
-    """
-
-    # set up genome ref URLs as data frames
-    hg38_urls = pd.DataFrame([ref_urls["hg38"]])
-    hg38_urls["ref"] = "hg38"
-
-    hg19_urls = pd.DataFrame([ref_urls["hg19"]])
-    hg19_urls["ref"] = "hg19"
-
-    # start constructing samples data frame
-    samples = wgs_sequencings.copy()
-
-    samples = samples.rename(
-        columns={
-            "bai_filepath": "analysis_ready_bai",
-            "bam_filepath": "analysis_ready_bam",
-            "sequencing_id": "sample_id",
-        }
-    )
-
-    # indicate whether GP-delivered alignmnent files are hg19 or hg38
-    samples["delivery_ref"] = pd.NA
-    samples.loc[samples["hg38_cram_filepath"].notna(), "delivery_ref"] = "hg38"
-    samples.loc[
-        samples["delivery_ref"].isna() & samples["hg19_bam_filepath"].notna(),
-        "delivery_ref",
-    ] = "hg19"
-
-    is_hg38 = samples["delivery_ref"].eq("hg38")
-    is_hg19 = samples["delivery_ref"].eq("hg19")
-
-    dfs = []
-
-    # set delivery_* columns for hg38 samples
-    if is_hg38.any():
-        samples_sub = (
-            samples.loc[is_hg38]
-            .drop(columns=["hg19_bam_filepath", "hg19_bai_filepath"])
-            .rename(
-                columns={
-                    "hg38_cram_filepath": "delivery_cram_bam",
-                    "hg38_crai_filepath": "delivery_crai_bai",
-                }
-            )
-        )
-
-        hg38_delivery_urls = hg38_urls.copy()
-        hg38_delivery_urls.columns = "delivery_" + hg38_delivery_urls.columns
-
-        samples_sub = samples_sub.merge(
-            hg38_delivery_urls, on="delivery_ref", how="left"
-        )
-        dfs.append(samples_sub)
-
-    # set delivery_* columns for hg19 samples
-    if is_hg19.any():
-        samples_sub = (
-            samples.loc[is_hg19]
-            .drop(columns=["hg38_cram_filepath", "hg38_crai_filepath"])
-            .rename(
-                columns={
-                    "hg19_bam_filepath": "delivery_cram_bam",
-                    "hg19_bai_filepath": "delivery_crai_bai",
-                }
-            )
-        )
-
-        hg19_delivery_urls = hg19_urls.copy()
-        hg19_delivery_urls.columns = "delivery_" + hg19_delivery_urls.columns
-
-        samples_sub = samples_sub.merge(
-            hg19_delivery_urls, on="delivery_ref", how="left"
-        )
-        dfs.append(samples_sub)
-
-    # recombine hg38/19 samples
-    samples = pd.concat(dfs, ignore_index=True)
-
-    samples["delivery_file_format"] = samples["delivery_cram_bam"].apply(
-        lambda x: pathlib.Path(x).suffix[1:].upper()
-    )
-
-    # for now, hardcoding the desired reference (for preprocessing/alignment workflow)
-    samples["ref"] = "hg38"
-    samples = samples.merge(hg38_urls, on="ref", how="left")
-
-    if join_task_results:
-        raise NotImplementedError
-
-    return type_data_frame(samples, TerraSample)
+    return wgs_sequencings
 
 
 def pick_best_task_results(
@@ -276,42 +141,6 @@ def pick_best_task_results(
     return best_task_results
 
 
-def delta_preprocess_wgs_samples(
-    terra_workspace: TerraWorkspace, terra_workflow: TerraWorkflow
-) -> None:
-    """
-    Check the Terra `sample` data table for samples without `preprocess_wgs_sample`
-    output files and submit a run of that workflow on a sample set comprised of those
-    new files.
-
-    :param terra_workspace: a `TerraWorkspace` instance
-    :param terra_workflow: a `TerraWorkflow` instance
-    """
-
-    samples = terra_workspace.get_entities("sample", TerraSample)
-    samples = samples.loc[
-        samples["analysis_ready_bam"].isna() | samples["analysis_ready_bai"].isna()
-    ]
-
-    if len(samples) == 0:
-        echo("No new samples to preprocess")
-        return
-
-    sample_set_id = terra_workspace.create_sample_set(
-        samples["sample_id"], suffix="preprocess_wgs_sample"
-    )
-
-    terra_workspace.submit_workflow_run(
-        terra_workflow,
-        entity=sample_set_id,
-        etype="sample_set",
-        expression="this.samples",
-        use_callcache=True,
-        use_reference_disks=False,
-        memory_retry_multiplier=1.2,
-    )
-
-
 def put_task_results(
     gumbo_client: GumboClient,
     terra_workspace: TerraWorkspace,
@@ -355,7 +184,7 @@ def put_task_results(
         # do trivial conversion from `TaskResult` to `task_result_insert_input` type
         outputs.append(task_result_insert_input(**o.model_dump()))
 
-    echo("Getting existing task entity records for sequencings")
+    logging.info("Getting existing task entity records for sequencings")
     task_entities = model_to_df(
         gumbo_client.sequencing_task_entities(),
         GumboTaskEntity,
@@ -369,7 +198,7 @@ def put_task_results(
     )
 
     if len(missing_seq_ids) > 0:
-        echo(f"Creating {len(missing_seq_ids)} missing task entity records")
+        logging.info(f"Creating {len(missing_seq_ids)} missing task entity records")
         gumbo_client.insert_task_entities(
             username=gumbo_client.username,
             objects=[
@@ -434,7 +263,7 @@ def put_task_results(
             },
         )
 
-    echo(f"Upserting {len(outputs)} task results into Gumbo")
+    logging.info(f"Upserting {len(outputs)} task results into Gumbo")
     res = gumbo_client.insert_terra_sync(
         username=gumbo_client.username,
         terra_workspace_namespace=str(outputs[0].terra_workspace_namespace),
@@ -443,4 +272,4 @@ def put_task_results(
     )
 
     sync_id = res.insert_terra_sync.returning[0].id  # pyright: ignore
-    echo(f"Created Terra sync record {sync_id}")
+    logging.info(f"Created Terra sync record {sync_id}")
