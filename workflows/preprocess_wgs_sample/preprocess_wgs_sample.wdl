@@ -43,8 +43,8 @@ workflow preprocess_wgs_sample {
         String input_type # "CRAM" or "BAM"
         File input_cram_bam
         File input_crai_bai
-        File? cram_ref_fasta
-        File? cram_ref_fasta_index
+        File? delivery_ref_fasta
+        File? delivery_ref_fasta_index
         File? output_map
         String? unmapped_bam_suffix
 
@@ -72,8 +72,8 @@ workflow preprocess_wgs_sample {
             input_type = input_type,
             input_cram_bam = input_cram_bam,
             input_crai_bai = input_crai_bai,
-            ref_fasta = select_first([cram_ref_fasta, ref_fasta]),
-            ref_fasta_index = select_first([cram_ref_fasta_index, ref_fasta_index]),
+            ref_fasta = select_first([delivery_ref_fasta, ref_fasta]),
+            ref_fasta_index = select_first([delivery_ref_fasta_index, ref_fasta_index]),
             output_map = output_map,
             unmapped_bam_suffix = unmapped_bam_suffix
     }

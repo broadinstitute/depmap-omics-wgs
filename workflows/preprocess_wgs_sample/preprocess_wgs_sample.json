@@ -1,8 +1,8 @@
 {
   "deleted": false,
   "inputs": {
-    "preprocess_wgs_sample.cram_ref_fasta": "this.delivery_ref_fasta",
-    "preprocess_wgs_sample.cram_ref_fasta_index": "this.delivery_ref_fasta_index",
+    "preprocess_wgs_sample.delivery_ref_fasta": "this.delivery_ref_fasta",
+    "preprocess_wgs_sample.delivery_ref_fasta_index": "this.delivery_ref_fasta_index",
     "preprocess_wgs_sample.dbsnp_vcf": "\"gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf\"",
     "preprocess_wgs_sample.dbsnp_vcf_index": "\"gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf\"",
     "preprocess_wgs_sample.do_check_contamination": "false",
@@ -26,11 +26,11 @@
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
-    "methodNamespace": "cds-pipelines",
+    "methodNamespace": "depmap-omics",
     "methodName": "preprocess_wgs_sample",
     "methodVersion": 1
   },
-  "namespace": "cds-pipelines",
+  "namespace": "depmap-omics",
   "name": "preprocess_wgs_sample",
   "outputs": {
     "preprocess_wgs_sample.analysis_ready_bam": "this.analysis_ready_bam",
