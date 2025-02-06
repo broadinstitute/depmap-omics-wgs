@@ -89,11 +89,11 @@
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
-    "methodNamespace": "cds-pipelines",
+    "methodNamespace": "depmap-omics",
     "methodName": "annotate_mutations",
     "methodVersion": 1
   },
-  "namespace": "cds-pipelines",
+  "namespace": "depmap-omics",
   "name": "annotate_mutations",
   "outputs": {
     "annotate_mutations.mut_annot_vcf": "this.mut_annot_vcf",

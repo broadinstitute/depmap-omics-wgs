@@ -17,11 +17,11 @@
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
-    "methodNamespace": "cds-pipelines",
+    "methodNamespace": "depmap-omics",
     "methodName": "call_cnvs",
     "methodVersion": 1
   },
-  "namespace": "cds-pipelines",
+  "namespace": "depmap-omics",
   "name": "call_cnvs",
   "outputs": {
     "call_cnvs.allele_fraction_legacy_segments_tumor": "this.allele_fraction_legacy_segments_tumor",

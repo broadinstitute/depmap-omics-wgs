@@ -10,11 +10,11 @@
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
-    "methodNamespace": "cds-pipelines",
+    "methodNamespace": "depmap-omics",
     "methodName": "call_absolute_copy_numbers",
     "methodVersion": 1
   },
-  "namespace": "cds-pipelines",
+  "namespace": "depmap-omics",
   "name": "call_absolute_copy_numbers",
   "outputs": {
     "call_absolute_copy_numbers.purecn_found_solution": "this.purecn_found_solution",
