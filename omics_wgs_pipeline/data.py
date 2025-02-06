@@ -3,13 +3,10 @@ import json
 import logging
 
 import pandas as pd
-from nebelung.terra_workflow import TerraWorkflow
 from nebelung.terra_workspace import TerraWorkspace
+from nebelung.utils import type_data_frame
 
-from gumbo_gql_client import (
-    task_entity_insert_input,
-    task_result_insert_input,
-)
+from gumbo_gql_client import task_entity_insert_input, task_result_insert_input
 from omics_wgs_pipeline.types import (
     GumboClient,
     GumboTaskEntity,
@@ -37,11 +34,58 @@ def make_terra_samples(
     :return: a data frame to use as a Terra `sample` data table
     """
 
+    # get long data frame of both GP-delivered and CDS (analysis ready) CRAM/BAMs
     wgs_sequencings = model_to_df(
         gumbo_client.wgs_sequencing_alignments(), GumboWgsSequencing
     )
 
-    return wgs_sequencings
+    # make wide, separating delivery and analysis-ready CRAM/BAMs
+    samples = (
+        wgs_sequencings.loc[wgs_sequencings["sequencing_alignment_source"].eq("GP")]
+        .drop(columns="sequencing_alignment_source")
+        .rename(
+            columns={
+                "omics_sequencing_id": "sample_id",
+                "sequencing_alignment_id": "delivery_sequencing_alignment_id",
+                "url": "delivery_cram_bam",
+                "index_url": "delivery_crai_bai",
+                "reference_genome": "delivery_ref",
+            }
+        )
+        .merge(
+            wgs_sequencings.loc[
+                wgs_sequencings["sequencing_alignment_source"].eq("CDS")
+            ]
+            .drop(columns="sequencing_alignment_source")
+            .rename(
+                columns={
+                    "omics_sequencing_id": "sample_id",
+                    "sequencing_alignment_id": "aligned_sequencing_alignment_id",
+                    "url": "analysis_ready_bam",
+                    "index_url": "analysis_ready_bai",
+                    "reference_genome": "ref",
+                }
+            ),
+            how="outer",
+            on="sample_id",
+        )
+    )
+
+    samples["delivery_file_format"] = (
+        samples["delivery_cram_bam"].str.rsplit(".", n=1).str.get(1).str.upper()
+    )
+
+    # set default reference for realignment
+    samples["ref"] = samples["ref"].fillna("hg38")
+
+    # join reference URLs to for `delivery_` and `analysis_ready_` CRAM/BAMs
+    ref_df = pd.DataFrame(ref_urls.values())
+    ref_df["ref"] = ref_urls.keys()
+    samples = samples.merge(ref_df, how="left", on="ref")
+    ref_df.columns = "delivery_" + ref_df.columns
+    samples = samples.merge(ref_df, how="left", on="delivery_ref")
+
+    return type_data_frame(samples, TerraSample)
 
 
 def pick_best_task_results(
@@ -176,7 +220,7 @@ def put_task_results(
             # unknown sequencing/sample IDs
             continue
 
-        o = x.copy()
+        o = x.model_copy()
 
         # replace the entity name with the more reliable `sample_id` workflow input
         o.terra_entity_name = o.terra_workflow_inputs["sample_id"]

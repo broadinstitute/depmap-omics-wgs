@@ -98,6 +98,9 @@ def refresh_terra_samples(ctx: typer.Context) -> None:
     samples = make_terra_samples(
         gumbo_client=ctx.obj["gumbo_client"], ref_urls=config["ref"]
     )
+
+    sample_ids = samples.pop("sample_id")
+    samples.insert(0, "entity:sample_id", sample_ids)
     ctx.obj["terra_workspace"].upload_entities(df=samples)
 
 
