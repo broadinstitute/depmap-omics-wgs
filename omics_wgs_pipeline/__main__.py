@@ -111,6 +111,7 @@ def delta_job(
     entity_type: Annotated[str, typer.Option()],
     entity_set_type: Annotated[str, typer.Option()],
     entity_id_col: Annotated[str, typer.Option()],
+    expression: Annotated[str, typer.Option()],
     check_col: Annotated[str, typer.Option()],
 ) -> None:
     submit_delta_job(
@@ -119,6 +120,7 @@ def delta_job(
         entity_type=entity_type,
         entity_set_type=entity_set_type,
         entity_id_col=entity_id_col,
+        expression=expression,
         check_col=check_col,
         dry_run=config["dry_run"],
     )

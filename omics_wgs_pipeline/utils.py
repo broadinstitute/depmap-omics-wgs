@@ -176,6 +176,7 @@ def submit_delta_job(
     entity_type: str,
     entity_set_type: str,
     entity_id_col: str,
+    expression: str,
     check_col: str,
     resubmit_n_times: int = 1,
     dry_run: bool = True,
@@ -192,6 +193,7 @@ def submit_delta_job(
     :param entity_type: the name of the Terra entity type
     :param entity_set_type: the name of the Terra entity set type for `entity_type`
     :param entity_id_col: the name of the ID column for the entity type
+    :param expression: the entity type expression (e.g. "this.samples")
     :param check_col: the column in the entity's data table to use for determining
     whether the entity has already had a workflow run on it
     :param resubmit_n_times: the number of times to resubmit an entity in the event it
@@ -250,7 +252,7 @@ def submit_delta_job(
         terra_workflow=terra_workflow,
         entity=entity_set_id,
         etype=entity_set_type,
-        expression=f"this.{entity_type}",
+        expression=expression,
         use_callcache=True,
         use_reference_disks=False,
         memory_retry_multiplier=1.5,
