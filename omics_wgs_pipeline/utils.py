@@ -231,9 +231,9 @@ def submit_delta_job(
     entities_todo = entities_todo.loc[
         entities_todo[entity_id_col].isin(
             list(
-                submittable_entities["unsubmitted"].union(
-                    submittable_entities["retryable"]
-                )
+                submittable_entities["unsubmitted"]
+                .union(submittable_entities["retryable"])
+                .difference(submittable_entities["running"])
             )
         )
     ]
