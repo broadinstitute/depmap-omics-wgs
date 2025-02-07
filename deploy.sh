@@ -4,12 +4,6 @@ set -euo pipefail
 
 pre-commit run poetry-export --all-files
 
-echo "Updating Terra workflow (preprocess)"
-poetry run python -m omics_wgs_pipeline update-workflow \
-  --config-path config.toml \
-  update-workflow \
-  --workflow-name preprocess_wgs_sample
-
 echo "Updating GCP Function"
 gcloud functions deploy omics_wgs_pipeline \
   --gen2 \

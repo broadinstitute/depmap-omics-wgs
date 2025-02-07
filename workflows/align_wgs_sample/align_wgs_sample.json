@@ -1,0 +1,44 @@
+{
+  "deleted": false,
+  "inputs": {
+    "align_wgs_sample.delivery_ref_fasta": "this.delivery_ref_fasta",
+    "align_wgs_sample.delivery_ref_fasta_index": "this.delivery_ref_fasta_index",
+    "align_wgs_sample.dbsnp_vcf": "\"gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf\"",
+    "align_wgs_sample.dbsnp_vcf_index": "\"gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf\"",
+    "align_wgs_sample.do_check_contamination": "false",
+    "align_wgs_sample.do_collect_insert_size_metrics": "false",
+    "align_wgs_sample.input_crai_bai": "this.delivery_crai_bai",
+    "align_wgs_sample.input_cram_bam": "this.delivery_cram_bam",
+    "align_wgs_sample.input_type": "this.delivery_file_format",
+    "align_wgs_sample.run_bqsr": "true",
+    "align_wgs_sample.rerun_bqsr": "true",
+    "align_wgs_sample.check_bqsr_and_oq_tags.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/samtools\"",
+    "align_wgs_sample.check_bqsr_and_oq_tags.docker_image_hash_or_tag": "\"@sha256:43c413dde9472748f58b2b6b089885fd5f968799666ce21e90edee10f68afb93\"",
+    "align_wgs_sample.ref_amb": "this.ref_amb",
+    "align_wgs_sample.ref_ann": "this.ref_ann",
+    "align_wgs_sample.ref_bwt": "this.ref_bwt",
+    "align_wgs_sample.ref_dict": "this.ref_dict",
+    "align_wgs_sample.ref_fasta": "this.ref_fasta",
+    "align_wgs_sample.ref_fasta_index": "this.ref_fasta_index",
+    "align_wgs_sample.ref_pac": "this.ref_pac",
+    "align_wgs_sample.ref_sa": "this.ref_sa",
+    "align_wgs_sample.sample_id": "this.sample_id"
+  },
+  "methodConfigVersion": 1,
+  "methodRepoMethod": {
+    "methodNamespace": "cds-pipelines",
+    "methodName": "align_wgs_sample",
+    "methodVersion": 1
+  },
+  "namespace": "cds-pipelines",
+  "name": "align_wgs_sample",
+  "outputs": {
+    "align_wgs_sample.analysis_ready_bam": "this.analysis_ready_bam",
+    "align_wgs_sample.analysis_ready_bai": "this.analysis_ready_bai",
+    "align_wgs_sample.md_metrics": "this.preprocess_md_metrics",
+    "align_wgs_sample.insert_size_metrics": "this.preprocess_insert_size_metrics",
+    "align_wgs_sample.insert_size_histogram_pdf": "this.preprocess_insert_size_histogram_pdf",
+    "align_wgs_sample.contamination": "this.preprocess_contamination"
+  },
+  "rootEntityType": "sample"
+}

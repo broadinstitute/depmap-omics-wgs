@@ -1,6 +1,6 @@
 title = "omics-wgs-pipeline config"
 
-gcp_project_id = "depmap-omics"
+gcp_project_id = "cds-pipelines"
 gumbo_env = "prod"
 uuid_namespace = "00000000-0000-0000-0000-000000000000"
 dry_run = true
@@ -10,64 +10,64 @@ repo_namespace = "cds-pipelines"
 workspace_namespace = "broad-firecloud-ccle"
 workspace_name = "omics_wgs_pipeline"
 
-[terra.preprocess_wgs_sample]
-method_namespace = "depmap-omics"
-method_name = "preprocess_wgs_sample"
-method_config_namespace = "depmap-omics"
-method_config_name = "preprocess_wgs_sample"
+[terra.align_wgs_sample]
+method_namespace = "cds-pipelines"
+method_name = "align_wgs_sample"
+method_config_namespace = "cds-pipelines"
+method_config_name = "align_wgs_sample"
 method_synopsis = "Run WARP GDC single-sample preprocessing workflow"
-workflow_wdl_path = "./workflows/preprocess_wgs_sample/preprocess_wgs_sample.wdl"
-method_config_json_path = "./workflows/preprocess_wgs_sample/preprocess_wgs_sample.json"
+workflow_wdl_path = "./workflows/align_wgs_sample/align_wgs_sample.wdl"
+method_config_json_path = "./workflows/align_wgs_sample/align_wgs_sample.json"
 
 [terra.infer_msi_status]
-method_namespace = "depmap-omics"
+method_namespace = "cds-pipelines"
 method_name = "infer_msi_status"
-method_config_namespace = "depmap-omics"
+method_config_namespace = "cds-pipelines"
 method_config_name = "infer_msi_status"
 method_synopsis = "Infer MSI status of WGS sample"
 workflow_wdl_path = "./workflows/infer_msi_status/infer_msi_status.wdl"
 method_config_json_path = "./workflows/infer_msi_status/infer_msi_status.json"
 
 [terra.call_structural_variants]
-method_namespace = "depmap-omics"
+method_namespace = "cds-pipelines"
 method_name = "call_structural_variants"
-method_config_namespace = "depmap-omics"
+method_config_namespace = "cds-pipelines"
 method_config_name = "call_structural_variants"
 method_synopsis = "Call structural variants"
 workflow_wdl_path = "./workflows/call_structural_variants/call_structural_variants.wdl"
 method_config_json_path = "./workflows/call_structural_variants/call_structural_variants.json"
 
 [terra.call_cnvs]
-method_namespace = "depmap-omics"
+method_namespace = "cds-pipelines"
 method_name = "call_cnvs"
-method_config_namespace = "depmap-omics"
+method_config_namespace = "cds-pipelines"
 method_config_name = "call_cnvs"
 method_synopsis = "Call CNVs"
 workflow_wdl_path = "./workflows/call_cnvs/call_cnvs.wdl"
 method_config_json_path = "./workflows/call_cnvs/call_cnvs.json"
 
 [terra.call_absolute_copy_numbers]
-method_namespace = "depmap-omics"
+method_namespace = "cds-pipelines"
 method_name = "call_absolute_copy_numbers"
-method_config_namespace = "depmap-omics"
+method_config_namespace = "cds-pipelines"
 method_config_name = "call_absolute_copy_numbers"
 method_synopsis = "Call absolute copy numbers"
 workflow_wdl_path = "./workflows/call_absolute_copy_numbers/call_absolute_copy_numbers.wdl"
 method_config_json_path = "./workflows/call_absolute_copy_numbers/call_absolute_copy_numbers.json"
 
 [terra.call_mutations]
-method_namespace = "depmap-omics"
+method_namespace = "cds-pipelines"
 method_name = "call_mutations"
-method_config_namespace = "depmap-omics"
+method_config_namespace = "cds-pipelines"
 method_config_name = "call_mutations"
 method_synopsis = "Call mutations"
 workflow_wdl_path = "./workflows/call_mutations/call_mutations.wdl"
 method_config_json_path = "./workflows/call_mutations/call_mutations.json"
 
 [terra.annotate_mutations]
-method_namespace = "depmap-omics"
+method_namespace = "cds-pipelines"
 method_name = "annotate_mutations"
-method_config_namespace = "depmap-omics"
+method_config_namespace = "cds-pipelines"
 method_config_name = "annotate_mutations"
 method_synopsis = "Annotate mutations"
 workflow_wdl_path = "./workflows/annotate_mutations/annotate_mutations.wdl"
