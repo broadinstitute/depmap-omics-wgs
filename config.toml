@@ -9,6 +9,8 @@ dry_run = true
 repo_namespace = "cds-pipelines"
 workspace_namespace = "broad-firecloud-ccle"
 workspace_name = "omics_wgs_pipeline"
+legacy_workspace_namespace = "broad-firecloud-ccle"
+legacy_workspace_name = "DepMap_WGS_CN-test-bam-load"
 
 [terra.align_wgs_sample]
 method_namespace = "cds-pipelines"

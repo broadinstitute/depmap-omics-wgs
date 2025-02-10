@@ -188,7 +188,7 @@ def submit_delta_job(
         2. confirming the entity is eligible to be submitted in a job by checking for
            previous submissions of that same entity to the workflow
 
-    :param terra_workspace: a TerraWorkspace instance
+    :param terra_workspace: a `TerraWorkspace` instance
     :param terra_workflow: a TerraWorkflow instance for the method
     :param entity_type: the name of the Terra entity type
     :param entity_set_type: the name of the Terra entity set type for `entity_type`

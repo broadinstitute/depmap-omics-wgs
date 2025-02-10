@@ -3,8 +3,9 @@ import json
 import logging
 
 import pandas as pd
+from firecloud import api as firecloud_api
 from nebelung.terra_workspace import TerraWorkspace
-from nebelung.utils import type_data_frame
+from nebelung.utils import call_firecloud_api, type_data_frame
 
 from gumbo_gql_client import task_entity_insert_input, task_result_insert_input
 from omics_wgs_pipeline.types import (
@@ -22,16 +23,17 @@ from omics_wgs_pipeline.utils import (
 )
 
 
-def make_terra_samples(
-    gumbo_client: GumboClient, ref_urls: dict[str, dict[str, str]]
-) -> TypedDataFrame[TerraSample]:
+def do_refresh_terra_samples(
+    terra_workspace: TerraWorkspace,
+    gumbo_client: GumboClient,
+    ref_urls: dict[str, dict[str, str]],
+) -> None:
     """
-    Make a data frame to use as a Terra `sample` data table using ground truth data from
-    Gumbo.
+    Update the Terra `sample` data table using ground truth data from Gumbo.
 
+    :param terra_workspace: a `TerraWorkspace` instance
     :param gumbo_client: a `GumboClient` instance
     :param ref_urls: a nested dictionary of genomes and their reference file URLs
-    :return: a data frame to use as a Terra `sample` data table
     """
 
     # get long data frame of both GP-delivered and CDS (analysis ready) CRAM/BAMs
@@ -75,17 +77,126 @@ def make_terra_samples(
         samples["delivery_cram_bam"].str.rsplit(".", n=1).str.get(1).str.upper()
     )
 
-    # set default reference for realignment
+    # set reference genome columns
+    samples = set_ref_urls(samples, ref_urls)
+
+    # validate types
+    samples = type_data_frame(samples, TerraSample)
+
+    terra_samples = terra_workspace.get_entities("sample")
+    sample_ids_to_delete = set(terra_samples["sample_id"]).difference(
+        set(samples["sample_id"])
+    )
+    delete_obsolete_terra_samples(terra_workspace, sample_ids_to_delete)
+
+    sample_ids = samples.pop("sample_id")
+    samples.insert(0, "entity:sample_id", sample_ids)
+    terra_workspace.upload_entities(df=samples)
+
+
+def set_ref_urls(
+    samples: pd.DataFrame, ref_urls: dict[str, dict[str, str]]
+) -> pd.DataFrame:
+    """
+    Populate columns in the `samples` data frame with URLs for reference genome files.
+
+    :param samples: the data frame of sample data
+    :param ref_urls: a dictionary of reference genome names (e.g. "hg38") and URLs of
+    files
+    :return: the `samples` data frame with columns for reference genome URLs
+    """
+
+    # set default reference for (re)alignment
     samples["ref"] = samples["ref"].fillna("hg38")
 
     # join reference URLs to for `delivery_` and `analysis_ready_` CRAM/BAMs
     ref_df = pd.DataFrame(ref_urls.values())
     ref_df["ref"] = ref_urls.keys()
     samples = samples.merge(ref_df, how="left", on="ref")
-    ref_df.columns = "delivery_" + ref_df.columns
-    samples = samples.merge(ref_df, how="left", on="delivery_ref")
 
-    return type_data_frame(samples, TerraSample)
+    ref_df.columns = "delivery_" + ref_df.columns
+
+    return samples.merge(ref_df, how="left", on="delivery_ref")
+
+
+def delete_obsolete_terra_samples(
+    terra_workspace: TerraWorkspace, sample_ids_to_delete: set[str]
+) -> None:
+    """
+    Delete obsolete samples from a Terra workspace, including
+
+    :param terra_workspace: a `TerraWorkspace` instance
+    :param sample_ids_to_delete: a set of sample IDs to delete
+    """
+
+    if len(sample_ids_to_delete) == 0:
+        logging.info("No samples to delete")
+        return
+
+    all_entities = call_firecloud_api(
+        firecloud_api.get_entities_with_type,
+        namespace=terra_workspace.workspace_namespace,
+        workspace=terra_workspace.workspace_name,
+    )
+
+    for x in all_entities:
+        x2 = x.copy()
+        x_updated = False
+
+        if x["entityType"] == "sample":
+            continue
+
+        if "attributes" in x:
+            for k, v in x["attributes"].items():
+                if v["itemsType"] != "EntityReference":
+                    raise NotImplementedError(
+                        f'Unknown item type {x['attributes'][k]['itemsType']}'
+                    )
+
+                items = v["items"]
+
+                if len(items) == 0:
+                    continue
+
+                updated_items = [
+                    y
+                    for y in items
+                    if y["entityType"] == "sample"
+                    and y["entityName"] not in sample_ids_to_delete
+                ]
+
+                if len(items) == len(updated_items):
+                    continue
+
+                x2["attributes"][k]["items"] = updated_items
+                x_updated = True
+
+        if x_updated:
+            logging.info(f"Removing entities from {x2['name']}")
+
+            call_firecloud_api(
+                firecloud_api.update_entity,
+                namespace=terra_workspace.workspace_namespace,
+                workspace=terra_workspace.workspace_name,
+                etype=x2["entityType"],
+                ename=x2["name"],
+                updates=[
+                    {
+                        "op": "AddUpdateAttribute",
+                        "attributeName": "samples",
+                        "addUpdateAttribute": x2["attributes"]["samples"],
+                    }
+                ],
+            )
+
+    call_firecloud_api(
+        firecloud_api.delete_entities,
+        namespace=terra_workspace.workspace_namespace,
+        workspace=terra_workspace.workspace_name,
+        json_body=[
+            {"entityType": "sample", "entityName": x} for x in sample_ids_to_delete
+        ],
+    )
 
 
 def pick_best_task_results(
