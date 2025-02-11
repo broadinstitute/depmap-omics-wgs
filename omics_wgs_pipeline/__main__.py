@@ -9,7 +9,11 @@ import tomllib
 import typer
 from nebelung.terra_workspace import TerraWorkspace
 
-from omics_wgs_pipeline.data import make_terra_samples, put_task_results
+from omics_wgs_pipeline.data import (
+    do_refresh_legacy_terra_samples,
+    do_refresh_terra_samples,
+    put_task_results,
+)
 from omics_wgs_pipeline.types import GumboClient
 from omics_wgs_pipeline.utils import (
     get_hasura_creds,
@@ -121,6 +125,17 @@ def delta_job(
         expression=expression,
         check_col=check_col,
         dry_run=config["dry_run"],
+    )
+
+
+@app.command()
+def refresh_legacy_terra_samples(ctx: typer.Context) -> None:
+    do_refresh_legacy_terra_samples(
+        terra_workspace=ctx.obj["terra_workspace"],
+        legacy_terra_workspace=TerraWorkspace(
+            workspace_namespace=config["terra"]["legacy_workspace_namespace"],
+            workspace_name=config["terra"]["legacy_workspace_name"],
+        ),
     )
 
 

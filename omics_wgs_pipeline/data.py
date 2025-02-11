@@ -4,6 +4,7 @@ import logging
 
 import pandas as pd
 from firecloud import api as firecloud_api
+from firecloud.fiss import entity_types
 from nebelung.terra_workspace import TerraWorkspace
 from nebelung.utils import call_firecloud_api, type_data_frame
 
@@ -83,11 +84,14 @@ def do_refresh_terra_samples(
     # validate types
     samples = type_data_frame(samples, TerraSample)
 
+    # delete obsolete samples (e.g. ones that have been blacklisted since the last sync)
     terra_samples = terra_workspace.get_entities("sample")
-    sample_ids_to_delete = set(terra_samples["sample_id"]).difference(
-        set(samples["sample_id"])
+    terra_workspace.delete_entities(
+        entity_type="sample",
+        entity_ids=set(terra_samples["sample_id"]).difference(
+            set(samples["sample_id"])
+        ),
     )
-    delete_obsolete_terra_samples(terra_workspace, sample_ids_to_delete)
 
     sample_ids = samples.pop("sample_id")
     samples.insert(0, "entity:sample_id", sample_ids)
@@ -117,86 +121,6 @@ def set_ref_urls(
     ref_df.columns = "delivery_" + ref_df.columns
 
     return samples.merge(ref_df, how="left", on="delivery_ref")
-
-
-def delete_obsolete_terra_samples(
-    terra_workspace: TerraWorkspace, sample_ids_to_delete: set[str]
-) -> None:
-    """
-    Delete obsolete samples from a Terra workspace, including
-
-    :param terra_workspace: a `TerraWorkspace` instance
-    :param sample_ids_to_delete: a set of sample IDs to delete
-    """
-
-    if len(sample_ids_to_delete) == 0:
-        logging.info("No samples to delete")
-        return
-
-    all_entities = call_firecloud_api(
-        firecloud_api.get_entities_with_type,
-        namespace=terra_workspace.workspace_namespace,
-        workspace=terra_workspace.workspace_name,
-    )
-
-    for x in all_entities:
-        x2 = x.copy()
-        x_updated = False
-
-        if x["entityType"] == "sample":
-            continue
-
-        if "attributes" in x:
-            for k, v in x["attributes"].items():
-                if v["itemsType"] != "EntityReference":
-                    raise NotImplementedError(
-                        f'Unknown item type {x['attributes'][k]['itemsType']}'
-                    )
-
-                items = v["items"]
-
-                if len(items) == 0:
-                    continue
-
-                updated_items = [
-                    y
-                    for y in items
-                    if y["entityType"] == "sample"
-                    and y["entityName"] not in sample_ids_to_delete
-                ]
-
-                if len(items) == len(updated_items):
-                    continue
-
-                x2["attributes"][k]["items"] = updated_items
-                x_updated = True
-
-        if x_updated:
-            logging.info(f"Removing entities from {x2['name']}")
-
-            call_firecloud_api(
-                firecloud_api.update_entity,
-                namespace=terra_workspace.workspace_namespace,
-                workspace=terra_workspace.workspace_name,
-                etype=x2["entityType"],
-                ename=x2["name"],
-                updates=[
-                    {
-                        "op": "AddUpdateAttribute",
-                        "attributeName": "samples",
-                        "addUpdateAttribute": x2["attributes"]["samples"],
-                    }
-                ],
-            )
-
-    call_firecloud_api(
-        firecloud_api.delete_entities,
-        namespace=terra_workspace.workspace_namespace,
-        workspace=terra_workspace.workspace_name,
-        json_body=[
-            {"entityType": "sample", "entityName": x} for x in sample_ids_to_delete
-        ],
-    )
 
 
 def pick_best_task_results(
@@ -428,3 +352,39 @@ def put_task_results(
 
     sync_id = res.insert_terra_sync.returning[0].id  # pyright: ignore
     logging.info(f"Created Terra sync record {sync_id}")
+
+
+def do_refresh_legacy_terra_samples(
+    terra_workspace: TerraWorkspace,
+    legacy_terra_workspace: TerraWorkspace,
+) -> None:
+    samples = terra_workspace.get_entities("sample")
+    legacy_samples = legacy_terra_workspace.get_entities("sample")
+
+    src_samples = (
+        samples[["sample_id", "analysis_ready_bam", "analysis_ready_bai"]]
+        .rename(
+            columns={
+                "analysis_ready_bam": "internal_bam_filepath",
+                "analysis_ready_bai": "internal_bai_filepath",
+            }
+        )
+        .dropna()
+    )
+
+    dest_samples = legacy_samples[
+        ["sample_id", "internal_bam_filepath", "internal_bai_filepath"]
+    ]
+
+    diff = src_samples.merge(
+        dest_samples, on="sample_id", how="left", suffixes=("_src", "_dest")
+    )
+
+    df = diff.loc[
+        ~(
+            diff["internal_bam_filepath_src"].eq(diff["internal_bam_filepath_dest"])
+            & diff["internal_bai_filepath_src"].eq(diff["internal_bai_filepath_dest"])
+        )
+    ]
+
+    pass
