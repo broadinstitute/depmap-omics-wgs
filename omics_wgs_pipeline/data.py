@@ -3,10 +3,8 @@ import json
 import logging
 
 import pandas as pd
-from firecloud import api as firecloud_api
-from firecloud.fiss import entity_types
 from nebelung.terra_workspace import TerraWorkspace
-from nebelung.utils import call_firecloud_api, type_data_frame
+from nebelung.utils import type_data_frame
 
 from gumbo_gql_client import task_entity_insert_input, task_result_insert_input
 from omics_wgs_pipeline.types import (
@@ -121,6 +119,54 @@ def set_ref_urls(
     ref_df.columns = "delivery_" + ref_df.columns
 
     return samples.merge(ref_df, how="left", on="delivery_ref")
+
+
+def do_refresh_legacy_terra_samples(
+    terra_workspace: TerraWorkspace,
+    legacy_terra_workspace: TerraWorkspace,
+) -> None:
+    """
+    Update the sample data table in the legacy production Terra workspace.
+
+    :param terra_workspace: the Terra workspace where new workflows have run
+    :param legacy_terra_workspace: the legacy Terra workspace where new workflow outputs
+    need to be synced to
+    """
+
+    samples = terra_workspace.get_entities("sample")
+    legacy_samples = legacy_terra_workspace.get_entities("sample")
+
+    src_samples = (
+        samples[["sample_id", "analysis_ready_bam", "analysis_ready_bai"]]
+        .rename(
+            columns={
+                "analysis_ready_bam": "internal_bam_filepath",
+                "analysis_ready_bai": "internal_bai_filepath",
+            }
+        )
+        .dropna()
+    )
+
+    dest_samples = legacy_samples[
+        ["sample_id", "internal_bam_filepath", "internal_bai_filepath"]
+    ]
+
+    diff = src_samples.merge(
+        dest_samples, on="sample_id", how="left", suffixes=("_src", "_dest")
+    )
+
+    to_upsert = diff.loc[
+        diff["internal_bam_filepath_dest"].isna()
+        | diff["internal_bai_filepath_dest"].isna(),
+        ["sample_id", "internal_bam_filepath_src", "internal_bai_filepath_src"],
+    ].rename(
+        columns={
+            "internal_bam_filepath_src": "internal_bam_filepath",
+            "internal_bai_filepath_src": "internal_bai_filepath",
+        }
+    )
+
+    legacy_terra_workspace.upload_entities(to_upsert)
 
 
 def pick_best_task_results(
@@ -352,39 +398,3 @@ def put_task_results(
 
     sync_id = res.insert_terra_sync.returning[0].id  # pyright: ignore
     logging.info(f"Created Terra sync record {sync_id}")
-
-
-def do_refresh_legacy_terra_samples(
-    terra_workspace: TerraWorkspace,
-    legacy_terra_workspace: TerraWorkspace,
-) -> None:
-    samples = terra_workspace.get_entities("sample")
-    legacy_samples = legacy_terra_workspace.get_entities("sample")
-
-    src_samples = (
-        samples[["sample_id", "analysis_ready_bam", "analysis_ready_bai"]]
-        .rename(
-            columns={
-                "analysis_ready_bam": "internal_bam_filepath",
-                "analysis_ready_bai": "internal_bai_filepath",
-            }
-        )
-        .dropna()
-    )
-
-    dest_samples = legacy_samples[
-        ["sample_id", "internal_bam_filepath", "internal_bai_filepath"]
-    ]
-
-    diff = src_samples.merge(
-        dest_samples, on="sample_id", how="left", suffixes=("_src", "_dest")
-    )
-
-    df = diff.loc[
-        ~(
-            diff["internal_bam_filepath_src"].eq(diff["internal_bam_filepath_dest"])
-            & diff["internal_bai_filepath_src"].eq(diff["internal_bai_filepath_dest"])
-        )
-    ]
-
-    pass
