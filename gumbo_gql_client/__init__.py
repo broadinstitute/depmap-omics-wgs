@@ -451,6 +451,10 @@ from .sequencing_task_entities import (
     SequencingTaskEntities,
     SequencingTaskEntitiesRecords,
 )
+from .unprocessed_sequencings import (
+    UnprocessedSequencings,
+    UnprocessedSequencingsRecords,
+)
 from .wgs_sequencing_alignments import (
     WgsSequencingAlignments,
     WgsSequencingAlignmentsRecords,
@@ -487,6 +491,8 @@ __all__ = [
     "SequencingTaskEntitiesRecords",
     "String_array_comparison_exp",
     "String_comparison_exp",
+    "UnprocessedSequencings",
+    "UnprocessedSequencingsRecords",
     "Upload",
     "WgsSequencingAlignments",
     "WgsSequencingAlignmentsRecords",

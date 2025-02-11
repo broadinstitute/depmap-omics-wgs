@@ -12,6 +12,7 @@ from .insert_task_results import InsertTaskResults
 from .insert_terra_sync import InsertTerraSync
 from .sequencing_ids import SequencingIds
 from .sequencing_task_entities import SequencingTaskEntities
+from .unprocessed_sequencings import UnprocessedSequencings
 from .wgs_sequencing_alignments import WgsSequencingAlignments
 
 
@@ -36,6 +37,28 @@ class GumboClient(BaseClient):
         )
         data = self.get_data(response)
         return SequencingIds.model_validate(data)
+
+    def unprocessed_sequencings(self, **kwargs: Any) -> UnprocessedSequencings:
+        query = gql(
+            """
+            query UnprocessedSequencings {
+              records: omics_sequencing(
+                where: {_and: [{expected_type: {_eq: "wgs"}, blacklist: {_neq: true}, _or: [{processed_sequence: {_neq: true}}, {processed_sequence: {_is_null: true}}], omics_profile: {blacklist_omics: {_neq: true}}}]}
+              ) {
+                omics_sequencing_id: sequencing_id
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {}
+        response = self.execute(
+            query=query,
+            operation_name="UnprocessedSequencings",
+            variables=variables,
+            **kwargs
+        )
+        data = self.get_data(response)
+        return UnprocessedSequencings.model_validate(data)
 
     def wgs_sequencing_alignments(self, **kwargs: Any) -> WgsSequencingAlignments:
         query = gql(

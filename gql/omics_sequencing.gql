@@ -3,3 +3,23 @@ query SequencingIds {
     sequencing_id
   }
 }
+
+query UnprocessedSequencings {
+  records: omics_sequencing(
+    where: {
+      _and: [
+        {
+          expected_type: { _eq: "wgs" }
+          blacklist: { _neq: true }
+          _or: [
+            { processed_sequence: { _neq: true } }
+            { processed_sequence: { _is_null: true } }
+          ]
+          omics_profile: { blacklist_omics: { _neq: true } }
+        }
+      ]
+    }
+  ) {
+    omics_sequencing_id: sequencing_id
+  }
+}

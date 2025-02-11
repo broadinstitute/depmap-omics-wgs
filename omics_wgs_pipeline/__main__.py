@@ -129,13 +129,18 @@ def delta_job(
 
 
 @app.command()
-def refresh_legacy_terra_samples(ctx: typer.Context) -> None:
+def refresh_legacy_terra_samples(
+    ctx: typer.Context,
+    sample_set_id: Annotated[str, typer.Option()],
+) -> None:
     do_refresh_legacy_terra_samples(
         terra_workspace=ctx.obj["terra_workspace"],
         legacy_terra_workspace=TerraWorkspace(
             workspace_namespace=config["terra"]["legacy_workspace_namespace"],
             workspace_name=config["terra"]["legacy_workspace_name"],
         ),
+        sample_set_id=sample_set_id,
+        gumbo_client=ctx.obj["gumbo_client"],
     )
 
 

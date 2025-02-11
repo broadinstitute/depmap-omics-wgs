@@ -3,8 +3,10 @@ import json
 import logging
 
 import pandas as pd
+import requests
+from firecloud import api as firecloud_api
 from nebelung.terra_workspace import TerraWorkspace
-from nebelung.utils import type_data_frame
+from nebelung.utils import call_firecloud_api, type_data_frame
 
 from gumbo_gql_client import task_entity_insert_input, task_result_insert_input
 from omics_wgs_pipeline.types import (
@@ -124,6 +126,8 @@ def set_ref_urls(
 def do_refresh_legacy_terra_samples(
     terra_workspace: TerraWorkspace,
     legacy_terra_workspace: TerraWorkspace,
+    sample_set_id: str,
+    gumbo_client: GumboClient,
 ) -> None:
     """
     Update the sample data table in the legacy production Terra workspace.
@@ -131,8 +135,12 @@ def do_refresh_legacy_terra_samples(
     :param terra_workspace: the Terra workspace where new workflows have run
     :param legacy_terra_workspace: the legacy Terra workspace where new workflow outputs
     need to be synced to
+    :param sample_set_id: the ID for a sample set to create or update for unprocessed
+    samples
+    :param gumbo_client: a `GumboClient` instance
     """
 
+    # identify sampless in legacy workspace that have new analysis-ready BAMs
     samples = terra_workspace.get_entities("sample")
     legacy_samples = legacy_terra_workspace.get_entities("sample")
 
@@ -166,7 +174,58 @@ def do_refresh_legacy_terra_samples(
         }
     )
 
-    legacy_terra_workspace.upload_entities(to_upsert)
+    if len(to_upsert) > 0:
+        legacy_terra_workspace.upload_entities(to_upsert)
+        legacy_samples = legacy_terra_workspace.get_entities("sample")
+
+    # get list of unprocessesd sample/sequencing IDs and create/update a sample set
+    res = gumbo_client.unprocessed_sequencings()
+
+    unprocessed_sample_ids = [
+        x.omics_sequencing_id
+        for x in res.records
+        if x.omics_sequencing_id in legacy_samples["sample_id"].values
+    ]
+
+    try:
+        # update existing sample set
+        sample_set = call_firecloud_api(
+            firecloud_api.get_entity,
+            namespace=legacy_terra_workspace.workspace_namespace,
+            workspace=legacy_terra_workspace.workspace_name,
+            etype="sample_set",
+            ename=sample_set_id,
+        )
+
+        sample_set["attributes"]["samples"]["items"] = [
+            {"entityType": "sample", "entityName": x} for x in unprocessed_sample_ids
+        ]
+
+        _ = call_firecloud_api(
+            firecloud_api.update_entity,
+            namespace=legacy_terra_workspace.workspace_namespace,
+            workspace=legacy_terra_workspace.workspace_name,
+            etype="sample_set",
+            ename=sample_set_id,
+            updates=[
+                {
+                    "op": "AddUpdateAttribute",
+                    "attributeName": "samples",
+                    "addUpdateAttribute": sample_set["attributes"]["samples"],
+                }
+            ],
+        )
+
+    except requests.exceptions.RequestException as e:
+        if "404" not in str(e):
+            raise e
+
+        # create new sample set
+        legacy_terra_workspace.create_entity_set(
+            entity_type="sample",
+            entity_ids=unprocessed_sample_ids,
+            entity_set_id=sample_set_id,
+        )
 
 
 def pick_best_task_results(

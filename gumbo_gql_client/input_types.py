@@ -3173,6 +3173,7 @@ class onboarding_workspace_bool_exp(BaseModel):
     gcs_destination_bucket: Optional["String_comparison_exp"] = None
     gcs_destination_prefix: Optional["String_comparison_exp"] = None
     id: Optional["String_comparison_exp"] = None
+    max_file_size: Optional["bigint_comparison_exp"] = None
     min_file_size: Optional["bigint_comparison_exp"] = None
     onboarding_jobs: Optional["onboarding_job_bool_exp"] = None
     onboarding_jobs_aggregate: Optional["onboarding_job_aggregate_bool_exp"] = None
@@ -3200,6 +3201,7 @@ class onboarding_workspace_delete_key_input(BaseModel):
 
 
 class onboarding_workspace_inc_input(BaseModel):
+    max_file_size: Optional[int] = None
     min_file_size: Optional[int] = None
 
 
@@ -3212,6 +3214,7 @@ class onboarding_workspace_insert_input(BaseModel):
     gcs_destination_bucket: Optional[str] = None
     gcs_destination_prefix: Optional[str] = None
     id: Optional[str] = None
+    max_file_size: Optional[int] = None
     min_file_size: Optional[int] = None
     onboarding_jobs: Optional["onboarding_job_arr_rel_insert_input"] = None
     reference_genome: Optional[str] = None
@@ -3242,6 +3245,7 @@ class onboarding_workspace_order_by(BaseModel):
     gcs_destination_bucket: Optional[order_by] = None
     gcs_destination_prefix: Optional[order_by] = None
     id: Optional[order_by] = None
+    max_file_size: Optional[order_by] = None
     min_file_size: Optional[order_by] = None
     onboarding_jobs_aggregate: Optional["onboarding_job_aggregate_order_by"] = None
     reference_genome: Optional[order_by] = None
@@ -3270,6 +3274,7 @@ class onboarding_workspace_set_input(BaseModel):
     gcs_destination_bucket: Optional[str] = None
     gcs_destination_prefix: Optional[str] = None
     id: Optional[str] = None
+    max_file_size: Optional[int] = None
     min_file_size: Optional[int] = None
     reference_genome: Optional[str] = None
     source: Optional[str] = None
@@ -3293,6 +3298,7 @@ class onboarding_workspace_stream_cursor_value_input(BaseModel):
     gcs_destination_bucket: Optional[str] = None
     gcs_destination_prefix: Optional[str] = None
     id: Optional[str] = None
+    max_file_size: Optional[int] = None
     min_file_size: Optional[int] = None
     reference_genome: Optional[str] = None
     source: Optional[str] = None
