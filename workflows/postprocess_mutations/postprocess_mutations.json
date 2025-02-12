@@ -1,0 +1,20 @@
+{
+  "deleted": false,
+  "inputs": {
+    "postprocess_mutations.postprocess.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/annotate-mutations-postprocess\"",
+    "postprocess_mutations.postprocess.docker_image_hash_or_tag": "\"@sha256:87a20f77a7aade4420974b0c8ff128315642a261356941b0c15561492f507bd3\"",
+    "postprocess_mutations.duckdb": "this.duckdb"
+  },
+  "methodConfigVersion": 1,
+  "methodRepoMethod": {
+    "methodNamespace": "cds-pipelines",
+    "methodName": "postprocess_mutations",
+    "methodVersion": 1
+  },
+  "namespace": "cds-pipelines",
+  "name": "postprocess_mutations",
+  "outputs": {
+    "postprocess_mutations.somatic_variants": "this.somatic_variants"
+  },
+  "rootEntityType": "sample"
+}

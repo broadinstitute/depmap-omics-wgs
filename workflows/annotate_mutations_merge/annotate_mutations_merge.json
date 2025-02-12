@@ -1,0 +1,28 @@
+{
+  "deleted": false,
+  "inputs": {
+    "annotate_mutations_merge.compound_info_fields": "[\"ANN\", \"CSQ\", \"LOF\", \"NMD\"]",
+    "annotate_mutations_merge.index_vcf.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/bcftools\"",
+    "annotate_mutations_merge.index_vcf.docker_image_hash_or_tag": "\"@sha256:2514b00e7866254a03a2a1cc519150f19da3687efa0acc0437fdeb98bf82d9f1\"",
+    "annotate_mutations_merge.input_vcfs": "[this.mut_annot_bcftools_vcf, this.mut_annot_snpeff_snpsift_vcf, this.mut_annot_open_cravat_vcf, this.mut_annot_vep_vcf, this.mut_annot_funcotator_vcf]",
+    "annotate_mutations_merge.merge_info.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/annotate_mutations_merge_postprocess\"",
+    "annotate_mutations_merge.merge_info.docker_image_hash_or_tag": "\"@sha256:81bf83ee20811fa59872345c83e044e65fa2ae63732e069e5965b77be276f49f\"",
+    "annotate_mutations_merge.sample_id": "this.sample_id",
+    "annotate_mutations_merge.vcf_to_duckdb.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/vcf-to-duckdb\"",
+    "annotate_mutations_merge.vcf_to_duckdb.docker_image_hash_or_tag": "\"@sha256:4403dc20bbedb637586307bdc135a7f0d37450e5252f7054cf12fb9c2496d683\""
+  },
+  "methodConfigVersion": 1,
+  "methodRepoMethod": {
+    "methodNamespace": "cds-pipelines",
+    "methodName": "annotate_mutations_merge",
+    "methodVersion": 1
+  },
+  "namespace": "cds-pipelines",
+  "name": "annotate_mutations_merge",
+  "outputs": {
+    "annotate_mutations_merge.mut_annot_vcf": "this.mut_annot_vcf",
+    "annotate_mutations_merge.mut_annot_vcf_index": "this.mut_annot_vcf_index",
+    "annotate_mutations_merge.mut_duckdb": "this.mut_duckdb"
+  },
+  "rootEntityType": "sample"
+}

@@ -66,6 +66,15 @@ method_synopsis = "Call mutations"
 workflow_wdl_path = "./workflows/call_mutations/call_mutations.wdl"
 method_config_json_path = "./workflows/call_mutations/call_mutations.json"
 
+[terra.prep_annotations]
+method_namespace = "cds-pipelines"
+method_name = "prep_annotations"
+method_config_namespace = "cds-pipelines"
+method_config_name = "prep_annotations"
+method_synopsis = "Prep called mutations for annotation"
+workflow_wdl_path = "./workflows/prep_annotations/prep_annotations.wdl"
+method_config_json_path = "./workflows/prep_annotations/prep_annotations.json"
+
 [terra.annotate_mutations]
 method_namespace = "cds-pipelines"
 method_name = "annotate_mutations"
@@ -74,6 +83,24 @@ method_config_name = "annotate_mutations"
 method_synopsis = "Annotate mutations"
 workflow_wdl_path = "./workflows/annotate_mutations/annotate_mutations.wdl"
 method_config_json_path = "./workflows/annotate_mutations/annotate_mutations.json"
+
+[terra.annotate_mutations_merge]
+method_namespace = "cds-pipelines"
+method_name = "annotate_mutations_merge"
+method_config_namespace = "cds-pipelines"
+method_config_name = "annotate_mutations_merge"
+method_synopsis = "Merge info fields in annotation mutations VCF files"
+workflow_wdl_path = "./workflows/annotate_mutations_merge/annotate_mutations_merge.wdl"
+method_config_json_path = "./workflows/annotate_mutations_merge/annotate_mutations_merge.json"
+
+[terra.postprocess_mutations]
+method_namespace = "cds-pipelines"
+method_name = "postprocess_mutations"
+method_config_namespace = "cds-pipelines"
+method_config_name = "postprocess_mutations"
+method_synopsis = "Postprocess annotated mutations to extract and rescue somatic variants"
+workflow_wdl_path = "./workflows/postprocess_mutations/postprocess_mutations.wdl"
+method_config_json_path = "./workflows/postprocess_mutations/postprocess_mutations.json"
 
 [ref.hg19]
 ref_amb = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.amb"
