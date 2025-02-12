@@ -177,7 +177,8 @@ def submit_delta_job(
     entity_set_type: str,
     entity_id_col: str,
     expression: str,
-    check_col: str,
+    required_cols: set[str],
+    output_cols: set[str],
     resubmit_n_times: int = 1,
     dry_run: bool = True,
 ):
@@ -194,8 +195,10 @@ def submit_delta_job(
     :param entity_set_type: the name of the Terra entity set type for `entity_type`
     :param entity_id_col: the name of the ID column for the entity type
     :param expression: the entity type expression (e.g. "this.samples")
-    :param check_col: the column in the entity's data table to use for determining
-    whether the entity has already had a workflow run on it
+    :param required_cols: the set of columns in the entity's data table that must be
+    present to run a workflow
+    :param output_cols: the set of columns in the entity's data table that, when missing
+    or empty, indicate the workflow hasn't been run on a sample
     :param resubmit_n_times: the number of times to resubmit an entity in the event it
     has failed in the past
     :param dry_run: whether to skip updates to external data stores
@@ -203,10 +206,14 @@ def submit_delta_job(
 
     entities = terra_workspace.get_entities(entity_type)
 
-    if check_col not in entities.columns:
-        entities[check_col] = pd.NA
+    for c in required_cols.union(output_cols):
+        if c not in entities.columns:
+            entities[c] = pd.NA
 
-    entities_todo = entities.loc[entities[check_col].isna()]
+    entities_todo = entities.loc[
+        entities[list(required_cols)].notna().all(axis=1)
+        & entities[list(output_cols)].isna().any(axis=1)
+    ]
 
     if len(entities_todo) == 0:
         logging.info(f"No {entity_type}s to run {terra_workflow.method_name} for")
