@@ -155,6 +155,12 @@ def do_refresh_legacy_terra_samples(
         .dropna()
     )
 
+    if "internal_bam_filepath" not in legacy_samples.columns:
+        legacy_samples['internal_bam_filepath'] = pd.NA
+
+    if "internal_bai_filepath" not in legacy_samples.columns:
+        legacy_samples['internal_bai_filepath'] = pd.NA
+
     dest_samples = legacy_samples[
         ["sample_id", "internal_bam_filepath", "internal_bai_filepath"]
     ]
