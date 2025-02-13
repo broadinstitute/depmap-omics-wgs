@@ -177,8 +177,6 @@ def submit_delta_job(
     entity_set_type: str,
     entity_id_col: str,
     expression: str,
-    required_cols: set[str],
-    output_cols: set[str],
     resubmit_n_times: int = 1,
     dry_run: bool = True,
 ):
@@ -195,24 +193,37 @@ def submit_delta_job(
     :param entity_set_type: the name of the Terra entity set type for `entity_type`
     :param entity_id_col: the name of the ID column for the entity type
     :param expression: the entity type expression (e.g. "this.samples")
-    :param required_cols: the set of columns in the entity's data table that must be
-    present to run a workflow
-    :param output_cols: the set of columns in the entity's data table that, when missing
-    or empty, indicate the workflow hasn't been run on a sample
     :param resubmit_n_times: the number of times to resubmit an entity in the event it
     has failed in the past
     :param dry_run: whether to skip updates to external data stores
     """
 
+    # get the method config for this workflow in this workspace
+    workflow_config = terra_workspace.get_workflow_config(terra_workflow)
+
+    assert not workflow_config["deleted"]
+    assert workflow_config["rootEntityType"] == entity_type
+
+    # identify columns in data table used for input/output
+    required_cols = {
+        v[5:] for k, v in workflow_config["inputs"].items() if v.startswith("this.")
+    }
+
+    output_cols = {
+        v[5:] for k, v in workflow_config["outputs"].items() if v.startswith("this.")
+    }
+
+    # get the entities for this workflow entity type
     entities = terra_workspace.get_entities(entity_type)
 
     for c in required_cols.union(output_cols):
         if c not in entities.columns:
             entities[c] = pd.NA
 
+    # identify entities that have all required inputs but no outputs
     entities_todo = entities.loc[
         entities[list(required_cols)].notna().all(axis=1)
-        & entities[list(output_cols)].isna().any(axis=1)
+        & entities[list(output_cols)].isna().all(axis=1)
     ]
 
     if len(entities_todo) == 0:
