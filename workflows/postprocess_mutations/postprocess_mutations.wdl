@@ -24,7 +24,7 @@ task postprocess {
 
         String docker_image
         String docker_image_hash_or_tag
-        Int mem_gb = 8
+        Int mem_gb = 12
         Int cpu = 2
         Int preemptible = 3
         Int max_retries = 2
