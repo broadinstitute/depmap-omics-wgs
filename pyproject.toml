@@ -31,6 +31,7 @@ pyright = "^1.1.365"
 jupyter = "^1.0.0"
 pyliftover = "^0.4.1"
 gffutils = "^0.13"
+miniwdl = "^1.12.1"
 
 [[tool.poetry.source]]
 name = "public-python"
