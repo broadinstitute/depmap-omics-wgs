@@ -14,24 +14,22 @@ pandas = "^2.2.2"
 pandera = {extras = ["strategies"], version = "^0.20.4"}
 python-dotenv = "^1.0.1"
 pydantic = "^2.10.6"
-click = "^8.1.7"
 google-cloud-storage = "^2.16.0"
 google-cloud-logging = "^3.10.0"
 functions-framework = "^3.5.0"
 typer = "^0.9.0"
-pyarrow = "^15.0.2"
 pygithub = "^2.3.0"
 nebelung = "^2.3.0"
 pd-flatten = "^0.1.1"
 google-cloud-secret-manager = "^2.22.1"
 
 [tool.poetry.group.dev.dependencies]
+pyarrow = "^15.0.2"
 ruff = "^0.4.10"
 pyright = "^1.1.365"
 jupyter = "^1.0.0"
 pyliftover = "^0.4.1"
 gffutils = "^0.13"
-miniwdl = "^1.12.1"
 
 [[tool.poetry.source]]
 name = "public-python"
