@@ -58,8 +58,8 @@ task calc_bin_coverage {
 
         String docker_image
         String docker_image_hash_or_tag
-        Int mem_gb = 4
-        Int cpu = 1
+        Int mem_gb = 8
+        Int cpu = 4
         Int preemptible = 3
         Int max_retries = 0
         Int additional_disk_gb = 0
@@ -75,7 +75,7 @@ task calc_bin_coverage {
         # collect raw coverage across provided bins
         samtools view \
             -T "~{ref_fasta}" \
-            -@~{cpu} \
+            -@ ~{cpu} \
             -q~{min_mapq} \
             --bam "~{bam}" \
         | bedtools coverage \
@@ -155,13 +155,13 @@ task call_segments {
 
         # extract coverage column and reformat header lines
         sed "s/#bedGraph section /fixedStep chrom=/g" "~{coverage_wig}" \
-        | sed "s/:/ start=/g" \
-        | sed "s/\-[0-9]*/ step=1000 span=1000/g" \
-        | awk '{ if (index($1, "chr") == 1) { print $4 } else print $0 }' \
-        > "~{sample_id}.coverage.formatted.wig"
+            | sed "s/:/ start=/g" \
+            | sed "s/\-[0-9]*/ step=1000 span=1000/g" \
+            | awk '{ if (index($1, "chr") == 1) { print $4 } else print $0 }' \
+            > "~{sample_id}.coverage.formatted.wig"
 
         # segment with HMM
-        Rscript /segment.R \
+        Rscript /usr/src/segment.R \
             "~{sample_id}.coverage.formatted.wig" \
             "~{gc_wig}" \
             "~{map_wig}" \
@@ -196,20 +196,20 @@ task call_segments {
 
         # collect segment copy numbers for protein-coding genes
         sed '1d' "~{sample_id}.cn_segments.tsv" \
-        | bedtools intersect -b stdin -a "~{protein_coding_genes_bed}" -wao \
-        | awk '{ print $1"\t"$2"\t"$3"\t"$4"\t"$11"\t"$12"\t"$11*$12 }' \
-        | bedtools groupby -g 1,2,3,4 -c 6,7,7 -o sum,sum,count \
-        | awk '{ if ($5 != 0) { print $0"\t"$6/$5 } else { print $0"\tNA" } }' \
-        > "~{sample_id}.cn_gene.tsv"
+            | bedtools intersect -b stdin -a "~{protein_coding_genes_bed}" -wao \
+            | awk '{ print $1"\t"$2"\t"$3"\t"$4"\t"$11"\t"$12"\t"$11*$12 }' \
+            | bedtools groupby -g 1,2,3,4 -c 6,7,7 -o sum,sum,count \
+            | awk '{ if ($5 != 0) { print $0"\t"$6/$5 } else { print $0"\tNA" } }' \
+            > "~{sample_id}.cn_gene.tsv"
 
         # calculate weighted-mean copy numbers for protein-coding gene
         awk '{ if (NR > 1 && $6 >= 0.9) print }' "~{sample_id}.read_cov_bin.tsv" \
-        | bedtools intersect -a "~{protein_coding_genes_bed}" -b stdin -wao \
-        | awk '{ print $0"\t"$17*$18 }' \
-        | sort -k1,1 -k2,2n -k3,3n -k4,4 \
-        | bedtools groupby -g 1,2,3,4 -c 18,19,19 -o sum,sum,count \
-        | awk '{ print $0"\t"$6/($5+1) }' \
-        > "~{sample_id}.cn_gene_weighted_mean.tsv"
+            | bedtools intersect -a "~{protein_coding_genes_bed}" -b stdin -wao \
+            | awk '{ print $0"\t"$17*$18 }' \
+            | sort -k1,1 -k2,2n -k3,3n -k4,4 \
+            | bedtools groupby -g 1,2,3,4 -c 18,19,19 -o sum,sum,count \
+            | awk '{ print $0"\t"$6/($5+1) }' \
+            > "~{sample_id}.cn_gene_weighted_mean.tsv"
     >>>
 
     output {
