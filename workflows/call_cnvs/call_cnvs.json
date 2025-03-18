@@ -8,7 +8,7 @@
     "call_cnvs.protein_coding_genes_bed": "\"gs://ccleparams/wgs_cnv/gencode.v38.primary_assembly.annotation.protein_coding_genes.bed\"",
     "call_cnvs.ref_fasta": "this.ref_fasta",
     "call_cnvs.sample_id": "this.sample_id",
-    "call_cnvs.wgs_bins_bed": "\"gs://ccleparams/wgs_cnv/gencode.v38.primary_assembly.annotation.protein_coding_genes.bed\"",
+    "call_cnvs.wgs_bins_bed": "\"gs://ccleparams/wgs_cnv/hg38.1000.sorted.bed\"",
     "call_cnvs.calc_bin_coverage.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/samtools_extra\"",
     "call_cnvs.calc_bin_coverage.docker_image_hash_or_tag": "\"@sha256:979a8f00cdd8f8ae248da896386add672cd59801a44fc2ab628c6093009dd1fb\"",
     "call_cnvs.call_segments.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/call_segments\"",

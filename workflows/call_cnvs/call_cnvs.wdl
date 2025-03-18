@@ -55,28 +55,27 @@ task calc_bin_coverage {
         File chrom_sizes
         File ref_fasta
 
-
         String docker_image
         String docker_image_hash_or_tag
-        Int mem_gb = 8
-        Int cpu = 4
-        Int preemptible = 3
+        Int mem_gb = 16
+        Int cpu = 8
+        Int preemptible = 2
         Int max_retries = 0
         Int additional_disk_gb = 0
     }
 
     Int disk_space = ceil(
-        size(bam, "GiB") + size(ref_fasta, "GiB") + size(wgs_bins_bed, "GiB")
+        5 * size(bam, "GiB") + size(ref_fasta, "GiB") + size(wgs_bins_bed, "GiB")
     ) + 10 + additional_disk_gb
 
     command <<<
         set -euo pipefail
 
-        # collect raw coverage across provided bins
+        echo "collecting raw coverage across provided bins"
         samtools view \
             -T "~{ref_fasta}" \
             -@ ~{cpu} \
-            -q~{min_mapq} \
+            -q ~{min_mapq} \
             --bam "~{bam}" \
         | bedtools coverage \
             -a "~{wgs_bins_bed}" \
@@ -87,18 +86,20 @@ task calc_bin_coverage {
             -iobuf 300M \
         > "~{sample_id}.coverage.unsorted.bg"
 
-        # sort coverage
+        echo "sorting coverage"
         LC_ALL=C sort \
             -k1,1 \
             -k2,2n \
             "~{sample_id}.coverage.unsorted.bg" \
-        > "~{sample_id}.coverage.tsv"
+        > "~{sample_id}.coverage.tsv" && \
+        rm "~{sample_id}.coverage.unsorted.bg"
 
-        # convert TSV to wig
+        echo "converting bed graph to bigwig to wig"
         bedGraphToBigWig \
             "~{sample_id}.coverage.tsv" \
             "~{chrom_sizes}" \
-            "~{sample_id}.coverage.bw"
+            "~{sample_id}.coverage.bw" && \
+        rm "~{sample_id}.coverage.tsv"
 
         bigWigToWig \
             "~{sample_id}.coverage.bw" \
