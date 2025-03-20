@@ -140,7 +140,7 @@ def do_refresh_legacy_terra_samples(
     :param gumbo_client: a `GumboClient` instance
     """
 
-    # identify sampless in legacy workspace that have new analysis-ready BAMs
+    # identify samples in legacy workspace that have new analysis-ready BAMs
     samples = terra_workspace.get_entities("sample")
     legacy_samples = legacy_terra_workspace.get_entities("sample")
 
@@ -156,10 +156,10 @@ def do_refresh_legacy_terra_samples(
     )
 
     if "internal_bam_filepath" not in legacy_samples.columns:
-        legacy_samples['internal_bam_filepath'] = pd.NA
+        legacy_samples["internal_bam_filepath"] = pd.NA
 
     if "internal_bai_filepath" not in legacy_samples.columns:
-        legacy_samples['internal_bai_filepath'] = pd.NA
+        legacy_samples["internal_bai_filepath"] = pd.NA
 
     dest_samples = legacy_samples[
         ["sample_id", "internal_bam_filepath", "internal_bai_filepath"]

@@ -26,6 +26,8 @@ def get_hasura_creds(gumbo_env: str) -> dict[str, str]:
     :return: a dictionary with the GraphQL API URL and password
     """
 
+    logging.info(f"Getting Hasura credentials for {gumbo_env}")
+
     return {
         "url": get_secret_from_sm(
             f"projects/814840278102/secrets/hasura-{gumbo_env}-api-url/versions/latest"
