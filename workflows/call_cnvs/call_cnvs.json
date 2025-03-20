@@ -12,7 +12,7 @@
     "call_cnvs.calc_bin_coverage.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/samtools_extra\"",
     "call_cnvs.calc_bin_coverage.docker_image_hash_or_tag": "\"@sha256:979a8f00cdd8f8ae248da896386add672cd59801a44fc2ab628c6093009dd1fb\"",
     "call_cnvs.call_segments.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/call_segments\"",
-    "call_cnvs.call_segments.docker_image_hash_or_tag": "\"@sha256:58568f61bc5266f04fb9e227d05f44671e93a855dc631d9dc0e4c259d35d77c6\""
+    "call_cnvs.call_segments.docker_image_hash_or_tag": "\"@sha256:340a4da3b6055e5390e5537be2a0563bde5a440a938e0907c973629c526ecbcd\""
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {

@@ -1,6 +1,8 @@
 library(readr)
 library(HMMcopy)
 
+set.seed(0)
+
 rfile <- commandArgs(TRUE)[1]
 gfile <- commandArgs(TRUE)[2]
 mfile <- commandArgs(TRUE)[3]
