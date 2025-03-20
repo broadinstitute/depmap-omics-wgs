@@ -58,18 +58,18 @@ task calc_bin_coverage {
         String docker_image
         String docker_image_hash_or_tag
         Int mem_gb = 16
-        Int cpu = 8
-        Int preemptible = 2
+        Int cpu = 4
+        Int preemptible = 1
         Int max_retries = 0
         Int additional_disk_gb = 0
     }
 
     Int disk_space = ceil(
-        5 * size(bam, "GiB") + size(ref_fasta, "GiB") + size(wgs_bins_bed, "GiB")
+        1.5 * size(bam, "GiB") + size(ref_fasta, "GiB") + size(wgs_bins_bed, "GiB")
     ) + 10 + additional_disk_gb
 
     command <<<
-        set -euo pipefail
+        set -eu
 
         echo "collecting raw coverage across provided bins"
         samtools view \
@@ -138,7 +138,7 @@ task call_segments {
         String docker_image_hash_or_tag
         Int mem_gb = 4
         Int cpu = 1
-        Int preemptible = 3
+        Int preemptible = 2
         Int max_retries = 0
         Int additional_disk_gb = 0
     }
@@ -189,7 +189,7 @@ task call_segments {
 
             {
                 # calculate NUM_POINTS_COPY_RATIO
-                num_points = int(($3 - $2) / 1000))
+                num_points = int(($3 - $2) / 1000)
                 print $0, num_points
             }
         ' "~{sample_id}.cn_segments.tsv" \
