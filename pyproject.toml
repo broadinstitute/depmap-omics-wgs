@@ -19,9 +19,9 @@ google-cloud-logging = "^3.10.0"
 functions-framework = "^3.5.0"
 typer = "^0.9.0"
 pygithub = "^2.3.0"
-nebelung = "^2.3.0"
 pd-flatten = "^0.1.1"
 google-cloud-secret-manager = "^2.22.1"
+nebelung = "^2.4.0"
 
 [tool.poetry.group.dev.dependencies]
 pyarrow = "^15.0.2"
