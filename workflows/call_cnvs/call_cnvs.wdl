@@ -173,11 +173,11 @@ task call_segments {
         # tweak segments file for use as PureCN input
         awk '
             BEGIN {
-                FS = OFS = "\t"  # Set field separator to tab
+                FS = OFS = "\t"  # set field separator to tab
             }
 
             NR == 1 {
-                # Replace header names
+                # replace header names
                 $1 = "CONTIG"
                 $2 = "START"
                 $3 = "END"

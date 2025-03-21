@@ -54,18 +54,18 @@ def main(
     with open(config_path, "rb") as f:
         config.update(tomllib.load(f))
 
-    if config["gumbo_env"] == "dev":
-        gumbo_client = GumboClient(
-            url="http://localhost:8080/v1/graphql",
-            username="dogspa",
-            headers={"X-Hasura-Admin-Secret": "secret"},
-        )
+    def get_gumbo_client() -> GumboClient:
+        if config["gumbo_env"] == "dev":
+            return GumboClient(
+                url="http://localhost:8080/v1/graphql",
+                username="dogspa",
+                headers={"X-Hasura-Admin-Secret": "secret"},
+            )
 
-    else:
         # get URL and password for Gumbo GraphQL API from secrets manager
         hasura_creds = get_hasura_creds(gumbo_env=config["gumbo_env"])
 
-        gumbo_client = GumboClient(
+        return GumboClient(
             url=hasura_creds["url"],
             username="dogspa",
             headers={"X-Hasura-Admin-Secret": hasura_creds["password"]},
@@ -77,7 +77,7 @@ def main(
             workspace_name=config["terra"]["workspace_name"],
             owners=json.loads(os.environ["FIRECLOUD_OWNERS"]),
         ),
-        "gumbo_client": gumbo_client,
+        "get_gumbo_client": get_gumbo_client,
     }
 
 
@@ -101,7 +101,7 @@ def update_workflow(
 def refresh_terra_samples(ctx: typer.Context) -> None:
     do_refresh_terra_samples(
         terra_workspace=ctx.obj["terra_workspace"],
-        gumbo_client=ctx.obj["gumbo_client"],
+        gumbo_client=ctx.obj["get_gumbo_client"](),
         ref_urls=config["ref"],
     )
 
@@ -138,14 +138,14 @@ def refresh_legacy_terra_samples(
             workspace_name=config["terra"]["legacy_workspace_name"],
         ),
         sample_set_id=sample_set_id,
-        gumbo_client=ctx.obj["gumbo_client"],
+        gumbo_client=ctx.obj["get_gumbo_client"](),
     )
 
 
 @app.command()
 def persist_outputs_in_gumbo(ctx: typer.Context) -> None:
     put_task_results(
-        gumbo_client=ctx.obj["gumbo_client"],
+        gumbo_client=ctx.obj["get_gumbo_client"](),
         terra_workspace=ctx.obj["terra_workspace"],
         gcp_project_id=config["gcp_project_id"],
         uuid_namespace=config["uuid_namespace"],
