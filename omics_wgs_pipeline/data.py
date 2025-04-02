@@ -203,6 +203,7 @@ def do_refresh_legacy_terra_samples(
             "sample_id",
             "internal_bam_filepath_src",
             "internal_bai_filepath_src",
+            "cnv_cn_by_gene_weighted_mean_src",
             "cnv_segments_src",
         ],
     ].rename(
