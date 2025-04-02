@@ -41,7 +41,6 @@ workflow call_cnvs {
         File segments = call_segments.segments
         File read_cov_bin = call_segments.read_cov_bin
         File input_params = call_segments.input_params
-        File cn_by_gene = call_segments.cn_by_gene
         File cn_by_gene_weighted_mean = call_segments.cn_by_gene_weighted_mean
     }
 }
@@ -170,6 +169,11 @@ task call_segments {
             100 \
             0.9
 
+        sort \
+            --key="1,1V" --key="2,2n" \
+            "~{sample_id}.cn_segments.tsv" \
+            > "~{sample_id}.cn_segments.sorted.tsv"
+
         # tweak segments file for use as PureCN input
         awk '
             BEGIN {
@@ -192,11 +196,11 @@ task call_segments {
                 num_points = int(($3 - $2) / 1000)
                 print $0, num_points
             }
-        ' "~{sample_id}.cn_segments.tsv" \
+        ' "~{sample_id}.cn_segments.sorted.tsv" \
         > "~{sample_id}.cn_segments_for_purecn.tsv"
 
         # collect segment copy numbers for protein-coding genes
-        sed '1d' "~{sample_id}.cn_segments.tsv" \
+        sed '1d' "~{sample_id}.cn_segments.sorted.tsv" \
             | bedtools intersect -b stdin -a "~{protein_coding_genes_bed}" -wao \
             | awk '{ print $1"\t"$2"\t"$3"\t"$4"\t"$11"\t"$12"\t"$11*$12 }' \
             | bedtools groupby -g 1,2,3,4 -c 6,7,7 -o sum,sum,count \
@@ -207,7 +211,7 @@ task call_segments {
         awk '{ if (NR > 1 && $6 >= 0.9) print }' "~{sample_id}.read_cov_bin.tsv" \
             | bedtools intersect -a "~{protein_coding_genes_bed}" -b stdin -wao \
             | awk '{ print $0"\t"$17*$18 }' \
-            | sort -k1,1 -k2,2n -k3,3n -k4,4 \
+            | sort --key="1,1V" --key="2,2n" --key="3,3n" --key="4,4n" \
             | bedtools groupby -g 1,2,3,4 -c 18,19,19 -o sum,sum,count \
             | awk '{ print $0"\t"$6/($5+1) }' \
             > "~{sample_id}.cn_gene_weighted_mean.tsv"
@@ -217,7 +221,6 @@ task call_segments {
         File segments = "~{sample_id}.cn_segments_for_purecn.tsv"
         File read_cov_bin = "~{sample_id}.read_cov_bin.tsv"
         File input_params = "~{sample_id}.input_params.tsv"
-        File cn_by_gene = "~{sample_id}.cn_gene.tsv"
         File cn_by_gene_weighted_mean = "~{sample_id}.cn_gene_weighted_mean.tsv"
     }
 
