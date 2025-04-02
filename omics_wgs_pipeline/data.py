@@ -144,15 +144,19 @@ def do_refresh_legacy_terra_samples(
     samples = terra_workspace.get_entities("sample")
     legacy_samples = legacy_terra_workspace.get_entities("sample")
 
-    src_samples = (
-        samples[["sample_id", "analysis_ready_bam", "analysis_ready_bai"]]
-        .rename(
-            columns={
-                "analysis_ready_bam": "internal_bam_filepath",
-                "analysis_ready_bai": "internal_bai_filepath",
-            }
-        )
-        .dropna()
+    src_samples = samples[
+        [
+            "sample_id",
+            "analysis_ready_bam",
+            "analysis_ready_bai",
+            "cnv_cn_by_gene_weighted_mean",
+            "cnv_segments",
+        ]
+    ].rename(
+        columns={
+            "analysis_ready_bam": "internal_bam_filepath",
+            "analysis_ready_bai": "internal_bai_filepath",
+        }
     )
 
     if "internal_bam_filepath" not in legacy_samples.columns:
@@ -161,8 +165,20 @@ def do_refresh_legacy_terra_samples(
     if "internal_bai_filepath" not in legacy_samples.columns:
         legacy_samples["internal_bai_filepath"] = pd.NA
 
+    if "cnv_cn_by_gene_weighted_mean" not in legacy_samples.columns:
+        legacy_samples["cnv_cn_by_gene_weighted_mean"] = pd.NA
+
+    if "cnv_segments" not in legacy_samples.columns:
+        legacy_samples["cnv_segments"] = pd.NA
+
     dest_samples = legacy_samples[
-        ["sample_id", "internal_bam_filepath", "internal_bai_filepath"]
+        [
+            "sample_id",
+            "internal_bam_filepath",
+            "internal_bai_filepath",
+            "cnv_cn_by_gene_weighted_mean",
+            "cnv_segments",
+        ]
     ]
 
     diff = src_samples.merge(
@@ -170,13 +186,31 @@ def do_refresh_legacy_terra_samples(
     )
 
     to_upsert = diff.loc[
-        diff["internal_bam_filepath_dest"].isna()
-        | diff["internal_bai_filepath_dest"].isna(),
-        ["sample_id", "internal_bam_filepath_src", "internal_bai_filepath_src"],
+        (
+            diff["internal_bam_filepath_src"].notna()
+            & diff["internal_bam_filepath_dest"].isna()
+        )
+        | (
+            diff["internal_bai_filepath_src"].notna()
+            & diff["internal_bai_filepath_dest"].isna()
+        )
+        | (
+            diff["cnv_cn_by_gene_weighted_mean_src"].notna()
+            & diff["cnv_cn_by_gene_weighted_mean_dest"].isna()
+        )
+        | (diff["cnv_segments_src"].notna() & diff["cnv_segments_dest"].isna()),
+        [
+            "sample_id",
+            "internal_bam_filepath_src",
+            "internal_bai_filepath_src",
+            "cnv_segments_src",
+        ],
     ].rename(
         columns={
             "internal_bam_filepath_src": "internal_bam_filepath",
             "internal_bai_filepath_src": "internal_bai_filepath",
+            "cnv_cn_by_gene_weighted_mean_src": "cnv_cn_by_gene_weighted_mean",
+            "cnv_segments_src": "cnv_segments",
         }
     )
 
