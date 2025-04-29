@@ -15,6 +15,22 @@ def convert_duckdb_to_maf(
     max_pop_af: float = 1e-05,
     max_brca1_func_assay_score: float = -1.328,
 ) -> None:
+    """Convert a DuckDB database to a MAF (Mutation Annotation Format) file.
+    
+    Reads schema and Parquet files from the specified directory, creates necessary views
+    and tables in the database, filters variants based on quality criteria, and exports
+    the resulting somatic variants to a Parquet file.
+    
+    Arguments:
+        db_path: Path to the DuckDB database file
+        parquet_dir_path: Directory containing Parquet files to import
+        out_file_path: Output file path for the MAF file (in Parquet format)
+        min_af: Minimum allele frequency threshold for variant filtering
+        min_depth: Minimum read depth threshold for variant filtering
+        max_pop_af: Maximum population allele frequency for variant filtering
+        max_brca1_func_assay_score: Maximum BRCA1 functional assay score for rescuing variants
+    """
+    
     logging.info("Annotating VCF")
 
     try:
@@ -39,6 +55,20 @@ def make_views(
     max_pop_af: float = 1e-05,
     max_brca1_func_assay_score: float = -1.328,
 ):
+    """Create all necessary views and tables in the DuckDB database.
+    
+    Sets up the database structure by creating views for filtering variants based on
+    quality criteria, extracting information from the vals_info table, and preparing
+    data for export to MAF format.
+    
+    Arguments:
+        db: DuckDB database connection
+        min_af: Minimum allele frequency threshold for variant filtering
+        min_depth: Minimum read depth threshold for variant filtering
+        max_pop_af: Maximum population allele frequency for variant filtering
+        max_brca1_func_assay_score: Maximum BRCA1 functional assay score for rescuing variants
+    """
+    
     # separate vals_info table into two views
     make_vals_info_views(db)
 
@@ -63,6 +93,15 @@ def make_views(
 
 
 def make_vals_info_views(db: duckdb.DuckDBPyConnection) -> None:
+    """Create views that separate the vals_info table into 'vals' and 'info' views.
+    
+    Splits the vals_info table into two separate views based on the 'kind' column,
+    creating a 'vals' view for variant values and an 'info' view for variant information.
+    
+    Arguments:
+        db: DuckDB database connection
+    """
+    
     logging.info("Making vals and info views")
 
     db.sql("""
@@ -89,6 +128,15 @@ def make_vals_info_views(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
+    """Create a wide view of variant values from the 'vals' view.
+    
+    Transforms the 'vals' view from a long format to a wide format, with columns for
+    reference count, alternate count, allele frequency, depth, genotype, and phase set.
+    
+    Arguments:
+        db: DuckDB database connection
+    """
+    
     logging.info("Making vals_wide view")
 
     db.sql("""
@@ -158,6 +206,15 @@ def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_filters_view(db: duckdb.DuckDBPyConnection) -> None:
+    """Create a view of variant filters from the 'variants' and 'info' tables.
+    
+    Combines filters from the 'variants' table and allele-specific filters from the
+    'info' table into a single view, with one row per variant-filter combination.
+    
+    Arguments:
+        db: DuckDB database connection
+    """
+    
     logging.info("Making filters view")
 
     db.sql("""
@@ -196,6 +253,17 @@ def make_filters_view(db: duckdb.DuckDBPyConnection) -> None:
 def make_quality_vids_view(
     db: duckdb.DuckDBPyConnection, min_af: float, min_depth: int
 ) -> None:
+    """Create a view of high-quality variant IDs based on filtering criteria.
+    
+    Filters variants based on allele frequency, depth, and absence of certain filters
+    like multiallelic, map_qual, slippage, strand_bias, weak_evidence, and base_qual.
+    
+    Arguments:
+        db: DuckDB database connection
+        min_af: Minimum allele frequency threshold
+        min_depth: Minimum read depth threshold
+    """
+    
     logging.info("Making quality_vids view")
 
     db.sql(f"""
@@ -236,6 +304,16 @@ def make_quality_vids_view(
 
 
 def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
+    """Create a wide view of variant information from the 'info' table.
+    
+    Transforms the 'info' table from a long format to a wide format, with columns for
+    various annotations like BRCA1 functional assay score, CIViC information, COSMIC tier,
+    dbSNP ID, and other variant annotations.
+    
+    Arguments:
+        db: DuckDB database connection
+    """
+    
     logging.info("Making info_wide view")
 
     db.sql("""
@@ -452,6 +530,15 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_transcript_likely_lof_view(db: duckdb.DuckDBPyConnection) -> None:
+    """Create a view of transcripts likely to have loss-of-function (LoF) variants.
+    
+    Processes the 'oc_revel_all' field from the 'info' table to identify transcripts
+    with a REVEL score >= 0.7, which indicates likely loss-of-function.
+    
+    Arguments:
+        db: DuckDB database connection
+    """
+    
     logging.info("Making transcript_likely_lof_v view")
 
     db.sql("""
@@ -490,6 +577,15 @@ def make_transcript_likely_lof_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_nmd_view(db: duckdb.DuckDBPyConnection) -> None:
+    """Create a view of nonsense-mediated decay (NMD) information.
+    
+    Processes the 'nmd' field from the 'info' table to extract information about
+    nonsense-mediated decay for each variant.
+    
+    Arguments:
+        db: DuckDB database connection
+    """
+    
     logging.info("Making nmd_v view")
 
     db.sql("""
@@ -515,6 +611,16 @@ def make_nmd_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_lof_view(db: duckdb.DuckDBPyConnection) -> None:
+    """Create a view of loss-of-function (LoF) information.
+    
+    Processes the 'lof' field from the 'info' table to extract information about
+    loss-of-function effects, including gene name, gene ID, number of transcripts,
+    and proportion of transcripts affected.
+    
+    Arguments:
+        db: DuckDB database connection
+    """
+    
     logging.info("Making lof_v view")
 
     db.sql("""
@@ -545,6 +651,15 @@ def make_lof_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
+    """Create a view of HGNC (HUGO Gene Nomenclature Committee) information.
+    
+    Processes the 'hgnc_name' and 'hgnc_group' fields from the 'info' table to extract
+    information about gene names and gene families.
+    
+    Arguments:
+        db: DuckDB database connection
+    """
+    
     logging.info("Making hgnc_v view")
 
     db.sql("""
@@ -604,6 +719,15 @@ def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_vep_table(db: duckdb.DuckDBPyConnection) -> None:
+    """Create a table of Variant Effect Predictor (VEP) annotations.
+    
+    Processes the 'csq' field from the 'info' table to extract VEP annotations for each
+    variant. Creates a physical table rather than a view for performance reasons.
+    
+    Arguments:
+        db: DuckDB database connection
+    """
+    
     logging.info("Making vep table")
 
     # this is a physical table due to the relative slowness of the `vep_exploded` CTE
@@ -690,6 +814,16 @@ def make_vep_table(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def make_oncogene_tsg_view(db: duckdb.DuckDBPyConnection) -> None:
+    """Create a view of oncogene and tumor suppressor gene (TSG) information.
+    
+    Identifies variants in oncogenes and tumor suppressor genes with high-impact effects,
+    based on the 'oncogene' and 'tsg' fields from the 'info' table and the 'impact'
+    field from the 'vep' table.
+    
+    Arguments:
+        db: DuckDB database connection
+    """
+    
     logging.info("Making oncogene_tsg view")
 
     db.sql("""
@@ -733,6 +867,18 @@ def make_oncogene_tsg_view(db: duckdb.DuckDBPyConnection) -> None:
 def make_rescues_view(
     db: duckdb.DuckDBPyConnection, max_brca1_func_assay_score: float
 ) -> None:
+    """Create a view of rescued variants based on various criteria.
+    
+    Identifies variants that should be rescued despite not meeting standard quality
+    criteria, based on factors like oncogenic effect, hotspot status, COSMIC tier,
+    BRCA1 functional assay score, oncogene/TSG status, and specific gene-position
+    combinations (e.g., TERT promoter, MET exon 14 skipping).
+    
+    Arguments:
+        db: DuckDB database connection
+        max_brca1_func_assay_score: Maximum BRCA1 functional assay score for rescuing variants
+    """
+    
     logging.info("Making rescues view")
 
     db.sql(f"""
@@ -832,6 +978,18 @@ def make_rescues_view(
 
 
 def make_filtered_vids_view(db: duckdb.DuckDBPyConnection, max_pop_af: float) -> None:
+    """Create a view of filtered variant IDs based on various criteria.
+    
+    Identifies variants that pass quality filters and either are rescued or meet criteria
+    for being valid somatic alterations (splice events, protein changes) while not being
+    in clustered events, segmental duplications, or repeat regions, and having low
+    population allele frequency.
+    
+    Arguments:
+        db: DuckDB database connection
+        max_pop_af: Maximum population allele frequency
+    """
+    
     logging.info("Making filtered_vids view")
 
     db.sql(f"""
@@ -919,6 +1077,16 @@ def make_filtered_vids_view(db: duckdb.DuckDBPyConnection, max_pop_af: float) ->
 
 
 def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
+    """Create a table of somatic variants with all annotations.
+    
+    Combines information from all previously created views and tables to create a
+    comprehensive table of somatic variants with all annotations. Checks for duplicate
+    variants that might indicate a fan trap in the SQL queries.
+    
+    Arguments:
+        db: DuckDB database connection
+    """
+    
     logging.info("Making somatic_variants table")
 
     db.sql("""
@@ -1140,6 +1308,18 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
 
 
 def get_somatic_variants_as_df(db: duckdb.DuckDBPyConnection) -> pd.DataFrame:
+    """Retrieve somatic variants from the database as a pandas DataFrame.
+    
+    Queries the 'somatic_variants' table and converts the results to a pandas DataFrame
+    with appropriate data types for each column.
+    
+    Arguments:
+        db: DuckDB database connection
+    
+    Returns:
+        A pandas DataFrame containing somatic variants with all annotations
+    """
+    
     return (
         db.table("somatic_variants")
         .df()
