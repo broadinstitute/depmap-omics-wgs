@@ -65,6 +65,7 @@
     "annotate_mutations.use_gnomad": "true",
     "annotate_mutations.vep_chrom_cache_url_prefix": "\"gs://cds-pipelines/data/vep/cache/112_GRCh38/\"",
     "annotate_mutations.vep_chrom_cache_url_suffix": "\".tar.gz\"",
+    "annotate_mutations.vep_pick_order": "\"mane_select,mane_plus_clinical,canonical,ccds,biotype,rank\"",
     "annotate_mutations.xy_intervals": "\"gs://ccleparams/references/references_wgs_xy.intervals\""
   },
   "methodConfigVersion": 1,

@@ -61,6 +61,7 @@ workflow annotate_mutations {
 
         # Ensembl VEP annotation
         Boolean annot_ensembl_vep = true
+        String vep_pick_order
         File? ref_fasta_bgz
         File? gene_constraint_scores
         File? loftool_scores
@@ -157,6 +158,7 @@ workflow annotate_mutations {
                     vcf = vcf,
                     output_file_base_name = sample_id + "_chr" + chrom_num + "_ensembl_vep_annot",
                     vep_cache = vep_cache,
+                    vep_pick_order = vep_pick_order,
                     ref_fasta_bgz = select_first([ref_fasta_bgz]),
                     gene_constraint_scores = select_first([gene_constraint_scores]),
                     loftool_scores = select_first([loftool_scores]),
@@ -737,6 +739,7 @@ task ensembl_vep {
         String output_file_base_name
         File vep_cache
         File ref_fasta_bgz
+        String vep_pick_order
         File gene_constraint_scores
         File loftool_scores
         File alpha_missense
@@ -774,24 +777,25 @@ task ensembl_vep {
 
         echo "Running VEP"
         /opt/vep/src/ensembl-vep/vep \
-            --species="homo_sapiens" \
             --assembly="GRCh38" \
+            --buffer_size=5000 \
+            --cache \
             --dir_cache="vep_cache" \
             --dir_plugins="/plugins" \
-            --input_file="~{vcf}" \
-            --output_file="~{output_file_base_name}.vcf" \
-            --plugin="pLI,pLI.tsv" \
-            --plugin="LoFtool,~{loftool_scores}" \
-            --plugin="AlphaMissense,file=~{alpha_missense}" \
+            --everything \
             --fasta="~{ref_fasta_bgz}" \
             --fork=~{cpu} \
-            --buffer_size=5000 \
-            --offline \
-            --cache \
-            --vcf \
+            --input_file="~{vcf}" \
             --no_stats \
-            --everything \
-            --pick
+            --offline \
+            --output_file="~{output_file_base_name}.vcf" \
+            --pick \
+            --pick-order "~{vep_pick_order}" \
+            --plugin="AlphaMissense,file=~{alpha_missense}" \
+            --plugin="LoFtool,~{loftool_scores}" \
+            --plugin="pLI,pLI.tsv" \
+            --species="homo_sapiens" \
+            --vcf
 
         # older version of bgzip in the image doesn't have `--output` option
         bgzip "~{output_file_base_name}.vcf" --threads=~{cpu}
