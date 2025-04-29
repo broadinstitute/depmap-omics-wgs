@@ -56,7 +56,6 @@ workflow call_mutations {
         Int small_task_cpu = 2
         Int small_task_mem = 4
         Int small_task_disk = 100
-        Int boot_disk_size = 12
         Int learn_read_orientation_mem = 8000
         Int filter_alignment_artifacts_mem = 9000
 
@@ -76,7 +75,7 @@ workflow call_mutations {
     Runtime standard_runtime = {"gatk_docker": gatk_docker, "gatk_override": gatk_override,
             "max_retries": max_retries, "preemptible": preemptible, "cpu": small_task_cpu,
             "machine_mem": small_task_mem * 1000, "command_mem": small_task_mem * 1000 - 500,
-            "disk": small_task_disk + disk_pad, "boot_disk_size": boot_disk_size}
+            "disk": small_task_disk + disk_pad}
 
     Int tumor_reads_size = ceil(size(tumor_reads, "GB") + size(tumor_reads_index, "GB"))
     Int normal_reads_size = if defined(normal_reads) then ceil(size(normal_reads, "GB") + size(normal_reads_index, "GB")) else 0
@@ -247,7 +246,6 @@ struct Runtime {
     Int machine_mem
     Int command_mem
     Int disk
-    Int boot_disk_size
 }
 
 task SplitIntervals {
@@ -279,7 +277,6 @@ task SplitIntervals {
 
     runtime {
         docker: runtime_params.gatk_docker
-        bootDiskSizeGb: runtime_params.boot_disk_size
         memory: runtime_params.machine_mem + " MB"
         disks: "local-disk " + runtime_params.disk + " SSD"
         preemptible: runtime_params.preemptible
@@ -421,7 +418,6 @@ task M2 {
 
     runtime {
         docker: gatk_docker
-        bootDiskSizeGb: 12
         memory: machine_mem + " MB"
         disks: "local-disk " + select_first([disk_space, 100]) + if use_ssd then " SSD" else " HDD"
         preemptible: select_first([preemptible, 10])
@@ -463,7 +459,6 @@ task MergeVCFs {
 
     runtime {
         docker: runtime_params.gatk_docker
-        bootDiskSizeGb: runtime_params.boot_disk_size
         memory: runtime_params.machine_mem + " MB"
         disks: "local-disk " + runtime_params.disk + " SSD"
         preemptible: runtime_params.preemptible
@@ -505,7 +500,6 @@ task MergeBamOuts {
 
     runtime {
         docker: runtime_params.gatk_docker
-        bootDiskSizeGb: runtime_params.boot_disk_size
         memory: runtime_params.machine_mem + " MB"
         disks: "local-disk " + select_first([disk_space, runtime_params.disk]) + " SSD"
         preemptible: runtime_params.preemptible
@@ -536,7 +530,6 @@ task MergeStats {
 
     runtime {
         docker: runtime_params.gatk_docker
-        bootDiskSizeGb: runtime_params.boot_disk_size
         memory: runtime_params.machine_mem + " MB"
         disks: "local-disk " + runtime_params.disk + " SSD"
         preemptible: runtime_params.preemptible
@@ -569,7 +562,6 @@ task MergePileupSummaries {
 
     runtime {
         docker: runtime_params.gatk_docker
-        bootDiskSizeGb: runtime_params.boot_disk_size
         memory: runtime_params.machine_mem + " MB"
         disks: "local-disk " + runtime_params.disk + " SSD"
         preemptible: runtime_params.preemptible
@@ -604,7 +596,6 @@ task LearnReadOrientationModel {
 
     runtime {
         docker: runtime_params.gatk_docker
-        bootDiskSizeGb: runtime_params.boot_disk_size
         memory: machine_mem + " MB"
         disks: "local-disk " + runtime_params.disk + " SSD"
         preemptible: runtime_params.preemptible
@@ -637,7 +628,6 @@ task CalculateContamination {
 
     runtime {
         docker: runtime_params.gatk_docker
-        bootDiskSizeGb: runtime_params.boot_disk_size
         memory: runtime_params.machine_mem + " MB"
         disks: "local-disk " + runtime_params.disk + " SSD"
         preemptible: runtime_params.preemptible
@@ -697,7 +687,6 @@ task Filter {
 
     runtime {
         docker: runtime_params.gatk_docker
-        bootDiskSizeGb: runtime_params.boot_disk_size
         memory: runtime_params.machine_mem + " MB"
         disks: "local-disk " + select_first([disk_space, runtime_params.disk]) + " SSD"
         preemptible: runtime_params.preemptible
@@ -762,7 +751,6 @@ task FilterAlignmentArtifacts {
 
     runtime {
         docker: runtime_params.gatk_docker
-        bootDiskSizeGb: runtime_params.boot_disk_size
         memory: machine_mem + " MB"
         disks: "local-disk " + runtime_params.disk + " SSD"
         preemptible: runtime_params.preemptible
