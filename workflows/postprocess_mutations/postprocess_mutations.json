@@ -1,9 +1,13 @@
 {
   "deleted": false,
   "inputs": {
+    "postprocess_mutations.duckdb": "this.mut_duckdb",
+    "postprocess_mutations.max_brca1_func_assay_score": -1.328,
+    "postprocess_mutations.max_pop_af": 0.00001,
+    "postprocess_mutations.min_af": 0.15,
+    "postprocess_mutations.min_depth": 5,
     "postprocess_mutations.postprocess.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/annotate-mutations-postprocess\"",
-    "postprocess_mutations.postprocess.docker_image_hash_or_tag": "\"@sha256:87a20f77a7aade4420974b0c8ff128315642a261356941b0c15561492f507bd3\"",
-    "postprocess_mutations.duckdb": "this.mut_duckdb"
+    "postprocess_mutations.postprocess.docker_image_hash_or_tag": "\"@sha256:87a20f77a7aade4420974b0c8ff128315642a261356941b0c15561492f507bd3\""
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {

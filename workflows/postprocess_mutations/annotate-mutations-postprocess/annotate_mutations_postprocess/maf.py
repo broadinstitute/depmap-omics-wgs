@@ -11,7 +11,7 @@ def convert_duckdb_to_maf(
     parquet_dir_path: Path,
     out_file_path: Path,
     min_af: float = 0.15,
-    min_depth: int = 2,
+    min_depth: int = 5,
     max_pop_af: float = 1e-05,
     max_brca1_func_assay_score: float = -1.328,
 ) -> None:
@@ -35,7 +35,7 @@ def convert_duckdb_to_maf(
 def make_views(
     db: duckdb.DuckDBPyConnection,
     min_af: float = 0.15,
-    min_depth: int = 2,
+    min_depth: int = 5,
     max_pop_af: float = 1e-05,
     max_brca1_func_assay_score: float = -1.328,
 ):
@@ -228,7 +228,6 @@ def make_quality_vids_view(
                             'slippage',
                             'strand_bias',
                             'weak_evidence',
-                            'clustered_events',
                             'base_qual'
                         )
                 )
@@ -869,6 +868,16 @@ def make_filtered_vids_view(db: duckdb.DuckDBPyConnection, max_pop_af: float) ->
                                 )
                         )
                         AND
+                        -- not part of a clustered event according to mutect2
+                        vid NOT IN (
+                            SELECT
+                                vid
+                            FROM
+                                filters
+                            WHERE
+                                filter = 'clustered_event'
+                        )
+                        AND
                         -- not in a segmental duplication nor repeatmasker region
                         vid NOT IN (
                             SELECT
@@ -881,7 +890,7 @@ def make_filtered_vids_view(db: duckdb.DuckDBPyConnection, max_pop_af: float) ->
                                 v_boolean
                         )
                         AND
-                        -- max population prevalence per gnomAD
+                        -- below max population prevalence per gnomAD
                         vid IN (
                             SELECT
                                 vid

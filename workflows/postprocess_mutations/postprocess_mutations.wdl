@@ -6,11 +6,19 @@ workflow postprocess_mutations {
         String workflow_source_url # populated automatically with URL of this script
 
         Array[File] duckdb
+        Float min_af = 0.15
+        Int min_depth = 5
+        Float max_pop_af = 0.00001
+        Float max_brca1_func_assay_score = -1.328
     }
 
     call postprocess {
         input:
-            duckdb = duckdb
+            duckdb = duckdb,
+            min_af = min_af,
+            min_depth = min_depth,
+            max_pop_af = max_pop_af,
+            max_brca1_func_assay_score = max_brca1_func_assay_score
     }
 
     output {
@@ -21,6 +29,10 @@ workflow postprocess_mutations {
 task postprocess {
     input {
         Array[File] duckdb
+        Float min_af
+        Int min_depth
+        Float max_pop_af
+        Float max_brca1_func_assay_score
 
         String docker_image
         String docker_image_hash_or_tag
@@ -42,7 +54,12 @@ task postprocess {
         python -m annotate_mutations_postprocess duckdb-to-maf \
             --db="tmp.duckdb" \
             --parquet-dir="./parq" \
-            --out-file="somatic_variants.parquet"
+            --out-file="somatic_variants.parquet" \
+            --min-af=~{min_af} \
+            --min-depth=~{min_depth} \
+            --max-pop-af=~{max_pop_af} \
+            --max-brca1-func-assay-score=~{max_brca1_func_assay_score}
+
     >>>
 
     output {

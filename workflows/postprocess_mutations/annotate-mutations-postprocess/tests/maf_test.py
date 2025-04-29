@@ -1712,6 +1712,117 @@ class TestFilteredVids:
 
         assert_frame_equal(observed, expected)
 
+    def test_clustered_event(self, db: duckdb.DuckDBPyConnection) -> None:
+        db.sql("""
+            INSERT INTO variants(
+                vid, chrom, pos, ref, alt, filters
+            ) VALUES (
+                1, 'chr1', 100, 'G', 'C', ['germline']
+            ), (
+                2, 'chr2', 200, 'A', 'T', ['clustered_event']
+            );
+            
+            INSERT INTO vals_info(
+                vid, kind, k, v_integer, v_float
+            ) VALUES (
+                1, 'val', 'af', NULL, 0.3
+            ), (
+                1, 'val', 'dp', 20, NULL
+            ), (
+                2, 'val', 'af', NULL, 0.3
+            ), (
+                2, 'val', 'dp', 20, NULL
+            );
+            
+            INSERT INTO vals_info(
+                vid, kind, k, v_json_arr
+            ) VALUES (
+                1, 'info', 'csq', ['{"impact": "HIGH", "consequence": "splice", "gnom_ade_af": 0.000001, "gnom_adg_af": 0.000002}']
+            ), (
+                2, 'info', 'csq', ['{"impact": "HIGH", "consequence": "splice", "gnom_ade_af": 0.000001, "gnom_adg_af": 0.000002}']
+            );
+        """)
+
+        make_views(db)
+
+        observed = get_somatic_variants_as_df(db)
+
+        expected = pd.DataFrame(
+            [
+                {
+                    "chrom": "chr1",
+                    "pos": 100,
+                    "ref": "G",
+                    "alt": "C",
+                    "af": 0.3,
+                    "alt_count": None,
+                    "am_class": None,
+                    "am_pathogenicity": None,
+                    "brca1_func_score": None,
+                    "civic_description": None,
+                    "civic_id": None,
+                    "civic_score": None,
+                    "cosmic_tier": None,
+                    "dbsnp_rs_id": None,
+                    "dna_change": None,
+                    "dp": 20,
+                    "ensembl_feature_id": None,
+                    "ensembl_gene_id": None,
+                    "exon": None,
+                    "gc_content": None,
+                    "gnomade_af": 0.000001,
+                    "gnomadg_af": 0.000002,
+                    "gt": None,
+                    "gtex_gene": None,
+                    "gwas_disease": None,
+                    "gwas_pmid": None,
+                    "hess_driver": False,
+                    "hess_signature": None,
+                    "hgnc_family": None,
+                    "hgnc_name": None,
+                    "hugo_symbol": None,
+                    "intron": None,
+                    "lof_gene_id": None,
+                    "lof_gene_name": None,
+                    "lof_number_of_transcripts_in_gene": None,
+                    "lof_prop_of_transcripts_affected": None,
+                    "molecular_consequence": None,
+                    "nmd": None,
+                    "oncogene_high_impact": False,
+                    "oncokb_effect": None,
+                    "oncokb_hotspot": False,
+                    "oncokb_oncogenic": None,
+                    "pharmgkb_id": None,
+                    "polyphen": None,
+                    "protein_change": None,
+                    "provean_prediction": None,
+                    "ps": None,
+                    "ref_count": None,
+                    "rescue": False,
+                    "revel_score": None,
+                    "sift": None,
+                    "transcript_likely_lof": None,
+                    "tumor_suppressor_high_impact": False,
+                    "uniprot_id": None,
+                    "variant_info": "splice",
+                    "variant_type": None,
+                    "vep_biotype": None,
+                    "vep_clin_sig": None,
+                    "vep_ensp": None,
+                    "vep_existing_variation": None,
+                    "vep_hgnc_id": None,
+                    "vep_impact": "HIGH",
+                    "vep_loftool": None,
+                    "vep_mane_select": None,
+                    "vep_pli_gene_value": None,
+                    "vep_somatic": None,
+                    "vep_swissprot": None,
+                },
+            ]
+        ).astype(maf_dtypes)
+
+        assert_frame_equal(observed, expected)
+
     def test_segdup_rm(self, db: duckdb.DuckDBPyConnection) -> None:
         db.sql("""
             INSERT INTO variants(

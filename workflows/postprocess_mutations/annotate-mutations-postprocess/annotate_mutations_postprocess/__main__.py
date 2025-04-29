@@ -40,7 +40,7 @@ def duckdb_to_maf(
     parquet_dir: Annotated[Path, typer.Option()],
     out_file: Annotated[Path, typer.Option()],
     min_af: Annotated[float, typer.Option()] = 0.15,
-    min_depth: Annotated[int, typer.Option()] = 2,
+    min_depth: Annotated[int, typer.Option()] = 5,
     max_pop_af: Annotated[float, typer.Option()] = 1e-05,
     max_brca1_func_assay_score: Annotated[float, typer.Option()] = -1.328,
 ) -> None:
