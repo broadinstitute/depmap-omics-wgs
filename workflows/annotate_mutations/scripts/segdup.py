@@ -1,5 +1,6 @@
 """
-TODO
+Download the segmental duplications track from UCSC (via Galaxy), then filter and merge
+the BED file.
 """
 
 import datetime
