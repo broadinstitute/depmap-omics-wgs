@@ -19,5 +19,5 @@ RUN pip install poetry==${POETRY_VERSION}
 COPY pyproject.toml poetry.lock ./
 RUN poetry install --only main --no-root --no-cache
 
-COPY omics_wgs_pipeline ./omics_wgs_pipeline
+COPY depmap_omics_wgs ./depmap_omics_wgs
 RUN poetry install --only-root

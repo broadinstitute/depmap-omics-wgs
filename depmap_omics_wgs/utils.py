@@ -10,7 +10,7 @@ from nebelung.terra_workflow import TerraWorkflow
 from nebelung.terra_workspace import TerraWorkspace
 from nebelung.utils import batch_evenly, type_data_frame
 
-from omics_wgs_pipeline.types import (
+from depmap_omics_wgs.types import (
     GcsObject,
     PanderaBaseSchema,
     PydanticBaseModel,

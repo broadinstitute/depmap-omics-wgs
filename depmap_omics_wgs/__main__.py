@@ -9,13 +9,13 @@ import tomllib
 import typer
 from nebelung.terra_workspace import TerraWorkspace
 
-from omics_wgs_pipeline.data import (
+from depmap_omics_wgs.data import (
     do_refresh_legacy_terra_samples,
     do_refresh_terra_samples,
     put_task_results,
 )
-from omics_wgs_pipeline.types import GumboClient
-from omics_wgs_pipeline.utils import (
+from depmap_omics_wgs.types import GumboClient
+from depmap_omics_wgs.utils import (
     get_hasura_creds,
     get_secret_from_sm,
     make_workflow_from_config,

@@ -5,7 +5,7 @@ set -euo pipefail
 pre-commit run poetry-export --all-files
 
 echo "Updating GCP Function"
-gcloud functions deploy omics_wgs_pipeline \
+gcloud functions deploy depmap_omics_wgs \
   --gen2 \
   --runtime="python312" \
   --region="us-central1" \

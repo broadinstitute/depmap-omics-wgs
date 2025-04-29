@@ -10,7 +10,7 @@ from cloudevents.http import CloudEvent
 @functions_framework.cloud_event
 def run(cloud_event: CloudEvent) -> None:
     """
-    Bypass omics_wgs_pipeline CLI commands to call the underlying functions directly (needed for
+    Bypass depmap_omics_wgs CLI commands to call the underlying functions directly (needed for
     remote execution inside a GCP Function).
 
     :param cloud_event: the pub/sub CloudEvent payload

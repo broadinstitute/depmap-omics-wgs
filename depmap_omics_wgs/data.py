@@ -8,8 +8,7 @@ from firecloud import api as firecloud_api
 from nebelung.terra_workspace import TerraWorkspace
 from nebelung.utils import call_firecloud_api, type_data_frame
 
-from gumbo_gql_client import task_entity_insert_input, task_result_insert_input
-from omics_wgs_pipeline.types import (
+from depmap_omics_wgs.types import (
     GumboClient,
     GumboTaskEntity,
     GumboTaskResult,
@@ -17,11 +16,12 @@ from omics_wgs_pipeline.types import (
     TerraSample,
     TypedDataFrame,
 )
-from omics_wgs_pipeline.utils import (
+from depmap_omics_wgs.utils import (
     compute_uuidv3,
     get_gcs_object_metadata,
     model_to_df,
 )
+from gumbo_gql_client import task_entity_insert_input, task_result_insert_input
 
 
 def do_refresh_terra_samples(

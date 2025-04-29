@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = []
 readme = "README.md"
-packages = [{include = "omics_wgs_pipeline"}]
+packages = [{include = "depmap_omics_wgs"}]
 include = ["gumbo_gql_client"]
 
 [tool.poetry.dependencies]
@@ -49,5 +49,5 @@ extend-include = ["*.ipynb"]
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
-include = ["omics_wgs_pipeline", "main.py"]
+include = ["depmap_omics_wgs", "main.py"]
 reportInvalidTypeVarUse = "none"
