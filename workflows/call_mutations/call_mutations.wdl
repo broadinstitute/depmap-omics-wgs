@@ -322,7 +322,6 @@ task M2 {
         Int? max_retries
         Int? disk_space
         Int? cpu
-        Boolean use_ssd = true
     }
 
     String output_vcf = "output" + if compress_vcfs then ".vcf.gz" else ".vcf"
@@ -419,7 +418,7 @@ task M2 {
     runtime {
         docker: gatk_docker
         memory: machine_mem + " MB"
-        disks: "local-disk " + select_first([disk_space, 100]) + if use_ssd then " SSD" else " HDD"
+        disks: "local-disk " + select_first([disk_space, 100]) + " SSD"
         preemptible: select_first([preemptible, 10])
         maxRetries: select_first([max_retries, 0])
         cpu: select_first([cpu, 1])
