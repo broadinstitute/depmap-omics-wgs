@@ -7,7 +7,7 @@
     "postprocess_mutations.min_af": 0.15,
     "postprocess_mutations.min_depth": 5,
     "postprocess_mutations.postprocess.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/annotate-mutations-postprocess\"",
-    "postprocess_mutations.postprocess.docker_image_hash_or_tag": "\"@sha256:87a20f77a7aade4420974b0c8ff128315642a261356941b0c15561492f507bd3\""
+    "postprocess_mutations.postprocess.docker_image_hash_or_tag": "\"@sha256:7ddee35a4ee2367a1828ebe4abed08d6842f861f2a3adcb12d4501370bd75109\""
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
