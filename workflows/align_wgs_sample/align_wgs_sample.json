@@ -13,7 +13,7 @@
     "align_wgs_sample.run_bqsr": "true",
     "align_wgs_sample.rerun_bqsr": "true",
     "align_wgs_sample.check_bqsr_and_oq_tags.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/samtools\"",
-    "align_wgs_sample.check_bqsr_and_oq_tags.docker_image_hash_or_tag": "\"@sha256:43c413dde9472748f58b2b6b089885fd5f968799666ce21e90edee10f68afb93\"",
+    "align_wgs_sample.check_bqsr_and_oq_tags.docker_image_hash_or_tag": "\":production\"",
     "align_wgs_sample.ref_amb": "this.ref_amb",
     "align_wgs_sample.ref_ann": "this.ref_ann",
     "align_wgs_sample.ref_bwt": "this.ref_bwt",

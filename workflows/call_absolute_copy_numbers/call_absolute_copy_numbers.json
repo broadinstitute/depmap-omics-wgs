@@ -6,7 +6,7 @@
     "call_absolute_copy_numbers.called_mutations": "this.mut_filtered_vcf",
     "call_absolute_copy_numbers.intervals": "\"gs://ccleparams/references/PureCN_intervals/wgs_hg38_2_percent_intervals.txt\"",
     "call_absolute_copy_numbers.purecn_postprocess.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/purecn_postprocess\"",
-    "call_absolute_copy_numbers.purecn_postprocess.docker_image_hash_or_tag": "\"@sha256:dfce5193cfbef67d74eae1fceb696026352a73b8e7dbce6b01f04fbfd6cd101b\""
+    "call_absolute_copy_numbers.purecn_postprocess.docker_image_hash_or_tag": "\":production\""
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
