@@ -11,6 +11,7 @@ import gffutils
 import pandas as pd
 import requests
 from dotenv import load_dotenv
+from natsort import natsort_key
 
 load_dotenv()
 
@@ -106,15 +107,7 @@ onco_tsg_bed = gencode_df.merge(
     right_on="hugoSymbol",
 ).drop(columns="hugoSymbol")
 
-onco_tsg_bed["chrom"] = onco_tsg_bed["chrom"].str.lstrip("chr")
-onco_tsg_bed["chrom"] = (
-    onco_tsg_bed["chrom"].replace({"X": "23", "Y": "24"}).astype("int8")
-)
-onco_tsg_bed = onco_tsg_bed.sort_values(["chrom", "start", "end"])
-onco_tsg_bed["chrom"] = (
-    onco_tsg_bed["chrom"].astype("string").replace({"23": "X", "24": "Y"})
-)
-onco_tsg_bed["chrom"] = "chr" + onco_tsg_bed["chrom"]
+onco_tsg_bed = onco_tsg_bed.sort_values(by=["chrom", "start", "end"], key=natsort_key)
 
 onco_tsg_bed["chrom_lead"] = onco_tsg_bed["chrom"].shift(-1)
 onco_tsg_bed["chrom_lag"] = onco_tsg_bed["chrom"].shift(1)
@@ -150,12 +143,12 @@ echo '##INFO=<ID=ONCOGENE,Number=0,Type=Flag,Description="Is oncogene">' \
 echo '##INFO=<ID=TSG,Number=0,Type=Flag,Description="Is tumor suppressor gene">' \
     >> ./data/oncokb/onco_tsg.hdr.vcf
 
-bgzip data/oncokb/onco_tsg_2024-11-25.bed -k -f
-tabix ./data/oncokb/onco_tsg_2024-11-25.bed.gz -0 -s1 -b2 -e3 -f
+bgzip data/oncokb/onco_tsg_2025-04-29.bed -k -f
+tabix ./data/oncokb/onco_tsg_2025-04-29.bed.gz -0 -s1 -b2 -e3 -f
 
 # e.g.
 bcftools annotate ~/Desktop/the.vcf.gz \
-    --annotations=./data/oncokb/onco_tsg_2024-11-25.bed.gz \
+    --annotations=./data/oncokb/onco_tsg_2025-04-29.bed.gz \
     --output=./data/oncokb/onco_tsg_annot.vcf \
     --header-lines=./data/oncokb/onco_tsg.hdr.vcf \
     --columns=CHROM,BEG,END,ONCOGENE,TSG \
@@ -213,11 +206,7 @@ hgnc_bed_alias = hgnc_bed.loc[
 
 hgnc_bed = pd.concat([hgnc_bed_main, hgnc_bed_alias]).drop(columns="main_symbol")
 
-hgnc_bed["chrom"] = hgnc_bed["chrom"].str.lstrip("chr")
-hgnc_bed["chrom"] = hgnc_bed["chrom"].replace({"X": "23", "Y": "24"}).astype("int8")
-hgnc_bed = hgnc_bed.sort_values(["chrom", "start", "end"])
-hgnc_bed["chrom"] = hgnc_bed["chrom"].astype("string").replace({"23": "X", "24": "Y"})
-hgnc_bed["chrom"] = "chr" + hgnc_bed["chrom"]
+hgnc_bed = hgnc_bed.sort_values(by=["chrom", "start", "end"], key=natsort_key)
 
 hgnc_bed["start"] = hgnc_bed["start"] - 1
 
@@ -225,23 +214,23 @@ hgnc_bed["approved_name"] = hgnc_bed["approved_name"].str.replace(",", "%2C")
 hgnc_bed["gene_group_name"] = hgnc_bed["gene_group_name"].str.replace(",", "%2C")
 
 hgnc_bed[["chrom", "start", "end", "approved_name", "gene_group_name"]].to_csv(
-    f"./data/hgnc_{today}.bed", header=False, index=False, sep="\t"
+    f"./data/hgnc/hgnc_{today}.bed", header=False, index=False, sep="\t"
 )
 
 """
 echo '##INFO=<ID=HGNC_NAME,Number=.,Type=String,Description="HGNC approved name">' \
-    > ./data/hgnc.hdr.vcf
+    > ./data/hgnc/hgnc.hdr.vcf
 echo '##INFO=<ID=HGNC_GROUP,Number=.,Type=String,Description="HGNC gene group name">' \
-    >> ./data/hgnc.hdr.vcf
+    >> ./data/hgnc/hgnc.hdr.vcf
 
-bgzip data/hgnc_2024-11-25.bed -k -f
-tabix ./data/hgnc_2024-11-25.bed.gz -0 -s1 -b2 -e3 -f
+bgzip data/hgnc/hgnc_2025-04-29.bed -k -f
+tabix ./data/hgnc/hgnc_2025-04-29.bed.gz -0 -s1 -b2 -e3 -f
 
 # e.g.
 bcftools annotate ~/Desktop/the.vcf.gz \
-    --annotations=./data/hgnc_2024-11-25.bed.gz \
-    --output=./data/hgnc_annot.vcf \
-    --header-lines=./data/hgnc.hdr.vcf \
+    --annotations=./data/hgnc/hgnc_2025-04-29.bed.gz \
+    --output=./data/hgnc/hgnc_annot.vcf \
+    --header-lines=./data/hgnc/hgnc.hdr.vcf \
     --columns=CHROM,BEG,END,HGNC_NAME,HGNC_GROUP \
     --merge-logic="HGNC_NAME:unique,HGNC_GROUP:unique"
 """

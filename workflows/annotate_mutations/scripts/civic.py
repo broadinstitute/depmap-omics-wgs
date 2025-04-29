@@ -8,6 +8,7 @@ from urllib.parse import quote
 
 import pandas as pd
 import requests
+from natsort import natsort_key
 from pyliftover import LiftOver
 
 liftover = LiftOver("hg19", "hg38")
@@ -93,13 +94,7 @@ mps = pd.read_csv(
 mps["variant_ids"] = mps["variant_ids"].str.split(r",\s*")
 mps = mps.explode(column="variant_ids", ignore_index=True)
 
-df = vs.merge(
-    mps, how="outer", left_on="variant_id", right_on="variant_ids", indicator=True
-)
-
-assert df["_merge"].eq("both").all()
-
-df = df.rename(
+df = vs.merge(mps, how="inner", left_on="variant_id", right_on="variant_ids").rename(
     columns={
         "chromosome": "chrom",
         "start": "pos",
@@ -124,30 +119,33 @@ df = df.loc[
         "alt",
         "evidence_score",
         "description",
+        "reference_build",
     ],
 ]
 
-df["chrom_pos_hg38"] = df.apply(
-    lambda x: liftover_one(x["chrom"], x["pos"] - 1), axis=1
+df.loc[df["reference_build"].eq("GRCh37"), "chrom_pos_hg38"] = df.loc[
+    df["reference_build"].eq("GRCh37")
+].apply(lambda x: liftover_one(x["chrom"], x["pos"] - 1), axis=1)
+
+df.loc[df["reference_build"].eq("GRCh38"), "chrom_pos_hg38"] = (
+    df.loc[df["reference_build"].eq("GRCh38"), "chrom"]
+    + ","
+    + df.loc[df["reference_build"].eq("GRCh38"), "pos"].astype("string")
 )
+
+print(df.loc[df["chrom_pos_hg38"].isna()])
+df = df.dropna(subset="chrom_pos_hg38")
 
 df[["chrom_hg38", "pos_hg38"]] = df["chrom_pos_hg38"].str.split(",", expand=True)
 df["chrom_hg38"] = df["chrom_hg38"].astype("string")
 df["pos_hg38"] = df["pos_hg38"].astype("Int64")
-df = df.dropna(subset="pos_hg38")
 df["pos_hg38"] += 1
 
 df["chrom"] = df["chrom_hg38"]
 df["pos"] = df["pos_hg38"]
 df = df.drop(columns=["chrom_pos_hg38", "chrom_hg38", "pos_hg38"])
 
-df["chr_num"] = df["chrom"].str.lstrip("chr")
-df.loc[df["chr_num"].eq("X"), "chr_num"] = "23"
-df.loc[df["chr_num"].eq("Y"), "chr_num"] = "24"
-df["chr_num"] = df["chr_num"].astype("int8")
-
-df = df.sort_values(["chr_num", "pos"])
-df = df.drop(columns="chr_num")
+df = df.sort_values(by=["chrom", "pos"], key=natsort_key)
 
 df.loc[~df["description"].isna(), "description"] = df.loc[
     ~df["description"].isna(), "description"
@@ -164,12 +162,12 @@ echo '##INFO=<ID=CIVIC_SCORE,Number=1,Type=String,Description="CIVIC evidence sc
     >> ./data/civic/civic.hdr.vcf
 echo '##INFO=<ID=CIVIC_DESC,Number=1,Type=String,Description="CIVIC variant description">' \
     >> ./data/civic/civic.hdr.vcf
-bgzip ./data/civic/civic_2024-11-26.tsv -k -f
-tabix ./data/civic/civic_2024-11-26.tsv.gz -s1 -b2 -e2 -f
+bgzip ./data/civic/civic_2025-04-29.tsv -k -f
+tabix ./data/civic/civic_2025-04-29.tsv.gz -s1 -b2 -e2 -f
 
 # e.g.
 bcftools annotate input.vcf.gz \
-    --annotations=./data/civic/civic_2024-11-26.tsv.gz \
+    --annotations=./data/civic/civic_2025-04-29.tsv.gz \
     --output=./data/output.vcf.gz \
     --header-lines=./data/hess.hdr.vcf \
     --columns=CHROM,POS,REF,ALT,CIVIC_ID,CIVIC_SCORE,CIVIC_DESC
