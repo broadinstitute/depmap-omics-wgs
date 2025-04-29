@@ -4,18 +4,13 @@
       "taskSpec": {
         "runnables": [
           {
-            "displayName": "update-open-cravat",
-            "container": {
-              "imageUri": "us-docker.pkg.dev/depmap-omics/public/open_cravat:production",
-              "entrypoint": "/bin/bash",
-              "commands": [
-                "/mnt/disks/ccleparams/scripts/update_open_cravat_data.sh"
-              ],
-              "enableImageStreaming": false
+            "displayName": "update-vep",
+            "script": {
+              "text": "bash /mnt/disks/ccleparams/scripts/update_vep.sh"
             },
             "environment": {
               "variables": {
-                "GS_URL_PREFIX": "gs://ccleparams/wgs/mutation/annotation/open-cravat"
+                "GS_URL_PREFIX": "gs://ccleparams/wgs/mutation/annotation/vep"
               }
             }
           }
@@ -23,7 +18,7 @@
         "computeResource": {
           "cpuMilli": 2000,
           "memoryMib": 8192,
-          "bootDiskMib": 30000
+          "bootDiskMib": 100000
         },
         "volumes": [
           {
