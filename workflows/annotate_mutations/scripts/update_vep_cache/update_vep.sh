@@ -8,7 +8,7 @@ tar xzf homo_sapiens_vep_113_GRCh38.tar.gz
 BASE_DIR="homo_sapiens/113_GRCh38"
 RSYNC_SRC="/tmp/vep_out"
 
-mkdir -p "$OUTPUT_DIR"
+mkdir -p "$RSYNC_SRC"
 
 # Loop through all subdirectories in BASE_DIR
 for dir in "$BASE_DIR"/*/; do

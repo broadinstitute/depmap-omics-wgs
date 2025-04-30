@@ -18,7 +18,7 @@
         "computeResource": {
           "cpuMilli": 2000,
           "memoryMib": 8192,
-          "bootDiskMib": 100000
+          "bootDiskMib": 120000
         },
         "volumes": [
           {
