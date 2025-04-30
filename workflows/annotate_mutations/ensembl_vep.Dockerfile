@@ -91,6 +91,7 @@ RUN apt-get update && apt-get -y install \
     build-essential \
     cpanminus \
     curl \
+    git \
     libmysqlclient-dev \
     libdbd-mysql-perl \
     libpng-dev \
