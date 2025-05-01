@@ -6,7 +6,7 @@ import pandas as pd
 from firecloud import api as firecloud_api
 from google.cloud import storage
 
-from omics_wgs_pipeline.utils import expand_dict_columns
+from depmap_omics_wgs.utils import expand_dict_columns
 
 pd.set_option("display.max_columns", 30)
 pd.set_option("display.max_colwidth", 50)

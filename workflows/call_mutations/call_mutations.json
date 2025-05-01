@@ -21,11 +21,11 @@
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
-    "methodNamespace": "depmap-omics",
+    "methodNamespace": "cds-pipelines",
     "methodName": "call_mutations",
     "methodVersion": 1
   },
-  "namespace": "depmap-omics",
+  "namespace": "cds-pipelines",
   "name": "call_mutations",
   "outputs": {
     "call_mutations.bamout": "this.mut_bamout",

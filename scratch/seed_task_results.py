@@ -11,8 +11,8 @@ from firecloud import api as firecloud_api
 from nebelung.utils import batch_evenly, expand_dict_columns
 
 from gumbo_gql_client import task_entity_insert_input, task_result_insert_input
-from omics_wgs_pipeline.types import CoercedDataFrame, GumboClient, GumboTaskEntity
-from omics_wgs_pipeline.utils import (
+from depmap_omics_wgs.types import CoercedDataFrame, GumboClient, GumboTaskEntity
+from depmap_omics_wgs.utils import (
     compute_uuidv3,
     df_to_model,
     get_gcs_object_metadata,

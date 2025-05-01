@@ -7,11 +7,11 @@
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
-    "methodNamespace": "depmap-omics",
+    "methodNamespace": "cds-pipelines",
     "methodName": "infer_msi_status",
     "methodVersion": 1
   },
-  "namespace": "depmap-omics",
+  "namespace": "cds-pipelines",
   "name": "infer_msi_status",
   "outputs": {
     "infer_msi_status.msisensor2_score": "this.msisensor2_score",

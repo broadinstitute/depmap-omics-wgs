@@ -9,11 +9,11 @@
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
-    "methodNamespace": "depmap-omics",
+    "methodNamespace": "cds-pipelines",
     "methodName": "call_structural_variants",
     "methodVersion": 1
   },
-  "namespace": "depmap-omics",
+  "namespace": "cds-pipelines",
   "name": "call_structural_variants",
   "outputs": {
     "call_structural_variants.somatic_sv_vcf": "this.somatic_sv_vcf",
