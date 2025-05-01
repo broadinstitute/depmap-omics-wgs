@@ -1,6 +1,6 @@
-# Omics WGS Pipeline
+# depmap-omics-wgs
 
-This repository contains WDL workflows and a Python module to continuously run workflows on new WGS samples and sync the output files to Gumbo.
+This repository contains WDL workflows and a Python module to continuously run workflows on new WGS samples.
 
 # Installation
 
