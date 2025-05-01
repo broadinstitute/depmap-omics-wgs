@@ -35,7 +35,7 @@
     "call_mutations.filtered_vcf_idx": "this.mut_filtered_vcf_idx",
     "call_mutations.filtering_stats": "this.mut_filtering_stats",
     "call_mutations.maf_segments": "this.mut_maf_segments",
-    "call_mutations.mutect_stats": "this.mutect_stats",
+    "call_mutations.mutect_stats": "this.mut_mutect_stats",
     "call_mutations.read_orientation_model_params": "this.read_orientation_model_params"
   },
   "rootEntityType": "sample"

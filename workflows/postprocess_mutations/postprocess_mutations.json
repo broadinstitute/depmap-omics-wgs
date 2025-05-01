@@ -18,7 +18,7 @@
   "namespace": "cds-pipelines",
   "name": "postprocess_mutations",
   "outputs": {
-    "postprocess_mutations.somatic_variants": "this.somatic_variants"
+    "postprocess_mutations.somatic_variants": "this.mut_somatic_variants"
   },
   "rootEntityType": "sample"
 }
