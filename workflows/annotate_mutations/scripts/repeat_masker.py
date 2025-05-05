@@ -56,7 +56,7 @@ repeat_masker = repeat_masker.sort_values(
     by=["genoName", "genoStart", "genoEnd"], key=natsort_key
 )
 
-repeat_masker["is"] = "True"
+repeat_masker["is"] = 1
 
 repeat_masker.to_csv(
     f"./data/repeat_masker/repeat_masker_unmerged-{today}.bed",
@@ -66,8 +66,8 @@ repeat_masker.to_csv(
 )
 
 """
-bedtools merge -c 4 -o distinct -i data/repeat_masker/repeat_masker_unmerged-2025-04-29.bed \
-    > data/repeat_masker/repeat_masker-2025-04-29.bed
-bgzip data/repeat_masker/repeat_masker-2025-04-29.bed -k -f
-tabix data/repeat_masker/repeat_masker-2025-04-29.bed.gz -0 -s1 -b2 -e3 -f
+bedtools merge -c 4 -o distinct -i data/repeat_masker/repeat_masker_unmerged-2025-05-05.bed \
+    > data/repeat_masker/repeat_masker-2025-05-05.bed
+bgzip data/repeat_masker/repeat_masker-2025-05-05.bed -k -f
+tabix data/repeat_masker/repeat_masker-2025-05-05.bed.gz -0 -s1 -b2 -e3 -f
 """

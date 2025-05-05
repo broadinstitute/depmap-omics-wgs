@@ -46,15 +46,15 @@ segdup = segdup.loc[
 
 segdup = segdup.sort_values(by=["chrom", "chromStart", "chromEnd"], key=natsort_key)
 
-segdup["is"] = "True"
+segdup["is"] = 1
 
 segdup.to_csv(
     f"./data/segdup/segdup_unmerged-{today}.bed", sep="\t", index=False, header=False
 )
 
 """
-bedtools merge -c 4 -o distinct -i data/segdup/segdup_unmerged-2025-04-29.bed \
-    > data/segdup/segdup-2025-04-29.bed
-bgzip data/segdup/segdup-2025-04-29.bed -k -f
-tabix data/segdup/segdup-2025-04-29.bed.gz -0 -s1 -b2 -e3 -f
+bedtools merge -c 4 -o distinct -i data/segdup/segdup_unmerged-2025-05-05.bed \
+    > data/segdup/segdup-2025-05-05.bed
+bgzip data/segdup/segdup-2025-05-05.bed -k -f
+tabix data/segdup/segdup-2025-05-05.bed.gz -0 -s1 -b2 -e3 -f
 """
