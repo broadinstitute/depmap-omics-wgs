@@ -13,6 +13,7 @@ class WgsSequencingAlignmentsRecords(BaseModel):
     omics_sequencing_id: str
     sequencing_alignment_source: str
     url: str
+    size: int
 
 
 WgsSequencingAlignments.model_rebuild()

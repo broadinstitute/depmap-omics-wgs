@@ -10,6 +10,15 @@ from .enums import (
     depmap_model_type_constraint,
     depmap_model_type_update_column,
     genomic_fingerprint_comparison_constraint,
+    genomic_fingerprint_comparison_select_column,
+    genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_avg_arguments_columns,
+    genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_corr_arguments_columns,
+    genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_covar_samp_arguments_columns,
+    genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_max_arguments_columns,
+    genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_min_arguments_columns,
+    genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_stddev_samp_arguments_columns,
+    genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_sum_arguments_columns,
+    genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_var_samp_arguments_columns,
     genomic_fingerprint_comparison_update_column,
     genomic_fingerprint_constraint,
     genomic_fingerprint_failure_constraint,
@@ -17,6 +26,7 @@ from .enums import (
     genomic_fingerprint_failure_genomic_fingerprint_comparison_select_column,
     genomic_fingerprint_failure_genomic_fingerprint_comparison_update_column,
     genomic_fingerprint_failure_update_column,
+    genomic_fingerprint_select_column,
     genomic_fingerprint_update_column,
     media_constraint,
     media_update_column,
@@ -274,6 +284,41 @@ class float8_comparison_exp(BaseModel):
     nin: Optional[List[Any]] = Field(alias="_nin", default=None)
 
 
+class genomic_fingerprint_aggregate_bool_exp(BaseModel):
+    count: Optional["genomic_fingerprint_aggregate_bool_exp_count"] = None
+
+
+class genomic_fingerprint_aggregate_bool_exp_count(BaseModel):
+    arguments: Optional[List[genomic_fingerprint_select_column]] = None
+    distinct: Optional[bool] = None
+    filter: Optional["genomic_fingerprint_bool_exp"] = None
+    predicate: "Int_comparison_exp"
+
+
+class genomic_fingerprint_aggregate_order_by(BaseModel):
+    avg: Optional["genomic_fingerprint_avg_order_by"] = None
+    count: Optional[order_by] = None
+    max: Optional["genomic_fingerprint_max_order_by"] = None
+    min: Optional["genomic_fingerprint_min_order_by"] = None
+    stddev: Optional["genomic_fingerprint_stddev_order_by"] = None
+    stddev_pop: Optional["genomic_fingerprint_stddev_pop_order_by"] = None
+    stddev_samp: Optional["genomic_fingerprint_stddev_samp_order_by"] = None
+    sum: Optional["genomic_fingerprint_sum_order_by"] = None
+    var_pop: Optional["genomic_fingerprint_var_pop_order_by"] = None
+    var_samp: Optional["genomic_fingerprint_var_samp_order_by"] = None
+    variance: Optional["genomic_fingerprint_variance_order_by"] = None
+
+
+class genomic_fingerprint_arr_rel_insert_input(BaseModel):
+    data: List["genomic_fingerprint_insert_input"]
+    on_conflict: Optional["genomic_fingerprint_on_conflict"] = None
+
+
+class genomic_fingerprint_avg_order_by(BaseModel):
+    id: Optional[order_by] = None
+    sequencing_alignment_id: Optional[order_by] = None
+
+
 class genomic_fingerprint_bool_exp(BaseModel):
     and_: Optional[List["genomic_fingerprint_bool_exp"]] = Field(
         alias="_and", default=None
@@ -283,11 +328,154 @@ class genomic_fingerprint_bool_exp(BaseModel):
         alias="_or", default=None
     )
     created_at: Optional["timestamptz_comparison_exp"] = None
+    genomic_fingerprint_comparisons_1: Optional[
+        "genomic_fingerprint_comparison_bool_exp"
+    ] = Field(alias="genomic_fingerprint_comparisons1", default=None)
+    genomic_fingerprint_comparisons_1_aggregate: Optional[
+        "genomic_fingerprint_comparison_aggregate_bool_exp"
+    ] = Field(alias="genomic_fingerprint_comparisons1_aggregate", default=None)
+    genomic_fingerprint_comparisons_2: Optional[
+        "genomic_fingerprint_comparison_bool_exp"
+    ] = Field(alias="genomic_fingerprint_comparisons2", default=None)
+    genomic_fingerprint_comparisons_2_aggregate: Optional[
+        "genomic_fingerprint_comparison_aggregate_bool_exp"
+    ] = Field(alias="genomic_fingerprint_comparisons2_aggregate", default=None)
     genotypes: Optional["String_comparison_exp"] = None
     id: Optional["bigint_comparison_exp"] = None
     sequencing_alignment: Optional["sequencing_alignment_bool_exp"] = None
     sequencing_alignment_id: Optional["bigint_comparison_exp"] = None
     vcf_url: Optional["String_comparison_exp"] = None
+
+
+class genomic_fingerprint_comparison_aggregate_bool_exp(BaseModel):
+    avg: Optional["genomic_fingerprint_comparison_aggregate_bool_exp_avg"] = None
+    corr: Optional["genomic_fingerprint_comparison_aggregate_bool_exp_corr"] = None
+    count: Optional["genomic_fingerprint_comparison_aggregate_bool_exp_count"] = None
+    covar_samp: Optional[
+        "genomic_fingerprint_comparison_aggregate_bool_exp_covar_samp"
+    ] = None
+    max: Optional["genomic_fingerprint_comparison_aggregate_bool_exp_max"] = None
+    min: Optional["genomic_fingerprint_comparison_aggregate_bool_exp_min"] = None
+    stddev_samp: Optional[
+        "genomic_fingerprint_comparison_aggregate_bool_exp_stddev_samp"
+    ] = None
+    sum: Optional["genomic_fingerprint_comparison_aggregate_bool_exp_sum"] = None
+    var_samp: Optional["genomic_fingerprint_comparison_aggregate_bool_exp_var_samp"] = (
+        None
+    )
+
+
+class genomic_fingerprint_comparison_aggregate_bool_exp_avg(BaseModel):
+    arguments: genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_avg_arguments_columns
+    distinct: Optional[bool] = None
+    filter: Optional["genomic_fingerprint_comparison_bool_exp"] = None
+    predicate: "float8_comparison_exp"
+
+
+class genomic_fingerprint_comparison_aggregate_bool_exp_corr(BaseModel):
+    arguments: "genomic_fingerprint_comparison_aggregate_bool_exp_corr_arguments"
+    distinct: Optional[bool] = None
+    filter: Optional["genomic_fingerprint_comparison_bool_exp"] = None
+    predicate: "float8_comparison_exp"
+
+
+class genomic_fingerprint_comparison_aggregate_bool_exp_corr_arguments(BaseModel):
+    x: (
+        genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_corr_arguments_columns
+    ) = Field(alias="X")
+    y: (
+        genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_corr_arguments_columns
+    ) = Field(alias="Y")
+
+
+class genomic_fingerprint_comparison_aggregate_bool_exp_count(BaseModel):
+    arguments: Optional[List[genomic_fingerprint_comparison_select_column]] = None
+    distinct: Optional[bool] = None
+    filter: Optional["genomic_fingerprint_comparison_bool_exp"] = None
+    predicate: "Int_comparison_exp"
+
+
+class genomic_fingerprint_comparison_aggregate_bool_exp_covar_samp(BaseModel):
+    arguments: "genomic_fingerprint_comparison_aggregate_bool_exp_covar_samp_arguments"
+    distinct: Optional[bool] = None
+    filter: Optional["genomic_fingerprint_comparison_bool_exp"] = None
+    predicate: "float8_comparison_exp"
+
+
+class genomic_fingerprint_comparison_aggregate_bool_exp_covar_samp_arguments(BaseModel):
+    x: (
+        genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_covar_samp_arguments_columns
+    ) = Field(alias="X")
+    y: (
+        genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_covar_samp_arguments_columns
+    ) = Field(alias="Y")
+
+
+class genomic_fingerprint_comparison_aggregate_bool_exp_max(BaseModel):
+    arguments: genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_max_arguments_columns
+    distinct: Optional[bool] = None
+    filter: Optional["genomic_fingerprint_comparison_bool_exp"] = None
+    predicate: "float8_comparison_exp"
+
+
+class genomic_fingerprint_comparison_aggregate_bool_exp_min(BaseModel):
+    arguments: genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_min_arguments_columns
+    distinct: Optional[bool] = None
+    filter: Optional["genomic_fingerprint_comparison_bool_exp"] = None
+    predicate: "float8_comparison_exp"
+
+
+class genomic_fingerprint_comparison_aggregate_bool_exp_stddev_samp(BaseModel):
+    arguments: genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_stddev_samp_arguments_columns
+    distinct: Optional[bool] = None
+    filter: Optional["genomic_fingerprint_comparison_bool_exp"] = None
+    predicate: "float8_comparison_exp"
+
+
+class genomic_fingerprint_comparison_aggregate_bool_exp_sum(BaseModel):
+    arguments: genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_sum_arguments_columns
+    distinct: Optional[bool] = None
+    filter: Optional["genomic_fingerprint_comparison_bool_exp"] = None
+    predicate: "float8_comparison_exp"
+
+
+class genomic_fingerprint_comparison_aggregate_bool_exp_var_samp(BaseModel):
+    arguments: genomic_fingerprint_comparison_select_column_genomic_fingerprint_comparison_aggregate_bool_exp_var_samp_arguments_columns
+    distinct: Optional[bool] = None
+    filter: Optional["genomic_fingerprint_comparison_bool_exp"] = None
+    predicate: "float8_comparison_exp"
+
+
+class genomic_fingerprint_comparison_aggregate_order_by(BaseModel):
+    avg: Optional["genomic_fingerprint_comparison_avg_order_by"] = None
+    count: Optional[order_by] = None
+    max: Optional["genomic_fingerprint_comparison_max_order_by"] = None
+    min: Optional["genomic_fingerprint_comparison_min_order_by"] = None
+    stddev: Optional["genomic_fingerprint_comparison_stddev_order_by"] = None
+    stddev_pop: Optional["genomic_fingerprint_comparison_stddev_pop_order_by"] = None
+    stddev_samp: Optional["genomic_fingerprint_comparison_stddev_samp_order_by"] = None
+    sum: Optional["genomic_fingerprint_comparison_sum_order_by"] = None
+    var_pop: Optional["genomic_fingerprint_comparison_var_pop_order_by"] = None
+    var_samp: Optional["genomic_fingerprint_comparison_var_samp_order_by"] = None
+    variance: Optional["genomic_fingerprint_comparison_variance_order_by"] = None
+
+
+class genomic_fingerprint_comparison_arr_rel_insert_input(BaseModel):
+    data: List["genomic_fingerprint_comparison_insert_input"]
+    on_conflict: Optional["genomic_fingerprint_comparison_on_conflict"] = None
+
+
+class genomic_fingerprint_comparison_avg_order_by(BaseModel):
+    genomic_fingerprint_id_1: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id1", default=None
+    )
+    genomic_fingerprint_id_2: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id2", default=None
+    )
+    id: Optional[order_by] = None
+    n_common_snps: Optional[order_by] = None
+    n_matching_genotypes: Optional[order_by] = None
+    score: Optional[order_by] = None
 
 
 class genomic_fingerprint_comparison_bool_exp(BaseModel):
@@ -357,6 +545,38 @@ class genomic_fingerprint_comparison_insert_input(BaseModel):
     score: Optional[Any] = None
 
 
+class genomic_fingerprint_comparison_max_order_by(BaseModel):
+    created_at: Optional[order_by] = None
+    genomic_fingerprint_id_1: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id1", default=None
+    )
+    genomic_fingerprint_id_2: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id2", default=None
+    )
+    id: Optional[order_by] = None
+    n_common_snps: Optional[order_by] = None
+    n_matching_genotypes: Optional[order_by] = None
+    patient_id_1: Optional[order_by] = Field(alias="patient_id1", default=None)
+    patient_id_2: Optional[order_by] = Field(alias="patient_id2", default=None)
+    score: Optional[order_by] = None
+
+
+class genomic_fingerprint_comparison_min_order_by(BaseModel):
+    created_at: Optional[order_by] = None
+    genomic_fingerprint_id_1: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id1", default=None
+    )
+    genomic_fingerprint_id_2: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id2", default=None
+    )
+    id: Optional[order_by] = None
+    n_common_snps: Optional[order_by] = None
+    n_matching_genotypes: Optional[order_by] = None
+    patient_id_1: Optional[order_by] = Field(alias="patient_id1", default=None)
+    patient_id_2: Optional[order_by] = Field(alias="patient_id2", default=None)
+    score: Optional[order_by] = None
+
+
 class genomic_fingerprint_comparison_obj_rel_insert_input(BaseModel):
     data: "genomic_fingerprint_comparison_insert_input"
     on_conflict: Optional["genomic_fingerprint_comparison_on_conflict"] = None
@@ -407,6 +627,45 @@ class genomic_fingerprint_comparison_set_input(BaseModel):
     score: Optional[Any] = None
 
 
+class genomic_fingerprint_comparison_stddev_order_by(BaseModel):
+    genomic_fingerprint_id_1: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id1", default=None
+    )
+    genomic_fingerprint_id_2: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id2", default=None
+    )
+    id: Optional[order_by] = None
+    n_common_snps: Optional[order_by] = None
+    n_matching_genotypes: Optional[order_by] = None
+    score: Optional[order_by] = None
+
+
+class genomic_fingerprint_comparison_stddev_pop_order_by(BaseModel):
+    genomic_fingerprint_id_1: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id1", default=None
+    )
+    genomic_fingerprint_id_2: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id2", default=None
+    )
+    id: Optional[order_by] = None
+    n_common_snps: Optional[order_by] = None
+    n_matching_genotypes: Optional[order_by] = None
+    score: Optional[order_by] = None
+
+
+class genomic_fingerprint_comparison_stddev_samp_order_by(BaseModel):
+    genomic_fingerprint_id_1: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id1", default=None
+    )
+    genomic_fingerprint_id_2: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id2", default=None
+    )
+    id: Optional[order_by] = None
+    n_common_snps: Optional[order_by] = None
+    n_matching_genotypes: Optional[order_by] = None
+    score: Optional[order_by] = None
+
+
 class genomic_fingerprint_comparison_stream_cursor_input(BaseModel):
     initial_value: "genomic_fingerprint_comparison_stream_cursor_value_input"
     ordering: Optional[cursor_ordering] = None
@@ -428,6 +687,19 @@ class genomic_fingerprint_comparison_stream_cursor_value_input(BaseModel):
     score: Optional[Any] = None
 
 
+class genomic_fingerprint_comparison_sum_order_by(BaseModel):
+    genomic_fingerprint_id_1: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id1", default=None
+    )
+    genomic_fingerprint_id_2: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id2", default=None
+    )
+    id: Optional[order_by] = None
+    n_common_snps: Optional[order_by] = None
+    n_matching_genotypes: Optional[order_by] = None
+    score: Optional[order_by] = None
+
+
 class genomic_fingerprint_comparison_updates(BaseModel):
     inc: Optional["genomic_fingerprint_comparison_inc_input"] = Field(
         alias="_inc", default=None
@@ -436,6 +708,45 @@ class genomic_fingerprint_comparison_updates(BaseModel):
         alias="_set", default=None
     )
     where: "genomic_fingerprint_comparison_bool_exp"
+
+
+class genomic_fingerprint_comparison_var_pop_order_by(BaseModel):
+    genomic_fingerprint_id_1: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id1", default=None
+    )
+    genomic_fingerprint_id_2: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id2", default=None
+    )
+    id: Optional[order_by] = None
+    n_common_snps: Optional[order_by] = None
+    n_matching_genotypes: Optional[order_by] = None
+    score: Optional[order_by] = None
+
+
+class genomic_fingerprint_comparison_var_samp_order_by(BaseModel):
+    genomic_fingerprint_id_1: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id1", default=None
+    )
+    genomic_fingerprint_id_2: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id2", default=None
+    )
+    id: Optional[order_by] = None
+    n_common_snps: Optional[order_by] = None
+    n_matching_genotypes: Optional[order_by] = None
+    score: Optional[order_by] = None
+
+
+class genomic_fingerprint_comparison_variance_order_by(BaseModel):
+    genomic_fingerprint_id_1: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id1", default=None
+    )
+    genomic_fingerprint_id_2: Optional[order_by] = Field(
+        alias="genomic_fingerprint_id2", default=None
+    )
+    id: Optional[order_by] = None
+    n_common_snps: Optional[order_by] = None
+    n_matching_genotypes: Optional[order_by] = None
+    score: Optional[order_by] = None
 
 
 class genomic_fingerprint_failure_bool_exp(BaseModel):
@@ -550,6 +861,7 @@ class genomic_fingerprint_failure_genomic_fingerprint_comparison_bool_exp(BaseMo
     genomic_fingerprint_comparison: Optional[
         "genomic_fingerprint_comparison_bool_exp"
     ] = None
+    genomic_fingerprint_failure: Optional["genomic_fingerprint_failure_bool_exp"] = None
     genomicfingerprintcomparison_id: Optional["bigint_comparison_exp"] = None
     genomicfingerprintfailure_id: Optional["bigint_comparison_exp"] = None
     id: Optional["bigint_comparison_exp"] = None
@@ -566,6 +878,9 @@ class genomic_fingerprint_failure_genomic_fingerprint_comparison_insert_input(
 ):
     genomic_fingerprint_comparison: Optional[
         "genomic_fingerprint_comparison_obj_rel_insert_input"
+    ] = None
+    genomic_fingerprint_failure: Optional[
+        "genomic_fingerprint_failure_obj_rel_insert_input"
     ] = None
     genomicfingerprintcomparison_id: Optional[int] = None
     genomicfingerprintfailure_id: Optional[int] = None
@@ -602,6 +917,7 @@ class genomic_fingerprint_failure_genomic_fingerprint_comparison_order_by(BaseMo
     genomic_fingerprint_comparison: Optional[
         "genomic_fingerprint_comparison_order_by"
     ] = None
+    genomic_fingerprint_failure: Optional["genomic_fingerprint_failure_order_by"] = None
     genomicfingerprintcomparison_id: Optional[order_by] = None
     genomicfingerprintfailure_id: Optional[order_by] = None
     id: Optional[order_by] = None
@@ -715,6 +1031,11 @@ class genomic_fingerprint_failure_insert_input(BaseModel):
     updated_at: Optional[Any] = None
 
 
+class genomic_fingerprint_failure_obj_rel_insert_input(BaseModel):
+    data: "genomic_fingerprint_failure_insert_input"
+    on_conflict: Optional["genomic_fingerprint_failure_on_conflict"] = None
+
+
 class genomic_fingerprint_failure_on_conflict(BaseModel):
     constraint: genomic_fingerprint_failure_constraint
     update_columns: List[genomic_fingerprint_failure_update_column]
@@ -774,11 +1095,33 @@ class genomic_fingerprint_inc_input(BaseModel):
 
 class genomic_fingerprint_insert_input(BaseModel):
     created_at: Optional[Any] = None
+    genomic_fingerprint_comparisons_1: Optional[
+        "genomic_fingerprint_comparison_arr_rel_insert_input"
+    ] = Field(alias="genomic_fingerprint_comparisons1", default=None)
+    genomic_fingerprint_comparisons_2: Optional[
+        "genomic_fingerprint_comparison_arr_rel_insert_input"
+    ] = Field(alias="genomic_fingerprint_comparisons2", default=None)
     genotypes: Optional[str] = None
     id: Optional[int] = None
     sequencing_alignment: Optional["sequencing_alignment_obj_rel_insert_input"] = None
     sequencing_alignment_id: Optional[int] = None
     vcf_url: Optional[str] = None
+
+
+class genomic_fingerprint_max_order_by(BaseModel):
+    created_at: Optional[order_by] = None
+    genotypes: Optional[order_by] = None
+    id: Optional[order_by] = None
+    sequencing_alignment_id: Optional[order_by] = None
+    vcf_url: Optional[order_by] = None
+
+
+class genomic_fingerprint_min_order_by(BaseModel):
+    created_at: Optional[order_by] = None
+    genotypes: Optional[order_by] = None
+    id: Optional[order_by] = None
+    sequencing_alignment_id: Optional[order_by] = None
+    vcf_url: Optional[order_by] = None
 
 
 class genomic_fingerprint_on_conflict(BaseModel):
@@ -789,6 +1132,12 @@ class genomic_fingerprint_on_conflict(BaseModel):
 
 class genomic_fingerprint_order_by(BaseModel):
     created_at: Optional[order_by] = None
+    genomic_fingerprint_comparisons_1_aggregate: Optional[
+        "genomic_fingerprint_comparison_aggregate_order_by"
+    ] = Field(alias="genomic_fingerprint_comparisons1_aggregate", default=None)
+    genomic_fingerprint_comparisons_2_aggregate: Optional[
+        "genomic_fingerprint_comparison_aggregate_order_by"
+    ] = Field(alias="genomic_fingerprint_comparisons2_aggregate", default=None)
     genotypes: Optional[order_by] = None
     id: Optional[order_by] = None
     sequencing_alignment: Optional["sequencing_alignment_order_by"] = None
@@ -808,6 +1157,21 @@ class genomic_fingerprint_set_input(BaseModel):
     vcf_url: Optional[str] = None
 
 
+class genomic_fingerprint_stddev_order_by(BaseModel):
+    id: Optional[order_by] = None
+    sequencing_alignment_id: Optional[order_by] = None
+
+
+class genomic_fingerprint_stddev_pop_order_by(BaseModel):
+    id: Optional[order_by] = None
+    sequencing_alignment_id: Optional[order_by] = None
+
+
+class genomic_fingerprint_stddev_samp_order_by(BaseModel):
+    id: Optional[order_by] = None
+    sequencing_alignment_id: Optional[order_by] = None
+
+
 class genomic_fingerprint_stream_cursor_input(BaseModel):
     initial_value: "genomic_fingerprint_stream_cursor_value_input"
     ordering: Optional[cursor_ordering] = None
@@ -821,10 +1185,30 @@ class genomic_fingerprint_stream_cursor_value_input(BaseModel):
     vcf_url: Optional[str] = None
 
 
+class genomic_fingerprint_sum_order_by(BaseModel):
+    id: Optional[order_by] = None
+    sequencing_alignment_id: Optional[order_by] = None
+
+
 class genomic_fingerprint_updates(BaseModel):
     inc: Optional["genomic_fingerprint_inc_input"] = Field(alias="_inc", default=None)
     set: Optional["genomic_fingerprint_set_input"] = Field(alias="_set", default=None)
     where: "genomic_fingerprint_bool_exp"
+
+
+class genomic_fingerprint_var_pop_order_by(BaseModel):
+    id: Optional[order_by] = None
+    sequencing_alignment_id: Optional[order_by] = None
+
+
+class genomic_fingerprint_var_samp_order_by(BaseModel):
+    id: Optional[order_by] = None
+    sequencing_alignment_id: Optional[order_by] = None
+
+
+class genomic_fingerprint_variance_order_by(BaseModel):
+    id: Optional[order_by] = None
+    sequencing_alignment_id: Optional[order_by] = None
 
 
 class jsonb_cast_exp(BaseModel):
@@ -934,6 +1318,7 @@ class model_bool_exp(BaseModel):
     dbgap: Optional["String_comparison_exp"] = None
     depmap_model_type_id: Optional["String_comparison_exp"] = None
     derived_outside_us: Optional["Boolean_comparison_exp"] = None
+    do_not_screen: Optional["Boolean_comparison_exp"] = None
     engineered_model: Optional["String_comparison_exp"] = None
     engineered_model_details: Optional["String_comparison_exp"] = None
     first_publication_link: Optional["String_comparison_exp"] = None
@@ -941,7 +1326,6 @@ class model_bool_exp(BaseModel):
     growth_pattern: Optional["String_comparison_exp"] = None
     hcmi_id: Optional["String_comparison_exp"] = None
     inferred_ethnicity: Optional["String_comparison_exp"] = None
-    lineage: Optional["String_comparison_exp"] = None
     medium: Optional["media_bool_exp"] = None
     model_conditions: Optional["model_condition_bool_exp"] = None
     model_conditions_aggregate: Optional["model_condition_aggregate_bool_exp"] = None
@@ -954,37 +1338,29 @@ class model_bool_exp(BaseModel):
     model_transfer_comments: Optional["String_comparison_exp"] = None
     model_transferred_to_stjude: Optional["String_comparison_exp"] = None
     model_type: Optional["String_comparison_exp"] = None
-    molecular_subtype: Optional["String_comparison_exp"] = None
-    ncit_code: Optional["String_comparison_exp"] = None
-    ncit_subtype: Optional["String_comparison_exp"] = None
     new_histological_subtype: Optional["String_comparison_exp"] = None
-    new_molecular_subtype: Optional["String_comparison_exp"] = None
     onboarded_doubling_time: Optional["String_comparison_exp"] = None
     onboarded_media: Optional["String_comparison_exp"] = None
     orspid: Optional["String_comparison_exp"] = None
-    part_of_prism: Optional["String_comparison_exp"] = None
     patient_id: Optional["String_comparison_exp"] = None
     patient_resistance: Optional["String_comparison_exp"] = None
-    patient_response_score: Optional["String_comparison_exp"] = None
-    patient_response_score_system: Optional["String_comparison_exp"] = None
     patient_subtype_features: Optional["String_comparison_exp"] = None
     patient_treatment_type: Optional["String_comparison_exp"] = None
     patient_tumor_grade: Optional["String_comparison_exp"] = None
     peddep_line: Optional["Boolean_comparison_exp"] = None
+    peddep_nominated: Optional["Boolean_comparison_exp"] = None
     peddep_subgroup: Optional["String_comparison_exp"] = None
     permission_to_release: Optional["Boolean_comparison_exp"] = None
     plate_coating: Optional["String_comparison_exp"] = None
-    primary_diagnosis: Optional["String_comparison_exp"] = None
     primary_disease: Optional["String_comparison_exp"] = None
     primary_or_metastasis: Optional["String_comparison_exp"] = None
     proposed_deliverable: Optional["String_comparison_exp"] = None
     proposed_release_date: Optional["date_comparison_exp"] = None
     public_comments: Optional["String_comparison_exp"] = None
-    recurrent: Optional["String_comparison_exp"] = None
-    registration_complete: Optional["Boolean_comparison_exp"] = None
     rrid: Optional["String_comparison_exp"] = None
     sample_collection_site: Optional["String_comparison_exp"] = None
     sanger_model_id: Optional["String_comparison_exp"] = None
+    screen_comments: Optional["String_comparison_exp"] = None
     sex: Optional["String_comparison_exp"] = None
     sj_compbio_id: Optional["String_comparison_exp"] = None
     source_detail: Optional["String_comparison_exp"] = None
@@ -994,15 +1370,11 @@ class model_bool_exp(BaseModel):
     stated_race: Optional["String_comparison_exp"] = None
     stjude_derived: Optional["Boolean_comparison_exp"] = None
     stripped_cell_line_name: Optional["String_comparison_exp"] = None
-    sub_subtype: Optional["String_comparison_exp"] = None
-    subtype: Optional["String_comparison_exp"] = None
     the_depmap_model_type: Optional["depmap_model_type_bool_exp"] = None
     tissue_origin: Optional["String_comparison_exp"] = None
     transformed_type: Optional["String_comparison_exp"] = None
     treatment_details: Optional["String_comparison_exp"] = None
     treatment_status: Optional["String_comparison_exp"] = None
-    tumor_regression_score: Optional["String_comparison_exp"] = None
-    vendor_link: Optional["String_comparison_exp"] = None
     wtsi_master_cell_id: Optional["Int_comparison_exp"] = None
 
 
@@ -1054,7 +1426,6 @@ class model_condition_arr_rel_insert_input(BaseModel):
 
 class model_condition_avg_order_by(BaseModel):
     batch_doubling_time: Optional[order_by] = None
-    number_vials_available: Optional[order_by] = None
     source_doubling_time: Optional[order_by] = None
 
 
@@ -1066,7 +1437,6 @@ class model_condition_bool_exp(BaseModel):
     cell_characteristics: Optional["String_comparison_exp"] = None
     cell_format: Optional["String_comparison_exp"] = None
     cell_grouping: Optional["String_comparison_exp"] = None
-    cell_has_debris: Optional["String_comparison_exp"] = None
     cell_morphology: Optional["String_comparison_exp"] = None
     cell_shape: Optional["String_comparison_exp"] = None
     cell_size: Optional["String_comparison_exp"] = None
@@ -1075,49 +1445,30 @@ class model_condition_bool_exp(BaseModel):
     contaminated: Optional["Boolean_comparison_exp"] = None
     contamination_details: Optional["String_comparison_exp"] = None
     days_with_drug: Optional["String_comparison_exp"] = None
-    dmx_priority: Optional["String_comparison_exp"] = None
     drug: Optional["String_comparison_exp"] = None
     drug_concentration: Optional["String_comparison_exp"] = None
-    expansion_completed: Optional["date_comparison_exp"] = None
-    expansion_completed_date: Optional["date_comparison_exp"] = None
-    expansion_issues: Optional["String_comparison_exp"] = None
     expansion_team: Optional["String_comparison_exp"] = None
-    freeze_media: Optional["String_comparison_exp"] = None
-    freezerpro_uid: Optional["String_comparison_exp"] = None
     growth_media: Optional["String_comparison_exp"] = None
-    initials_status_pic: Optional["String_comparison_exp"] = None
-    line_received_for_expansion: Optional["date_comparison_exp"] = None
-    measured_survival: Optional["String_comparison_exp"] = None
     medium: Optional["media_bool_exp"] = None
     model: Optional["model_bool_exp"] = None
     model_condition_id: Optional["String_comparison_exp"] = None
     model_id: Optional["String_comparison_exp"] = None
-    number_vials_available: Optional["Int_comparison_exp"] = None
     omics_profiles: Optional["omics_profile_bool_exp"] = None
     omics_profiles_aggregate: Optional["omics_profile_aggregate_bool_exp"] = None
-    onboarding_myco_order: Optional["date_comparison_exp"] = None
-    onboarding_str: Optional["String_comparison_exp"] = None
-    onboarding_str_order: Optional["date_comparison_exp"] = None
     parent_model_condition_id: Optional["String_comparison_exp"] = None
     passage_number: Optional["String_comparison_exp"] = None
     plate_coating: Optional["String_comparison_exp"] = None
     prescreen_treatment_days: Optional["String_comparison_exp"] = None
     prescreen_treatment_drug: Optional["String_comparison_exp"] = None
-    prism_notes: Optional["String_comparison_exp"] = None
     project: Optional["String_comparison_exp"] = None
     resistance_mechanism: Optional["String_comparison_exp"] = None
     source: Optional["String_comparison_exp"] = None
     source_doubling_time: Optional["Int_comparison_exp"] = None
-    source_growth_pattern: Optional["String_comparison_exp"] = None
-    split_recommendation: Optional["String_comparison_exp"] = None
     supplements: Optional["String_comparison_exp"] = None
-    thaw_date: Optional["date_comparison_exp"] = None
-    to_gpp: Optional["Boolean_comparison_exp"] = None
 
 
 class model_condition_inc_input(BaseModel):
     batch_doubling_time: Optional[int] = None
-    number_vials_available: Optional[int] = None
     source_doubling_time: Optional[int] = None
 
 
@@ -1126,7 +1477,6 @@ class model_condition_insert_input(BaseModel):
     cell_characteristics: Optional[str] = None
     cell_format: Optional[str] = None
     cell_grouping: Optional[str] = None
-    cell_has_debris: Optional[str] = None
     cell_morphology: Optional[str] = None
     cell_shape: Optional[str] = None
     cell_size: Optional[str] = None
@@ -1135,43 +1485,25 @@ class model_condition_insert_input(BaseModel):
     contaminated: Optional[bool] = None
     contamination_details: Optional[str] = None
     days_with_drug: Optional[str] = None
-    dmx_priority: Optional[str] = None
     drug: Optional[str] = None
     drug_concentration: Optional[str] = None
-    expansion_completed: Optional[Any] = None
-    expansion_completed_date: Optional[Any] = None
-    expansion_issues: Optional[str] = None
     expansion_team: Optional[str] = None
-    freeze_media: Optional[str] = None
-    freezerpro_uid: Optional[str] = None
     growth_media: Optional[str] = None
-    initials_status_pic: Optional[str] = None
-    line_received_for_expansion: Optional[Any] = None
-    measured_survival: Optional[str] = None
     medium: Optional["media_obj_rel_insert_input"] = None
     model: Optional["model_obj_rel_insert_input"] = None
     model_condition_id: Optional[str] = None
     model_id: Optional[str] = None
-    number_vials_available: Optional[int] = None
     omics_profiles: Optional["omics_profile_arr_rel_insert_input"] = None
-    onboarding_myco_order: Optional[Any] = None
-    onboarding_str: Optional[str] = None
-    onboarding_str_order: Optional[Any] = None
     parent_model_condition_id: Optional[str] = None
     passage_number: Optional[str] = None
     plate_coating: Optional[str] = None
     prescreen_treatment_days: Optional[str] = None
     prescreen_treatment_drug: Optional[str] = None
-    prism_notes: Optional[str] = None
     project: Optional[str] = None
     resistance_mechanism: Optional[str] = None
     source: Optional[str] = None
     source_doubling_time: Optional[int] = None
-    source_growth_pattern: Optional[str] = None
-    split_recommendation: Optional[str] = None
     supplements: Optional[str] = None
-    thaw_date: Optional[Any] = None
-    to_gpp: Optional[bool] = None
 
 
 class model_condition_max_order_by(BaseModel):
@@ -1179,7 +1511,6 @@ class model_condition_max_order_by(BaseModel):
     cell_characteristics: Optional[order_by] = None
     cell_format: Optional[order_by] = None
     cell_grouping: Optional[order_by] = None
-    cell_has_debris: Optional[order_by] = None
     cell_morphology: Optional[order_by] = None
     cell_shape: Optional[order_by] = None
     cell_size: Optional[order_by] = None
@@ -1187,39 +1518,22 @@ class model_condition_max_order_by(BaseModel):
     condition_only: Optional[order_by] = None
     contamination_details: Optional[order_by] = None
     days_with_drug: Optional[order_by] = None
-    dmx_priority: Optional[order_by] = None
     drug: Optional[order_by] = None
     drug_concentration: Optional[order_by] = None
-    expansion_completed: Optional[order_by] = None
-    expansion_completed_date: Optional[order_by] = None
-    expansion_issues: Optional[order_by] = None
     expansion_team: Optional[order_by] = None
-    freeze_media: Optional[order_by] = None
-    freezerpro_uid: Optional[order_by] = None
     growth_media: Optional[order_by] = None
-    initials_status_pic: Optional[order_by] = None
-    line_received_for_expansion: Optional[order_by] = None
-    measured_survival: Optional[order_by] = None
     model_condition_id: Optional[order_by] = None
     model_id: Optional[order_by] = None
-    number_vials_available: Optional[order_by] = None
-    onboarding_myco_order: Optional[order_by] = None
-    onboarding_str: Optional[order_by] = None
-    onboarding_str_order: Optional[order_by] = None
     parent_model_condition_id: Optional[order_by] = None
     passage_number: Optional[order_by] = None
     plate_coating: Optional[order_by] = None
     prescreen_treatment_days: Optional[order_by] = None
     prescreen_treatment_drug: Optional[order_by] = None
-    prism_notes: Optional[order_by] = None
     project: Optional[order_by] = None
     resistance_mechanism: Optional[order_by] = None
     source: Optional[order_by] = None
     source_doubling_time: Optional[order_by] = None
-    source_growth_pattern: Optional[order_by] = None
-    split_recommendation: Optional[order_by] = None
     supplements: Optional[order_by] = None
-    thaw_date: Optional[order_by] = None
 
 
 class model_condition_min_order_by(BaseModel):
@@ -1227,7 +1541,6 @@ class model_condition_min_order_by(BaseModel):
     cell_characteristics: Optional[order_by] = None
     cell_format: Optional[order_by] = None
     cell_grouping: Optional[order_by] = None
-    cell_has_debris: Optional[order_by] = None
     cell_morphology: Optional[order_by] = None
     cell_shape: Optional[order_by] = None
     cell_size: Optional[order_by] = None
@@ -1235,39 +1548,22 @@ class model_condition_min_order_by(BaseModel):
     condition_only: Optional[order_by] = None
     contamination_details: Optional[order_by] = None
     days_with_drug: Optional[order_by] = None
-    dmx_priority: Optional[order_by] = None
     drug: Optional[order_by] = None
     drug_concentration: Optional[order_by] = None
-    expansion_completed: Optional[order_by] = None
-    expansion_completed_date: Optional[order_by] = None
-    expansion_issues: Optional[order_by] = None
     expansion_team: Optional[order_by] = None
-    freeze_media: Optional[order_by] = None
-    freezerpro_uid: Optional[order_by] = None
     growth_media: Optional[order_by] = None
-    initials_status_pic: Optional[order_by] = None
-    line_received_for_expansion: Optional[order_by] = None
-    measured_survival: Optional[order_by] = None
     model_condition_id: Optional[order_by] = None
     model_id: Optional[order_by] = None
-    number_vials_available: Optional[order_by] = None
-    onboarding_myco_order: Optional[order_by] = None
-    onboarding_str: Optional[order_by] = None
-    onboarding_str_order: Optional[order_by] = None
     parent_model_condition_id: Optional[order_by] = None
     passage_number: Optional[order_by] = None
     plate_coating: Optional[order_by] = None
     prescreen_treatment_days: Optional[order_by] = None
     prescreen_treatment_drug: Optional[order_by] = None
-    prism_notes: Optional[order_by] = None
     project: Optional[order_by] = None
     resistance_mechanism: Optional[order_by] = None
     source: Optional[order_by] = None
     source_doubling_time: Optional[order_by] = None
-    source_growth_pattern: Optional[order_by] = None
-    split_recommendation: Optional[order_by] = None
     supplements: Optional[order_by] = None
-    thaw_date: Optional[order_by] = None
 
 
 class model_condition_obj_rel_insert_input(BaseModel):
@@ -1286,7 +1582,6 @@ class model_condition_order_by(BaseModel):
     cell_characteristics: Optional[order_by] = None
     cell_format: Optional[order_by] = None
     cell_grouping: Optional[order_by] = None
-    cell_has_debris: Optional[order_by] = None
     cell_morphology: Optional[order_by] = None
     cell_shape: Optional[order_by] = None
     cell_size: Optional[order_by] = None
@@ -1295,43 +1590,25 @@ class model_condition_order_by(BaseModel):
     contaminated: Optional[order_by] = None
     contamination_details: Optional[order_by] = None
     days_with_drug: Optional[order_by] = None
-    dmx_priority: Optional[order_by] = None
     drug: Optional[order_by] = None
     drug_concentration: Optional[order_by] = None
-    expansion_completed: Optional[order_by] = None
-    expansion_completed_date: Optional[order_by] = None
-    expansion_issues: Optional[order_by] = None
     expansion_team: Optional[order_by] = None
-    freeze_media: Optional[order_by] = None
-    freezerpro_uid: Optional[order_by] = None
     growth_media: Optional[order_by] = None
-    initials_status_pic: Optional[order_by] = None
-    line_received_for_expansion: Optional[order_by] = None
-    measured_survival: Optional[order_by] = None
     medium: Optional["media_order_by"] = None
     model: Optional["model_order_by"] = None
     model_condition_id: Optional[order_by] = None
     model_id: Optional[order_by] = None
-    number_vials_available: Optional[order_by] = None
     omics_profiles_aggregate: Optional["omics_profile_aggregate_order_by"] = None
-    onboarding_myco_order: Optional[order_by] = None
-    onboarding_str: Optional[order_by] = None
-    onboarding_str_order: Optional[order_by] = None
     parent_model_condition_id: Optional[order_by] = None
     passage_number: Optional[order_by] = None
     plate_coating: Optional[order_by] = None
     prescreen_treatment_days: Optional[order_by] = None
     prescreen_treatment_drug: Optional[order_by] = None
-    prism_notes: Optional[order_by] = None
     project: Optional[order_by] = None
     resistance_mechanism: Optional[order_by] = None
     source: Optional[order_by] = None
     source_doubling_time: Optional[order_by] = None
-    source_growth_pattern: Optional[order_by] = None
-    split_recommendation: Optional[order_by] = None
     supplements: Optional[order_by] = None
-    thaw_date: Optional[order_by] = None
-    to_gpp: Optional[order_by] = None
 
 
 class model_condition_pk_columns_input(BaseModel):
@@ -1343,7 +1620,6 @@ class model_condition_set_input(BaseModel):
     cell_characteristics: Optional[str] = None
     cell_format: Optional[str] = None
     cell_grouping: Optional[str] = None
-    cell_has_debris: Optional[str] = None
     cell_morphology: Optional[str] = None
     cell_shape: Optional[str] = None
     cell_size: Optional[str] = None
@@ -1352,57 +1628,36 @@ class model_condition_set_input(BaseModel):
     contaminated: Optional[bool] = None
     contamination_details: Optional[str] = None
     days_with_drug: Optional[str] = None
-    dmx_priority: Optional[str] = None
     drug: Optional[str] = None
     drug_concentration: Optional[str] = None
-    expansion_completed: Optional[Any] = None
-    expansion_completed_date: Optional[Any] = None
-    expansion_issues: Optional[str] = None
     expansion_team: Optional[str] = None
-    freeze_media: Optional[str] = None
-    freezerpro_uid: Optional[str] = None
     growth_media: Optional[str] = None
-    initials_status_pic: Optional[str] = None
-    line_received_for_expansion: Optional[Any] = None
-    measured_survival: Optional[str] = None
     model_condition_id: Optional[str] = None
     model_id: Optional[str] = None
-    number_vials_available: Optional[int] = None
-    onboarding_myco_order: Optional[Any] = None
-    onboarding_str: Optional[str] = None
-    onboarding_str_order: Optional[Any] = None
     parent_model_condition_id: Optional[str] = None
     passage_number: Optional[str] = None
     plate_coating: Optional[str] = None
     prescreen_treatment_days: Optional[str] = None
     prescreen_treatment_drug: Optional[str] = None
-    prism_notes: Optional[str] = None
     project: Optional[str] = None
     resistance_mechanism: Optional[str] = None
     source: Optional[str] = None
     source_doubling_time: Optional[int] = None
-    source_growth_pattern: Optional[str] = None
-    split_recommendation: Optional[str] = None
     supplements: Optional[str] = None
-    thaw_date: Optional[Any] = None
-    to_gpp: Optional[bool] = None
 
 
 class model_condition_stddev_order_by(BaseModel):
     batch_doubling_time: Optional[order_by] = None
-    number_vials_available: Optional[order_by] = None
     source_doubling_time: Optional[order_by] = None
 
 
 class model_condition_stddev_pop_order_by(BaseModel):
     batch_doubling_time: Optional[order_by] = None
-    number_vials_available: Optional[order_by] = None
     source_doubling_time: Optional[order_by] = None
 
 
 class model_condition_stddev_samp_order_by(BaseModel):
     batch_doubling_time: Optional[order_by] = None
-    number_vials_available: Optional[order_by] = None
     source_doubling_time: Optional[order_by] = None
 
 
@@ -1416,7 +1671,6 @@ class model_condition_stream_cursor_value_input(BaseModel):
     cell_characteristics: Optional[str] = None
     cell_format: Optional[str] = None
     cell_grouping: Optional[str] = None
-    cell_has_debris: Optional[str] = None
     cell_morphology: Optional[str] = None
     cell_shape: Optional[str] = None
     cell_size: Optional[str] = None
@@ -1425,45 +1679,26 @@ class model_condition_stream_cursor_value_input(BaseModel):
     contaminated: Optional[bool] = None
     contamination_details: Optional[str] = None
     days_with_drug: Optional[str] = None
-    dmx_priority: Optional[str] = None
     drug: Optional[str] = None
     drug_concentration: Optional[str] = None
-    expansion_completed: Optional[Any] = None
-    expansion_completed_date: Optional[Any] = None
-    expansion_issues: Optional[str] = None
     expansion_team: Optional[str] = None
-    freeze_media: Optional[str] = None
-    freezerpro_uid: Optional[str] = None
     growth_media: Optional[str] = None
-    initials_status_pic: Optional[str] = None
-    line_received_for_expansion: Optional[Any] = None
-    measured_survival: Optional[str] = None
     model_condition_id: Optional[str] = None
     model_id: Optional[str] = None
-    number_vials_available: Optional[int] = None
-    onboarding_myco_order: Optional[Any] = None
-    onboarding_str: Optional[str] = None
-    onboarding_str_order: Optional[Any] = None
     parent_model_condition_id: Optional[str] = None
     passage_number: Optional[str] = None
     plate_coating: Optional[str] = None
     prescreen_treatment_days: Optional[str] = None
     prescreen_treatment_drug: Optional[str] = None
-    prism_notes: Optional[str] = None
     project: Optional[str] = None
     resistance_mechanism: Optional[str] = None
     source: Optional[str] = None
     source_doubling_time: Optional[int] = None
-    source_growth_pattern: Optional[str] = None
-    split_recommendation: Optional[str] = None
     supplements: Optional[str] = None
-    thaw_date: Optional[Any] = None
-    to_gpp: Optional[bool] = None
 
 
 class model_condition_sum_order_by(BaseModel):
     batch_doubling_time: Optional[order_by] = None
-    number_vials_available: Optional[order_by] = None
     source_doubling_time: Optional[order_by] = None
 
 
@@ -1475,19 +1710,16 @@ class model_condition_updates(BaseModel):
 
 class model_condition_var_pop_order_by(BaseModel):
     batch_doubling_time: Optional[order_by] = None
-    number_vials_available: Optional[order_by] = None
     source_doubling_time: Optional[order_by] = None
 
 
 class model_condition_var_samp_order_by(BaseModel):
     batch_doubling_time: Optional[order_by] = None
-    number_vials_available: Optional[order_by] = None
     source_doubling_time: Optional[order_by] = None
 
 
 class model_condition_variance_order_by(BaseModel):
     batch_doubling_time: Optional[order_by] = None
-    number_vials_available: Optional[order_by] = None
     source_doubling_time: Optional[order_by] = None
 
 
@@ -1521,6 +1753,7 @@ class model_insert_input(BaseModel):
     dbgap: Optional[str] = None
     depmap_model_type_id: Optional[str] = None
     derived_outside_us: Optional[bool] = None
+    do_not_screen: Optional[bool] = None
     engineered_model: Optional[str] = None
     engineered_model_details: Optional[str] = None
     first_publication_link: Optional[str] = None
@@ -1528,7 +1761,6 @@ class model_insert_input(BaseModel):
     growth_pattern: Optional[str] = None
     hcmi_id: Optional[str] = None
     inferred_ethnicity: Optional[str] = None
-    lineage: Optional[str] = None
     medium: Optional["media_obj_rel_insert_input"] = None
     model_conditions: Optional["model_condition_arr_rel_insert_input"] = None
     model_data_sharing: Optional[str] = None
@@ -1540,37 +1772,29 @@ class model_insert_input(BaseModel):
     model_transfer_comments: Optional[str] = None
     model_transferred_to_stjude: Optional[str] = None
     model_type: Optional[str] = None
-    molecular_subtype: Optional[str] = None
-    ncit_code: Optional[str] = None
-    ncit_subtype: Optional[str] = None
     new_histological_subtype: Optional[str] = None
-    new_molecular_subtype: Optional[str] = None
     onboarded_doubling_time: Optional[str] = None
     onboarded_media: Optional[str] = None
     orspid: Optional[str] = None
-    part_of_prism: Optional[str] = None
     patient_id: Optional[str] = None
     patient_resistance: Optional[str] = None
-    patient_response_score: Optional[str] = None
-    patient_response_score_system: Optional[str] = None
     patient_subtype_features: Optional[str] = None
     patient_treatment_type: Optional[str] = None
     patient_tumor_grade: Optional[str] = None
     peddep_line: Optional[bool] = None
+    peddep_nominated: Optional[bool] = None
     peddep_subgroup: Optional[str] = None
     permission_to_release: Optional[bool] = None
     plate_coating: Optional[str] = None
-    primary_diagnosis: Optional[str] = None
     primary_disease: Optional[str] = None
     primary_or_metastasis: Optional[str] = None
     proposed_deliverable: Optional[str] = None
     proposed_release_date: Optional[Any] = None
     public_comments: Optional[str] = None
-    recurrent: Optional[str] = None
-    registration_complete: Optional[bool] = None
     rrid: Optional[str] = None
     sample_collection_site: Optional[str] = None
     sanger_model_id: Optional[str] = None
+    screen_comments: Optional[str] = None
     sex: Optional[str] = None
     sj_compbio_id: Optional[str] = None
     source_detail: Optional[str] = None
@@ -1580,15 +1804,11 @@ class model_insert_input(BaseModel):
     stated_race: Optional[str] = None
     stjude_derived: Optional[bool] = None
     stripped_cell_line_name: Optional[str] = None
-    sub_subtype: Optional[str] = None
-    subtype: Optional[str] = None
     the_depmap_model_type: Optional["depmap_model_type_obj_rel_insert_input"] = None
     tissue_origin: Optional[str] = None
     transformed_type: Optional[str] = None
     treatment_details: Optional[str] = None
     treatment_status: Optional[str] = None
-    tumor_regression_score: Optional[str] = None
-    vendor_link: Optional[str] = None
     wtsi_master_cell_id: Optional[int] = None
 
 
@@ -1627,6 +1847,7 @@ class model_order_by(BaseModel):
     dbgap: Optional[order_by] = None
     depmap_model_type_id: Optional[order_by] = None
     derived_outside_us: Optional[order_by] = None
+    do_not_screen: Optional[order_by] = None
     engineered_model: Optional[order_by] = None
     engineered_model_details: Optional[order_by] = None
     first_publication_link: Optional[order_by] = None
@@ -1634,7 +1855,6 @@ class model_order_by(BaseModel):
     growth_pattern: Optional[order_by] = None
     hcmi_id: Optional[order_by] = None
     inferred_ethnicity: Optional[order_by] = None
-    lineage: Optional[order_by] = None
     medium: Optional["media_order_by"] = None
     model_conditions_aggregate: Optional["model_condition_aggregate_order_by"] = None
     model_data_sharing: Optional[order_by] = None
@@ -1646,37 +1866,29 @@ class model_order_by(BaseModel):
     model_transfer_comments: Optional[order_by] = None
     model_transferred_to_stjude: Optional[order_by] = None
     model_type: Optional[order_by] = None
-    molecular_subtype: Optional[order_by] = None
-    ncit_code: Optional[order_by] = None
-    ncit_subtype: Optional[order_by] = None
     new_histological_subtype: Optional[order_by] = None
-    new_molecular_subtype: Optional[order_by] = None
     onboarded_doubling_time: Optional[order_by] = None
     onboarded_media: Optional[order_by] = None
     orspid: Optional[order_by] = None
-    part_of_prism: Optional[order_by] = None
     patient_id: Optional[order_by] = None
     patient_resistance: Optional[order_by] = None
-    patient_response_score: Optional[order_by] = None
-    patient_response_score_system: Optional[order_by] = None
     patient_subtype_features: Optional[order_by] = None
     patient_treatment_type: Optional[order_by] = None
     patient_tumor_grade: Optional[order_by] = None
     peddep_line: Optional[order_by] = None
+    peddep_nominated: Optional[order_by] = None
     peddep_subgroup: Optional[order_by] = None
     permission_to_release: Optional[order_by] = None
     plate_coating: Optional[order_by] = None
-    primary_diagnosis: Optional[order_by] = None
     primary_disease: Optional[order_by] = None
     primary_or_metastasis: Optional[order_by] = None
     proposed_deliverable: Optional[order_by] = None
     proposed_release_date: Optional[order_by] = None
     public_comments: Optional[order_by] = None
-    recurrent: Optional[order_by] = None
-    registration_complete: Optional[order_by] = None
     rrid: Optional[order_by] = None
     sample_collection_site: Optional[order_by] = None
     sanger_model_id: Optional[order_by] = None
+    screen_comments: Optional[order_by] = None
     sex: Optional[order_by] = None
     sj_compbio_id: Optional[order_by] = None
     source_detail: Optional[order_by] = None
@@ -1686,15 +1898,11 @@ class model_order_by(BaseModel):
     stated_race: Optional[order_by] = None
     stjude_derived: Optional[order_by] = None
     stripped_cell_line_name: Optional[order_by] = None
-    sub_subtype: Optional[order_by] = None
-    subtype: Optional[order_by] = None
     the_depmap_model_type: Optional["depmap_model_type_order_by"] = None
     tissue_origin: Optional[order_by] = None
     transformed_type: Optional[order_by] = None
     treatment_details: Optional[order_by] = None
     treatment_status: Optional[order_by] = None
-    tumor_regression_score: Optional[order_by] = None
-    vendor_link: Optional[order_by] = None
     wtsi_master_cell_id: Optional[order_by] = None
 
 
@@ -1726,6 +1934,7 @@ class model_set_input(BaseModel):
     dbgap: Optional[str] = None
     depmap_model_type_id: Optional[str] = None
     derived_outside_us: Optional[bool] = None
+    do_not_screen: Optional[bool] = None
     engineered_model: Optional[str] = None
     engineered_model_details: Optional[str] = None
     first_publication_link: Optional[str] = None
@@ -1733,7 +1942,6 @@ class model_set_input(BaseModel):
     growth_pattern: Optional[str] = None
     hcmi_id: Optional[str] = None
     inferred_ethnicity: Optional[str] = None
-    lineage: Optional[str] = None
     model_data_sharing: Optional[str] = None
     model_data_sharing_comments: Optional[str] = None
     model_derivation_material: Optional[str] = None
@@ -1743,37 +1951,29 @@ class model_set_input(BaseModel):
     model_transfer_comments: Optional[str] = None
     model_transferred_to_stjude: Optional[str] = None
     model_type: Optional[str] = None
-    molecular_subtype: Optional[str] = None
-    ncit_code: Optional[str] = None
-    ncit_subtype: Optional[str] = None
     new_histological_subtype: Optional[str] = None
-    new_molecular_subtype: Optional[str] = None
     onboarded_doubling_time: Optional[str] = None
     onboarded_media: Optional[str] = None
     orspid: Optional[str] = None
-    part_of_prism: Optional[str] = None
     patient_id: Optional[str] = None
     patient_resistance: Optional[str] = None
-    patient_response_score: Optional[str] = None
-    patient_response_score_system: Optional[str] = None
     patient_subtype_features: Optional[str] = None
     patient_treatment_type: Optional[str] = None
     patient_tumor_grade: Optional[str] = None
     peddep_line: Optional[bool] = None
+    peddep_nominated: Optional[bool] = None
     peddep_subgroup: Optional[str] = None
     permission_to_release: Optional[bool] = None
     plate_coating: Optional[str] = None
-    primary_diagnosis: Optional[str] = None
     primary_disease: Optional[str] = None
     primary_or_metastasis: Optional[str] = None
     proposed_deliverable: Optional[str] = None
     proposed_release_date: Optional[Any] = None
     public_comments: Optional[str] = None
-    recurrent: Optional[str] = None
-    registration_complete: Optional[bool] = None
     rrid: Optional[str] = None
     sample_collection_site: Optional[str] = None
     sanger_model_id: Optional[str] = None
+    screen_comments: Optional[str] = None
     sex: Optional[str] = None
     sj_compbio_id: Optional[str] = None
     source_detail: Optional[str] = None
@@ -1783,14 +1983,10 @@ class model_set_input(BaseModel):
     stated_race: Optional[str] = None
     stjude_derived: Optional[bool] = None
     stripped_cell_line_name: Optional[str] = None
-    sub_subtype: Optional[str] = None
-    subtype: Optional[str] = None
     tissue_origin: Optional[str] = None
     transformed_type: Optional[str] = None
     treatment_details: Optional[str] = None
     treatment_status: Optional[str] = None
-    tumor_regression_score: Optional[str] = None
-    vendor_link: Optional[str] = None
     wtsi_master_cell_id: Optional[int] = None
 
 
@@ -1823,6 +2019,7 @@ class model_stream_cursor_value_input(BaseModel):
     dbgap: Optional[str] = None
     depmap_model_type_id: Optional[str] = None
     derived_outside_us: Optional[bool] = None
+    do_not_screen: Optional[bool] = None
     engineered_model: Optional[str] = None
     engineered_model_details: Optional[str] = None
     first_publication_link: Optional[str] = None
@@ -1830,7 +2027,6 @@ class model_stream_cursor_value_input(BaseModel):
     growth_pattern: Optional[str] = None
     hcmi_id: Optional[str] = None
     inferred_ethnicity: Optional[str] = None
-    lineage: Optional[str] = None
     model_data_sharing: Optional[str] = None
     model_data_sharing_comments: Optional[str] = None
     model_derivation_material: Optional[str] = None
@@ -1840,37 +2036,29 @@ class model_stream_cursor_value_input(BaseModel):
     model_transfer_comments: Optional[str] = None
     model_transferred_to_stjude: Optional[str] = None
     model_type: Optional[str] = None
-    molecular_subtype: Optional[str] = None
-    ncit_code: Optional[str] = None
-    ncit_subtype: Optional[str] = None
     new_histological_subtype: Optional[str] = None
-    new_molecular_subtype: Optional[str] = None
     onboarded_doubling_time: Optional[str] = None
     onboarded_media: Optional[str] = None
     orspid: Optional[str] = None
-    part_of_prism: Optional[str] = None
     patient_id: Optional[str] = None
     patient_resistance: Optional[str] = None
-    patient_response_score: Optional[str] = None
-    patient_response_score_system: Optional[str] = None
     patient_subtype_features: Optional[str] = None
     patient_treatment_type: Optional[str] = None
     patient_tumor_grade: Optional[str] = None
     peddep_line: Optional[bool] = None
+    peddep_nominated: Optional[bool] = None
     peddep_subgroup: Optional[str] = None
     permission_to_release: Optional[bool] = None
     plate_coating: Optional[str] = None
-    primary_diagnosis: Optional[str] = None
     primary_disease: Optional[str] = None
     primary_or_metastasis: Optional[str] = None
     proposed_deliverable: Optional[str] = None
     proposed_release_date: Optional[Any] = None
     public_comments: Optional[str] = None
-    recurrent: Optional[str] = None
-    registration_complete: Optional[bool] = None
     rrid: Optional[str] = None
     sample_collection_site: Optional[str] = None
     sanger_model_id: Optional[str] = None
+    screen_comments: Optional[str] = None
     sex: Optional[str] = None
     sj_compbio_id: Optional[str] = None
     source_detail: Optional[str] = None
@@ -1880,14 +2068,10 @@ class model_stream_cursor_value_input(BaseModel):
     stated_race: Optional[str] = None
     stjude_derived: Optional[bool] = None
     stripped_cell_line_name: Optional[str] = None
-    sub_subtype: Optional[str] = None
-    subtype: Optional[str] = None
     tissue_origin: Optional[str] = None
     transformed_type: Optional[str] = None
     treatment_details: Optional[str] = None
     treatment_status: Optional[str] = None
-    tumor_regression_score: Optional[str] = None
-    vendor_link: Optional[str] = None
     wtsi_master_cell_id: Optional[int] = None
 
 
@@ -1895,6 +2079,52 @@ class model_updates(BaseModel):
     inc: Optional["model_inc_input"] = Field(alias="_inc", default=None)
     set: Optional["model_set_input"] = Field(alias="_set", default=None)
     where: "model_bool_exp"
+
+
+class omics_mapping_bool_exp(BaseModel):
+    and_: Optional[List["omics_mapping_bool_exp"]] = Field(alias="_and", default=None)
+    not_: Optional["omics_mapping_bool_exp"] = Field(alias="_not", default=None)
+    or_: Optional[List["omics_mapping_bool_exp"]] = Field(alias="_or", default=None)
+    datatype: Optional["String_comparison_exp"] = None
+    id: Optional["bigint_comparison_exp"] = None
+    model: Optional["model_bool_exp"] = None
+    model_condition: Optional["model_condition_bool_exp"] = None
+    model_condition_id: Optional["String_comparison_exp"] = None
+    model_id: Optional["String_comparison_exp"] = None
+    omics_profile: Optional["omics_profile_bool_exp"] = None
+    omics_profile_id: Optional["String_comparison_exp"] = None
+    omics_sequencing: Optional["omics_sequencing_bool_exp"] = None
+    omics_sequencing_id: Optional["String_comparison_exp"] = None
+    priority: Optional["bigint_comparison_exp"] = None
+
+
+class omics_mapping_order_by(BaseModel):
+    datatype: Optional[order_by] = None
+    id: Optional[order_by] = None
+    model: Optional["model_order_by"] = None
+    model_condition: Optional["model_condition_order_by"] = None
+    model_condition_id: Optional[order_by] = None
+    model_id: Optional[order_by] = None
+    omics_profile: Optional["omics_profile_order_by"] = None
+    omics_profile_id: Optional[order_by] = None
+    omics_sequencing: Optional["omics_sequencing_order_by"] = None
+    omics_sequencing_id: Optional[order_by] = None
+    priority: Optional[order_by] = None
+
+
+class omics_mapping_stream_cursor_input(BaseModel):
+    initial_value: "omics_mapping_stream_cursor_value_input"
+    ordering: Optional[cursor_ordering] = None
+
+
+class omics_mapping_stream_cursor_value_input(BaseModel):
+    datatype: Optional[str] = None
+    id: Optional[int] = None
+    model_condition_id: Optional[str] = None
+    model_id: Optional[str] = None
+    omics_profile_id: Optional[str] = None
+    omics_sequencing_id: Optional[str] = None
+    priority: Optional[int] = None
 
 
 class omics_profile_aggregate_bool_exp(BaseModel):
@@ -2470,7 +2700,6 @@ class omics_sequencing_bool_exp(BaseModel):
     expected_type: Optional["String_comparison_exp"] = None
     gp_alignment: Optional["String_comparison_exp"] = None
     issue: Optional["String_comparison_exp"] = None
-    low_quality: Optional["Boolean_comparison_exp"] = None
     month_sequencing_billed: Optional["Int_comparison_exp"] = None
     omics_profile: Optional["omics_profile_bool_exp"] = None
     pdo_id: Optional["String_comparison_exp"] = None
@@ -2505,7 +2734,6 @@ class omics_sequencing_insert_input(BaseModel):
     expected_type: Optional[str] = None
     gp_alignment: Optional[str] = None
     issue: Optional[str] = None
-    low_quality: Optional[bool] = None
     month_sequencing_billed: Optional[int] = None
     omics_profile: Optional["omics_profile_obj_rel_insert_input"] = None
     pdo_id: Optional[str] = None
@@ -2580,7 +2808,6 @@ class omics_sequencing_order_by(BaseModel):
     expected_type: Optional[order_by] = None
     gp_alignment: Optional[order_by] = None
     issue: Optional[order_by] = None
-    low_quality: Optional[order_by] = None
     month_sequencing_billed: Optional[order_by] = None
     omics_profile: Optional["omics_profile_order_by"] = None
     pdo_id: Optional[order_by] = None
@@ -2612,7 +2839,6 @@ class omics_sequencing_set_input(BaseModel):
     expected_type: Optional[str] = None
     gp_alignment: Optional[str] = None
     issue: Optional[str] = None
-    low_quality: Optional[bool] = None
     month_sequencing_billed: Optional[int] = None
     pdo_id: Optional[str] = None
     prioritized: Optional[bool] = None
@@ -2659,7 +2885,6 @@ class omics_sequencing_stream_cursor_value_input(BaseModel):
     expected_type: Optional[str] = None
     gp_alignment: Optional[str] = None
     issue: Optional[str] = None
-    low_quality: Optional[bool] = None
     month_sequencing_billed: Optional[int] = None
     pdo_id: Optional[str] = None
     prioritized: Optional[bool] = None
@@ -3419,6 +3644,10 @@ class sequencing_alignment_bool_exp(BaseModel):
         alias="crc32c_hash", default=None
     )
     created_at: Optional["timestamptz_comparison_exp"] = None
+    genomic_fingerprints: Optional["genomic_fingerprint_bool_exp"] = None
+    genomic_fingerprints_aggregate: Optional[
+        "genomic_fingerprint_aggregate_bool_exp"
+    ] = None
     id: Optional["bigint_comparison_exp"] = None
     index_url: Optional["String_comparison_exp"] = None
     omics_sequencing: Optional["omics_sequencing_bool_exp"] = None
@@ -3443,6 +3672,7 @@ class sequencing_alignment_inc_input(BaseModel):
 class sequencing_alignment_insert_input(BaseModel):
     crc_32_c_hash: Optional[str] = Field(alias="crc32c_hash", default=None)
     created_at: Optional[Any] = None
+    genomic_fingerprints: Optional["genomic_fingerprint_arr_rel_insert_input"] = None
     id: Optional[int] = None
     index_url: Optional[str] = None
     omics_sequencing: Optional["omics_sequencing_obj_rel_insert_input"] = None
@@ -3498,6 +3728,9 @@ class sequencing_alignment_on_conflict(BaseModel):
 class sequencing_alignment_order_by(BaseModel):
     crc_32_c_hash: Optional[order_by] = Field(alias="crc32c_hash", default=None)
     created_at: Optional[order_by] = None
+    genomic_fingerprints_aggregate: Optional[
+        "genomic_fingerprint_aggregate_order_by"
+    ] = None
     id: Optional[order_by] = None
     index_url: Optional[order_by] = None
     omics_sequencing: Optional["omics_sequencing_order_by"] = None

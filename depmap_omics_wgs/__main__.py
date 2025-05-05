@@ -9,11 +9,7 @@ import tomllib
 import typer
 from nebelung.terra_workspace import TerraWorkspace
 
-from depmap_omics_wgs.data import (
-    do_refresh_legacy_terra_samples,
-    do_refresh_terra_samples,
-    put_task_results,
-)
+import depmap_omics_wgs.data as data
 from depmap_omics_wgs.types import GumboClient
 from depmap_omics_wgs.utils import (
     get_hasura_creds,
@@ -99,7 +95,7 @@ def update_workflow(
 
 @app.command()
 def refresh_terra_samples(ctx: typer.Context) -> None:
-    do_refresh_terra_samples(
+    data.refresh_terra_samples(
         terra_workspace=ctx.obj["terra_workspace"],
         gumbo_client=ctx.obj["get_gumbo_client"](),
         ref_urls=config["ref"],
@@ -131,7 +127,7 @@ def refresh_legacy_terra_samples(
     ctx: typer.Context,
     sample_set_id: Annotated[str, typer.Option()],
 ) -> None:
-    do_refresh_legacy_terra_samples(
+    data.refresh_legacy_terra_samples(
         terra_workspace=ctx.obj["terra_workspace"],
         legacy_terra_workspace=TerraWorkspace(
             workspace_namespace=config["terra"]["legacy_workspace_namespace"],
@@ -143,8 +139,18 @@ def refresh_legacy_terra_samples(
 
 
 @app.command()
+def onboard_aligned_bams(ctx: typer.Context) -> None:
+    data.onboard_aligned_bams(
+        terra_workspace=ctx.obj["terra_workspace"],
+        gumbo_client=ctx.obj["get_gumbo_client"](),
+        gcp_project_id=config["gcp_project_id"],
+        dry_run=config["dry_run"],
+    )
+
+
+@app.command()
 def persist_outputs_in_gumbo(ctx: typer.Context) -> None:
-    put_task_results(
+    data.put_task_results(
         gumbo_client=ctx.obj["get_gumbo_client"](),
         terra_workspace=ctx.obj["terra_workspace"],
         gcp_project_id=config["gcp_project_id"],

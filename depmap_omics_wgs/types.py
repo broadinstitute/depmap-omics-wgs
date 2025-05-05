@@ -29,6 +29,7 @@ class GumboWgsSequencing(CoercedDataFrame):
     reference_genome: Series[pd.StringDtype]
     url: Series[pd.StringDtype] = pa.Field(unique=True)
     index_url: Series[pd.StringDtype] = pa.Field(unique=True)
+    size: Series[pd.Int64Dtype] = pa.Field(unique=True)
 
 
 class TerraSample(CoercedDataFrame):
@@ -78,8 +79,37 @@ class GumboTaskResult(CoercedDataFrame):
 class GcsObject(CoercedDataFrame):
     url: Series[pd.StringDtype]
     size: Series[pd.Int64Dtype]
-    crc32c_hash: Series[pd.StringDtype]
-    created_at: Series[pd.Timestamp]
+    crc32c: Series[pd.StringDtype]
+    gcs_obj_updated_at: Series[pd.Timestamp]
+
+
+class CopiedSampleFiles(CoercedDataFrame):
+    sample_id: Series[pd.StringDtype]
+    url_kind: Series[pd.StringDtype]
+    new_url: Series[pd.StringDtype]
+    url: Series[pd.StringDtype]
+    copied: Series[pd.BooleanDtype]
+
+
+class AlignedSamples(CoercedDataFrame):
+    sample_id: Series[pd.StringDtype] = pa.Field(unique=True)
+    analysis_ready_bam: Series[pd.StringDtype] = pa.Field(unique=True)
+    analysis_ready_bai: Series[pd.StringDtype] = pa.Field(unique=True)
+
+
+class AlignedSamplesWithObjectMetadata(AlignedSamples):
+    crc32c: Series[pd.StringDtype] = pa.Field(unique=True)
+    size: Series[pd.Int64Dtype] = pa.Field(unique=True)
+
+
+class NewSequencingAlignments(CoercedDataFrame):
+    omics_sequencing_id: Series[pd.StringDtype] = pa.Field(unique=True)
+    url: Series[pd.StringDtype] = pa.Field(unique=True)
+    index_url: Series[pd.StringDtype] = pa.Field(unique=True)
+    sequencing_alignment_source: Series[pd.StringDtype]
+    reference_genome: Series[pd.StringDtype]
+    crc32c_hash: Series[pd.StringDtype] = pa.Field(unique=True)
+    size: Series[pd.Int64Dtype] = pa.Field(unique=True)
 
 
 PydanticBaseModel = TypeVar("PydanticBaseModel", bound=BaseModel)

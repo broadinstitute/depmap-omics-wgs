@@ -1,18 +1,24 @@
 import datetime
 import json
 import logging
+from functools import partial
 
 import pandas as pd
 import requests
 from firecloud import api as firecloud_api
 from nebelung.terra_workspace import TerraWorkspace
 from nebelung.utils import call_firecloud_api, type_data_frame
+from pd_flatten import pd_flatten
 
+from depmap_omics_wgs.gcs import copy_to_cclebams, get_objects_metadata
 from depmap_omics_wgs.types import (
+    AlignedSamplesWithObjectMetadata,
+    CopiedSampleFiles,
     GumboClient,
     GumboTaskEntity,
     GumboTaskResult,
     GumboWgsSequencing,
+    NewSequencingAlignments,
     TerraSample,
     TypedDataFrame,
 )
@@ -21,10 +27,14 @@ from depmap_omics_wgs.utils import (
     get_gcs_object_metadata,
     model_to_df,
 )
-from gumbo_gql_client import task_entity_insert_input, task_result_insert_input
+from gumbo_gql_client import (
+    sequencing_alignment_insert_input,
+    task_entity_insert_input,
+    task_result_insert_input,
+)
 
 
-def do_refresh_terra_samples(
+def refresh_terra_samples(
     terra_workspace: TerraWorkspace,
     gumbo_client: GumboClient,
     ref_urls: dict[str, dict[str, str]],
@@ -39,7 +49,7 @@ def do_refresh_terra_samples(
 
     # get long data frame of both GP-delivered and CDS (analysis ready) CRAM/BAMs
     wgs_sequencings = model_to_df(
-        gumbo_client.wgs_sequencing_alignments(), GumboWgsSequencing
+        gumbo_client.wgs_sequencing_alignments(timeout=30.0), GumboWgsSequencing
     )
 
     # make wide, separating delivery and analysis-ready CRAM/BAMs
@@ -123,7 +133,7 @@ def set_ref_urls(
     return samples.merge(ref_df, how="left", on="delivery_ref")
 
 
-def do_refresh_legacy_terra_samples(
+def refresh_legacy_terra_samples(
     terra_workspace: TerraWorkspace,
     legacy_terra_workspace: TerraWorkspace,
     sample_set_id: str,
@@ -220,7 +230,7 @@ def do_refresh_legacy_terra_samples(
         legacy_samples = legacy_terra_workspace.get_entities("sample")
 
     # get list of unprocessesd sample/sequencing IDs and create/update a sample set
-    res = gumbo_client.unprocessed_sequencings()
+    res = gumbo_client.unprocessed_sequencings(timeout=30.0)
 
     unprocessed_sample_ids = [
         x.omics_sequencing_id
@@ -366,6 +376,155 @@ def pick_best_task_results(
     return best_task_results
 
 
+def onboard_aligned_bams(
+    gumbo_client: GumboClient,
+    terra_workspace: TerraWorkspace,
+    gcp_project_id: str,
+    dry_run: bool,
+) -> None:
+    """
+    Copy BAM/BAI files to cclebams and onboard sequencing alignment records to Gumbo.
+
+    :param terra_workspace: a TerraWorkspace instance
+    :param gumbo_client: an instance of the Gumbo GraphQL client
+    :param gcp_project_id: the ID of a GCP project to use for billing
+    :param dry_run: whether to skip updates to external data stores
+    """
+
+    # get the alignment files from Terra
+    samples = terra_workspace.get_entities("sample")
+    samples = samples.loc[
+        :, ["sample_id", "analysis_ready_bam", "analysis_ready_bai"]
+    ].dropna()
+
+    # get sequencing alignment records for WGS omics_sequencings from Gumbo
+    existing_alignments = model_to_df(
+        gumbo_client.wgs_sequencing_alignments(timeout=30.0),
+        GumboWgsSequencing,
+        mutator=partial(pd_flatten, name_columns_with_parent=False),
+    )
+
+    # check which sequencings have delivery BAMs but not analysis-ready/aligned BAMs
+    seq_ids_no_cds = set(
+        existing_alignments.loc[
+            existing_alignments["sequencing_alignment_source"].eq("GP"),
+            "omics_sequencing_id",
+        ]
+    ).difference(
+        existing_alignments.loc[
+            existing_alignments["sequencing_alignment_source"].eq("CDS"),
+            "omics_sequencing_id",
+        ]
+    )
+
+    # subset to newly-aligned sequencings that need to be onboarded
+    samples = samples.loc[samples["sample_id"].isin(list(seq_ids_no_cds))]
+
+    # get GCS blob metadata for the BAMs
+    objects_metadata = get_objects_metadata(samples["analysis_ready_bam"])
+
+    samples = type_data_frame(
+        samples.merge(
+            objects_metadata, how="left", left_on="analysis_ready_bam", right_on="url"
+        ).drop(columns=["url", "gcs_obj_updated_at"]),
+        AlignedSamplesWithObjectMetadata,
+    )
+
+    # confirm again using file size that these BAMs don't already exist as Gumbo records
+    assert ~bool(samples["size"].isin(existing_alignments["size"]).any())
+
+    # copy BAMs and BAIs to our bucket
+    sample_files = copy_to_cclebams(
+        samples,
+        gcp_project_id=gcp_project_id,
+        gcs_destination_bucket="cclebams",
+        gcs_destination_prefix="wgs_hg38",
+        dry_run=dry_run,
+    )
+
+    samples = update_sample_file_urls(samples, sample_files)
+
+    # create sequencing_alignment records in Gumbo
+    persist_sequencing_alignments(gumbo_client, samples, dry_run)
+
+
+def update_sample_file_urls(
+    samples: TypedDataFrame[AlignedSamplesWithObjectMetadata],
+    sample_files: TypedDataFrame[CopiedSampleFiles],
+) -> TypedDataFrame[AlignedSamplesWithObjectMetadata]:
+    """
+    Replace BAM URLs with new ones used in `copy_to_depmap_omics_bucket`.
+
+    :param samples: the data frame of samples
+    :param sample_files: a data frame of files we attempted to copy
+    :return: the samples data frame with issue column filled out for rows with files we
+    couldn't copy
+    """
+
+    logging.info("Updating GCS file URLs...")
+
+    samples_updated = samples.copy()
+
+    for c in ["analysis_ready_bai", "analysis_ready_bam"]:
+        sample_file_urls = sample_files.loc[sample_files["copied"], ["url", "new_url"]]
+        samples_updated = samples_updated.merge(
+            sample_file_urls, how="left", left_on=c, right_on="url"
+        )
+        samples_updated[c] = samples_updated["new_url"]
+        samples_updated = samples_updated.drop(columns=["url", "new_url"])
+
+    return type_data_frame(samples_updated, AlignedSamplesWithObjectMetadata)
+
+
+def persist_sequencing_alignments(
+    gumbo_client: GumboClient,
+    samples: TypedDataFrame[AlignedSamplesWithObjectMetadata],
+    dry_run: bool,
+) -> None:
+    """
+    Insert many sequencing alignments to Gumbo.
+
+    :param gumbo_client: an instance of the Gumbo GraphQL client
+    :param samples: a data frame of prepared sequencing alignments to insert
+    :param dry_run: whether to skip updates to external data stores
+    """
+
+    new_sequencing_alignments = samples.rename(
+        columns={
+            "sample_id": "omics_sequencing_id",
+            "crc32c": "crc32c_hash",
+            "analysis_ready_bam": "url",
+            "analysis_ready_bai": "index_url",
+        }
+    )
+
+    new_sequencing_alignments["reference_genome"] = "hg38"
+    new_sequencing_alignments["sequencing_alignment_source"] = "CDS"
+
+    new_sequencing_alignments = type_data_frame(
+        new_sequencing_alignments, NewSequencingAlignments
+    )
+
+    sequencing_alignment_inserts = [
+        sequencing_alignment_insert_input.model_validate(x)
+        for x in new_sequencing_alignments.to_dict(orient="records")
+    ]
+
+    if dry_run:
+        logging.info(
+            f"(skipping) Inserting {len(sequencing_alignment_inserts)} "
+            "sequencing alignments"
+        )
+        return
+
+    res = gumbo_client.insert_sequencing_alignments(
+        gumbo_client.username, objects=sequencing_alignment_inserts, timeout=60.0
+    )
+
+    affected_rows = res.insert_sequencing_alignment.affected_rows  # pyright: ignore
+    logging.info(f"Inserted {affected_rows} sequencing alignments")
+
+
 def put_task_results(
     gumbo_client: GumboClient,
     terra_workspace: TerraWorkspace,
@@ -385,7 +544,9 @@ def put_task_results(
     """
 
     # get all current omics_sequencing IDs
-    valid_seq_ids = set(x.sequencing_id for x in gumbo_client.sequencing_ids().records)
+    valid_seq_ids = set(
+        x.sequencing_id for x in gumbo_client.sequencing_ids(timeout=30.0).records
+    )
 
     # get the outputs from the workspace's completed jobs
     all_outputs = terra_workspace.collect_workflow_outputs(since)
@@ -411,7 +572,7 @@ def put_task_results(
 
     logging.info("Getting existing task entity records for sequencings")
     task_entities = model_to_df(
-        gumbo_client.sequencing_task_entities(),
+        gumbo_client.sequencing_task_entities(timeout=30.0),
         GumboTaskEntity,
         remove_unknown_cols=True,
     )
@@ -429,11 +590,12 @@ def put_task_results(
             objects=[
                 task_entity_insert_input(sequencing_id=x) for x in missing_seq_ids
             ],
+            timeout=60.0,
         )
 
         # get the records again
         task_entities = model_to_df(
-            gumbo_client.sequencing_task_entities(), GumboTaskEntity
+            gumbo_client.sequencing_task_entities(timeout=30.0), GumboTaskEntity
         )
 
     # create a mapping from sequencing to task entity IDs
@@ -494,6 +656,7 @@ def put_task_results(
         terra_workspace_namespace=str(outputs[0].terra_workspace_namespace),
         terra_workspace_name=str(outputs[0].terra_workspace_name),
         task_results=outputs,
+        timeout=60.0,
     )
 
     sync_id = res.insert_terra_sync.returning[0].id  # pyright: ignore

@@ -3,10 +3,12 @@ from typing import Any, Dict, List
 from .base_client import BaseClient
 from .get_task_results import GetTaskResults
 from .input_types import (
+    sequencing_alignment_insert_input,
     task_entity_insert_input,
     task_result_bool_exp,
     task_result_insert_input,
 )
+from .insert_sequencing_alignments import InsertSequencingAlignments
 from .insert_task_entities import InsertTaskEntities
 from .insert_task_results import InsertTaskResults
 from .insert_terra_sync import InsertTerraSync
@@ -72,6 +74,7 @@ class GumboClient(BaseClient):
                 omics_sequencing_id
                 sequencing_alignment_source
                 url
+                size
               }
             }
             """
@@ -85,6 +88,34 @@ class GumboClient(BaseClient):
         )
         data = self.get_data(response)
         return WgsSequencingAlignments.model_validate(data)
+
+    def insert_sequencing_alignments(
+        self,
+        username: str,
+        objects: List[sequencing_alignment_insert_input],
+        **kwargs: Any
+    ) -> InsertSequencingAlignments:
+        query = gql(
+            """
+            mutation InsertSequencingAlignments($_username: String!, $objects: [sequencing_alignment_insert_input!]!) {
+              set_username(args: {_username: $_username}) {
+                username
+              }
+              insert_sequencing_alignment(objects: $objects) {
+                affected_rows
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {"_username": username, "objects": objects}
+        response = self.execute(
+            query=query,
+            operation_name="InsertSequencingAlignments",
+            variables=variables,
+            **kwargs
+        )
+        data = self.get_data(response)
+        return InsertSequencingAlignments.model_validate(data)
 
     def sequencing_task_entities(self, **kwargs: Any) -> SequencingTaskEntities:
         query = gql(
