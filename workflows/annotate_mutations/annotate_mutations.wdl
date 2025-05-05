@@ -69,19 +69,6 @@ workflow annotate_mutations {
         File? alpha_missense_index
         String? vep_chrom_cache_url_prefix
         String? vep_chrom_cache_url_suffix
-
-        # Funcotator annotation
-        Boolean annot_funcotator = true
-        String? reference_version = "hg38"
-        Boolean? use_gnomad = true
-        Boolean? filter_funcotations = false
-        File? interval_list
-        String? transcript_selection_mode
-        Array[String]? transcript_selection_list
-        Array[String]? funcotator_annotation_defaults
-        Array[String]? funcotator_annotation_overrides
-        String? funcotator_data_sources_url
-        String? funcotator_extra_args
     }
 
     if (annot_seg_dups || annot_repeat_masker || annot_hess_drivers || annot_oncokb ||
@@ -174,35 +161,11 @@ workflow annotate_mutations {
         }
     }
 
-    if (annot_funcotator) {
-        call funcotator {
-            input:
-                ref_fasta = ref_fasta,
-                ref_fasta_index = ref_fasta_index,
-                ref_dict = ref_dict,
-                vcf = input_vcf,
-                reference_version = select_first([reference_version]),
-                output_file_base_name = sample_id + "_funco_annot",
-                output_format = "VCF",
-                compress = true,
-                use_gnomad = select_first([use_gnomad]),
-                filter_funcotations = select_first([filter_funcotations]),
-                funcotator_data_sources_url = select_first([funcotator_data_sources_url]),
-                interval_list = select_first([interval_list]),
-                transcript_selection_mode = transcript_selection_mode,
-                transcript_selection_list = transcript_selection_list,
-                funcotator_annotation_defaults = funcotator_annotation_defaults,
-                funcotator_annotation_overrides = funcotator_annotation_overrides,
-                extra_args = funcotator_extra_args
-        }
-    }
-
     output {
         File? mut_annot_bcftools_vcf = annot_with_bcftools.vcf_annot
         File? mut_annot_snpeff_snpsift_vcf = snpeff_snpsift.vcf_annot
         File? mut_annot_open_cravat_vcf = open_cravat.vcf_annot
         File? mut_annot_vep_vcf = ensembl_vep_gathered.output_vcf
-        File? mut_annot_funcotator_vcf = funcotator.vcf_annot
     }
 }
 
@@ -772,8 +735,8 @@ task ensembl_vep {
             > "pLI.tsv"
 
         echo "Populating VEP cache data"
-        mkdir -p "vep_cache"
-        tar -C "vep_cache" -xzf "~{vep_cache}"
+        mkdir -p "vep_cache/homo_sapiens"
+        tar -C "vep_cache/homo_sapiens" -xzf "~{vep_cache}"
 
         echo "Running VEP"
         /opt/vep/src/ensembl-vep/vep \
@@ -790,7 +753,7 @@ task ensembl_vep {
             --offline \
             --output_file="~{output_file_base_name}.vcf" \
             --pick \
-            --pick-order "~{vep_pick_order}" \
+            --pick_order="~{vep_pick_order}" \
             --plugin="AlphaMissense,file=~{alpha_missense}" \
             --plugin="LoFtool,~{loftool_scores}" \
             --plugin="pLI,pLI.tsv" \
@@ -816,165 +779,5 @@ task ensembl_vep {
 
     meta {
         allowNestedInputs: true
-    }
-}
-
-# Adapted from https://github.com/broadinstitute/gatk/blob/master/scripts/funcotator_wdl/funcotator.wdl
-#
-# Modifications:
-#   - Index the VCF file first
-#   - Localize pre-extracted Funcotator datasource from GCS
-#   - Use SSD instead of HDD by default
-#
-# Use this file as a base and manually implement changes in the upstream code in order
-# to retain these modifications.
-task funcotator {
-    input {
-        File ref_fasta
-        File ref_fasta_index
-        File ref_dict
-        String funcotator_data_sources_url
-
-        File vcf
-
-        String reference_version
-
-        String output_file_base_name
-        String output_format
-
-        Boolean compress
-        Boolean use_gnomad
-
-        String? control_id
-        String? case_id
-        String? sequencing_center
-        String? sequence_source
-        String? transcript_selection_mode
-        Array[String]? transcript_selection_list
-        Array[String]? funcotator_annotation_defaults
-        Array[String]? funcotator_annotation_overrides
-        Array[String]? funcotator_excluded_fields
-        Boolean? filter_funcotations
-        File? interval_list
-
-        String? extra_args
-
-        String docker_image
-        String docker_image_hash_or_tag
-        Int mem_gb = 3
-        Int cpu = 1
-        Int preemptible = 3
-        Int max_retries = 0
-        Int additional_disk_gb = 0
-    }
-
-    # Mem is in units of GB but our command and memory runtime values are in MB
-    Int machine_mem = mem_gb * 1000
-    Int command_mem = machine_mem - 1000
-
-    # Calculate disk size:
-    Float ref_size_gb = size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + size(ref_dict, "GiB")
-    Float vcf_size_gb = size(vcf, "GiB")
-    Float datasources_size_gb = 25
-    Int disk_space = ceil(ref_size_gb + datasources_size_gb + vcf_size_gb) + 20
-
-    # Process input args:
-    String output_maf = output_file_base_name + ".maf"
-    String output_maf_index = output_maf + ".idx"
-    String output_vcf = output_file_base_name + if compress then ".vcf.gz" else ".vcf"
-    String output_vcf_index = output_vcf +  if compress then ".tbi" else ".idx"
-    String output_file = if output_format == "MAF" then output_maf else output_vcf
-    String output_file_index = if output_format == "MAF" then output_maf_index else output_vcf_index
-    String transcript_selection_arg = if defined(transcript_selection_list) then " --transcript-list " else ""
-    String annotation_def_arg = if defined(funcotator_annotation_defaults) then " --annotation-default " else ""
-    String annotation_over_arg = if defined(funcotator_annotation_overrides) then " --annotation-override " else ""
-    String filter_funcotations_args = if defined(filter_funcotations) && (filter_funcotations) then " --remove-filtered-variants " else ""
-    String excluded_fields_args = if defined(funcotator_excluded_fields) then " --exclude-field " else ""
-    String interval_list_arg = if defined(interval_list) then " -L " else ""
-    String extra_args_arg = select_first([extra_args, ""])
-
-    parameter_meta {
-        ref_fasta: { localization_optional: true }
-        ref_fasta_index: { localization_optional: true }
-        ref_dict: { localization_optional: true }
-    }
-
-    command <<<
-        set -e
-        export GATK_LOCAL_JAR="/root/gatk.jar"
-        export GCS_REQUESTER_PAYS_PROJECT="$(gcloud config get-value project -q)"
-
-        # Hack to validate our WDL inputs:
-        #
-        # NOTE: This happens here so that we don't waste time copying down the data sources if there's an error.
-        if [[ "~{output_format}" != "MAF" ]] && [[ "~{output_format}" != "VCF" ]] ; then
-            echo "ERROR: Output format must be MAF or VCF."
-        fi
-
-        echo "Indexing VCF"
-        java -Xmx~{command_mem}m -jar ${GATK_LOCAL_JAR} IndexFeatureFile --input "~{vcf}"
-
-        echo "Downloading Funcotator data sources"
-        DATA_SOURCES_FOLDER="./funcotator_data_sources"
-        gcloud storage rsync \
-            --recursive \
-            --no-user-output-enabled \
-            ~{funcotator_data_sources_url} \
-            $DATA_SOURCES_FOLDER
-
-        if ~{use_gnomad} ; then
-            echo "Enabling gnomAD..."
-            for potential_gnomad_gz in gnomAD_exome.tar.gz gnomAD_genome.tar.gz ; do
-                if [[ -f $DATA_SOURCES_FOLDER/$potential_gnomad_gz ]] ; then
-                    cd $DATA_SOURCES_FOLDER
-                    tar -zvxf $potential_gnomad_gz
-                    cd -
-                else
-                    echo "ERROR: Cannot find gnomAD folder: $potential_gnomad_gz" 1>&2
-                    false
-                fi
-            done
-        fi
-
-        # Run Funcotator:
-        java -Xmx~{command_mem}m -jar ${GATK_LOCAL_JAR} Funcotator \
-            --data-sources-path $DATA_SOURCES_FOLDER \
-            --ref-version ~{reference_version} \
-            --output-file-format ~{output_format} \
-            -R ~{ref_fasta} \
-            -V ~{vcf} \
-            -O ~{output_file} \
-            --verbosity WARNING \
-            ~{interval_list_arg} ~{default="" interval_list} \
-            --annotation-default normal_barcode:~{default="Unknown" control_id} \
-            --annotation-default tumor_barcode:~{default="Unknown" case_id} \
-            --annotation-default Center:~{default="Unknown" sequencing_center} \
-            --annotation-default source:~{default="Unknown" sequence_source} \
-            ~{"--transcript-selection-mode " + transcript_selection_mode} \
-            ~{transcript_selection_arg}~{default="" sep=" --transcript-list " transcript_selection_list} \
-            ~{annotation_def_arg}~{default="" sep=" --annotation-default " funcotator_annotation_defaults} \
-            ~{annotation_over_arg}~{default="" sep=" --annotation-override " funcotator_annotation_overrides} \
-            ~{excluded_fields_args}~{default="" sep=" --exclude-field " funcotator_excluded_fields} \
-            ~{filter_funcotations_args} \
-            ~{extra_args_arg} \
-            --gcs-project-for-requester-pays "${GCS_REQUESTER_PAYS_PROJECT}"
-
-        # Make sure we have a placeholder index for MAF files so this workflow doesn't fail:
-        if [[ "~{output_format}" == "MAF" ]] ; then
-            touch ~{output_maf_index}
-        fi
-    >>>
-
-    runtime {
-        docker: "~{docker_image}~{docker_image_hash_or_tag}"
-        memory: "~{mem_gb} GB"
-        disks: "local-disk ~{disk_space} SSD"
-        preemptible: preemptible
-        maxRetries: max_retries
-        cpu: cpu
-    }
-
-    output {
-        File vcf_annot = "~{output_file}"
     }
 }
