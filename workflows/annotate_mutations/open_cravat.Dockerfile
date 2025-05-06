@@ -21,7 +21,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 COPY --from=htslib_builder /usr/local/bin/bgzip /usr/local/bin/bgzip
 
-RUN pip install open-cravat==2.7.3
+RUN pip install open-cravat==2.12.0
 
 # install gcloud CLI
 RUN apt-get update && \

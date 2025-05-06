@@ -42,7 +42,7 @@
     "annotate_mutations.oncogenes_tsg_index": "\"gs://ccleparams/wgs/mutation/annotation/oncokb/onco_tsg_2025-04-29.bed.gz.tbi\"",
     "annotate_mutations.open_cravat.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/open_cravat\"",
     "annotate_mutations.open_cravat.docker_image_hash_or_tag": "\":production\"",
-    "annotate_mutations.open_cravat_data_sources_url": "\"gs://ccleparams/wgs/mutation/annotation/open-cravat/2025-04-29\"",
+    "annotate_mutations.open_cravat_data_sources_url": "\"gs://ccleparams/wgs/mutation/annotation/open-cravat/2025-05-06\"",
     "annotate_mutations.ref_dict": "this.ref_dict",
     "annotate_mutations.ref_fasta": "this.ref_fasta",
     "annotate_mutations.ref_fasta_bgz": "\"gs://ccleparams/references/Homo_sapiens.GRCh38.dna.primary_assembly.fa.bgz\"",
