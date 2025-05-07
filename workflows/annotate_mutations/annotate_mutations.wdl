@@ -669,12 +669,15 @@ task open_cravat {
             "out/~{basename(vcf)}.vcf" > "~{output_file_base_name}_to_fix.vcf"
         rm "out/~{basename(vcf)}.vcf"
 
-        # URL encode space characters inserted by pharmgkb (violates VCF 4.2 spec)
+        # URL-encode space characters inserted by pharmgkb (violates VCF 4.2 spec)
         awk 'BEGIN {FS="\t"} NF>=5 {gsub(/ /, "%20")} 1' \
-            "~{output_file_base_name}_to_fix.vcf" > "~{output_file_base_name}.vcf"
+            "~{output_file_base_name}_to_fix.vcf" > "~{output_file_base_name}_to_norm.vcf"
         rm "~{output_file_base_name}_to_fix.vcf"
 
-        bgzip "~{output_file_base_name}.vcf" --threads=~{cpu}
+        bcftools norm \
+            --rm-dup both \
+            "~{output_file_base_name}_to_norm.vcf" \
+            -o "~{output_file_base_name}.vcf.gz"
     >>>
 
     output {
