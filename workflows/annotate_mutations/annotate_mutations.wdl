@@ -178,7 +178,7 @@ task split_vcf_by_chrom {
         String docker_image_hash_or_tag
         Int mem_gb = 2
         Int cpu = 1
-        Int preemptible = 3
+        Int preemptible = 2
         Int max_retries = 0
         Int additional_disk_gb = 0
     }
@@ -230,7 +230,7 @@ task gather_vcfs {
         String docker_image_hash_or_tag
         Int mem_gb = 16
         Int cpu = 2
-        Int preemptible = 3
+        Int preemptible = 2
         Int max_retries = 0
         Int additional_disk_gb = 0
     }
@@ -311,7 +311,7 @@ task annot_with_bcftools {
         String docker_image_hash_or_tag
         Int mem_gb = 4
         Int cpu = 1
-        Int preemptible = 3
+        Int preemptible = 2
         Int max_retries = 0
         Int additional_disk_gb = 0
     }
@@ -552,7 +552,7 @@ task snpeff_snpsift {
         String docker_image_hash_or_tag
         Int mem_gb = 16
         Int cpu = 1
-        Int preemptible = 3
+        Int preemptible = 1
         Int max_retries = 0
         Int additional_disk_gb = 0
     }
@@ -632,7 +632,7 @@ task open_cravat {
         String docker_image_hash_or_tag
         Int mem_gb = 16
         Int cpu = 4
-        Int preemptible = 3
+        Int preemptible = 1
         Int max_retries = 0
         Int additional_disk_gb = 20
     }
@@ -715,7 +715,7 @@ task ensembl_vep {
         String docker_image_hash_or_tag
         Int mem_gb = 8
         Int cpu = 2
-        Int preemptible = 3
+        Int preemptible = 2
         Int max_retries = 0
         Int additional_disk_gb = 0
     }
