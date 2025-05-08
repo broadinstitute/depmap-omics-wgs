@@ -663,7 +663,7 @@ task open_cravat {
             -d out \
             -a ~{sep=" " annotators_to_use}
 
-        # fix other headers that are difficult for vcf2maf to parse
+        # fix other headers that are difficult for tools like vcf2maf to parse
         sed -e '/^##INFO=<ID=OC_provean__prediction/s/"D(amaging)"/D(amaging)/' \
             -e '/^##INFO=<ID=OC_provean__prediction/s/"N(eutral)"/N(eutral)/' \
             "out/~{basename(vcf)}.vcf" > "~{output_file_base_name}_to_fix.vcf"

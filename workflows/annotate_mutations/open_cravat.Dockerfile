@@ -1,47 +1,10 @@
-FROM bitnami/minideb:bullseye AS python_builder
-
-ENV DEBIAN_FRONTEND="noninteractive" \
-    PYTHON_VERSION="3.12.3" \
-    PYTHON_UNBUFFERED=1
-
-RUN install_packages \
-    curl \
-    ca-certificates \
-    wget \
-    tar \
-    gcc \
-    make \
-    libssl-dev \
-    zlib1g-dev \
-    libbz2-dev \
-    libreadline-dev \
-    libsqlite3-dev \
-    libffi-dev \
-    liblzma-dev
-
-# download and install Python 3.12.3 (prebuilt source tarball from python.org)
-RUN curl -fsSL https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz -o python.tgz && \
-    tar -xzf python.tgz && \
-    cd Python-${PYTHON_VERSION} && \
-    ./configure --prefix=/python --enable-optimizations --with-ensurepip=install && \
-    make -j"$(nproc)" && make install && \
-    cd / && rm -rf Python-${PYTHON_VERSION} python.tgz
-
-# install open-cravat into a virtual environment
-RUN /python/bin/python3 -m venv /venv && \
-    /venv/bin/pip install --upgrade pip && \
-    /venv/bin/pip install open-cravat==2.12.0
-
-
 FROM bitnami/minideb:bullseye
 
 ENV DEBIAN_FRONTEND="noninteractive" \
-    PATH="/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
+    PYTHON_VERSION="3.12.3" \
+    PATH="/venv/bin:$PATH" \
     BCFTOOLS_VERSION="1.20"
-
-COPY --from=python_builder /python /python
-COPY --from=python_builder /venv /venv
 
 RUN apt-get -y dist-upgrade \
     && apt-get -y update \
@@ -62,17 +25,35 @@ RUN apt-get -y dist-upgrade \
         lbzip2 \
         libbz2-dev \
         libcurl4-gnutls-dev \
+        libffi-dev \
         libgsl-dev \
         liblzma-dev \
         libperl-dev \
+        libreadline-dev \
+        libsqlite3-dev \
         libssl-dev \
         libz-dev \
         make \
         perl \
         pkg-config \
+        tar \
+        zlib1g-dev \
     && apt-get -y autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# download and install Python 3.12.3 and open-cravat
+RUN curl -O https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz \
+    && tar -xzf Python-${PYTHON_VERSION}.tgz \
+    && cd Python-${PYTHON_VERSION} \
+    && ./configure --enable-optimizations \
+    && make -j"$(nproc)" \
+    && make altinstall \
+    && cd .. \
+    && rm -rf Python-${PYTHON_VERSION} Python-${PYTHON_VERSION}.tgz \
+    && python3.12 -m venv /venv \
+    && /venv/bin/pip install --upgrade pip setuptools wheel \
+    && /venv/bin/pip install open-cravat==2.12.0
 
 # install bcftools
 RUN curl -SL \
