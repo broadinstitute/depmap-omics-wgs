@@ -48,7 +48,7 @@ task index_vcf {
         String docker_image_hash_or_tag
         Int mem_gb = 4
         Int cpu = 1
-        Int preemptible = 3
+        Int preemptible = 2
         Int max_retries = 0
         Int additional_disk_gb = 0
     }
@@ -94,8 +94,8 @@ task merge_info {
         String docker_image
         String docker_image_hash_or_tag
         Int mem_gb = 16
-        Int cpu = 5
-        Int preemptible = 3
+        Int cpu = 4
+        Int preemptible = 1
         Int max_retries = 2
         Int additional_disk_gb = 0
     }
@@ -135,14 +135,14 @@ task vcf_to_duckdb {
 
         String docker_image
         String docker_image_hash_or_tag
-        Int mem_gb = 24
-        Int cpu = 8
-        Int preemptible = 3
+        Int mem_gb = 32
+        Int cpu = 4
+        Int preemptible = 1
         Int max_retries = 2
         Int additional_disk_gb = 0
     }
 
-    Int disk_space = ceil(30 * size(vcf, "GiB")) + 10 + additional_disk_gb
+    Int disk_space = ceil(50 * size(vcf, "GiB")) + 20 + additional_disk_gb
 
     command <<<
         set -euo pipefail
