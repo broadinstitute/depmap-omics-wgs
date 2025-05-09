@@ -14,8 +14,8 @@ pyarrow = "^18.1.0"
 typer = "^0.15.1"
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.8.5"
-ruff-lsp = "^0.0.59"
+ruff = "^0.11.8"
+pyright = "^1.1.400"
 pytest = "^8.3.4"
 
 [tool.ruff]

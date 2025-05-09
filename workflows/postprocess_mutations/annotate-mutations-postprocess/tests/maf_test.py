@@ -1,8 +1,10 @@
 from tempfile import NamedTemporaryFile, TemporaryDirectory
+from typing import Generator
 
 import duckdb
 import pandas as pd
 import pytest
+from pandas._typing import Axes
 from pandas.testing import assert_frame_equal
 
 from annotate_mutations_postprocess.maf import get_somatic_variants_as_df, make_views
@@ -79,7 +81,7 @@ maf_dtypes = {
 
 
 @pytest.fixture(scope="class")
-def db_setup() -> None:
+def db_setup() -> Generator:
     with TemporaryDirectory() as tmpdir:
         db_path = NamedTemporaryFile(dir=tmpdir, suffix="duckdb").name
 
@@ -117,7 +119,7 @@ def db_setup() -> None:
 
 
 @pytest.fixture
-def db(db_setup: duckdb.DuckDBPyConnection) -> None:
+def db(db_setup: duckdb.DuckDBPyConnection) -> Generator:
     db_setup.sql("""
         DROP TABLE IF EXISTS somatic_variants;
         DROP TABLE IF EXISTS vep;
@@ -135,7 +137,10 @@ class Test:
         make_views(db)
 
         observed = get_somatic_variants_as_df(db)
-        expected = pd.DataFrame([], columns=list(maf_dtypes.keys())).astype(maf_dtypes)
+        expected = pd.DataFrame(
+            [],
+            columns=list(maf_dtypes.keys()),  # pyright: ignore
+        ).astype(maf_dtypes)
         assert_frame_equal(observed, expected)
 
 
