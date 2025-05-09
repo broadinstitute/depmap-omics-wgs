@@ -4,7 +4,6 @@ from typing import Generator
 import duckdb
 import pandas as pd
 import pytest
-from pandas._typing import Axes
 from pandas.testing import assert_frame_equal
 
 from annotate_mutations_postprocess.maf import get_somatic_variants_as_df, make_views
