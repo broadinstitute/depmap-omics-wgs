@@ -83,8 +83,6 @@ def make_views(
     # all views/queries after this point should filter on quality_vids
     make_info_wide_view(db)
     make_transcript_likely_lof_view(db)
-    make_nmd_view(db)
-    make_lof_view(db)
     make_hgnc_view(db)
     make_vep_table(db)
     make_oncogene_tsg_view(db)
@@ -323,6 +321,8 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
                 t_rs.rs[1] AS rs,
                 t_gc_prop.gc_prop,
                 list_aggregate(t_mc.mc, 'string_agg', ',') AS mc,
+                t_lof.lof,
+                t_nmd.nmd,
                 t_oc_gtex_gtex_gene.oc_gtex_gtex_gene,
                 t_oc_gwas_catalog_disease.oc_gwas_catalog_disease,
                 t_oc_gwas_catalog_pmid.oc_gwas_catalog_pmid,
@@ -417,6 +417,26 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
                 WHERE
                     k = 'mc'
             ) t_mc ON info.vid = t_mc.vid
+
+            LEFT OUTER JOIN (
+                SELECT
+                    vid,
+                    v_json_arr AS lof
+                FROM
+                    info
+                WHERE
+                    k = 'lof'
+            ) t_lof ON info.vid = t_lof.vid
+
+            LEFT OUTER JOIN (
+                SELECT
+                    vid,
+                    v_json_arr AS nmd
+                FROM
+                    info
+                WHERE
+                    k = 'nmd'
+            ) t_nmd ON info.vid = t_nmd.vid
 
             LEFT OUTER JOIN (
                 SELECT
@@ -571,73 +591,6 @@ def make_transcript_likely_lof_view(db: duckdb.DuckDBPyConnection) -> None:
     """)
 
 
-def make_nmd_view(db: duckdb.DuckDBPyConnection) -> None:
-    """
-    Create a view of nonsense-mediated decay (NMD) annotations.
-
-    :param db: DuckDB database connection
-    """
-
-    logging.info("Making nmd_v view")
-
-    db.sql("""
-        CREATE OR REPLACE VIEW nmd_v AS (
-            WITH exploded AS (
-                SELECT
-                    vid,
-                    v_json_arr[1] AS v_json -- SnpEff actually puts only one value here
-                FROM
-                    info
-                WHERE
-                    k = 'nmd'
-                    AND
-                    vid IN (SELECT vid FROM quality_vids)
-            )
-            SELECT
-                vid,
-                list_aggregate(v_json->>'$.*', 'string_agg', '|') AS nmd
-            FROM
-                exploded
-        )
-    """)
-
-
-def make_lof_view(db: duckdb.DuckDBPyConnection) -> None:
-    """
-    Create a view of loss-of-function (LoF) information.
-
-    :param db: DuckDB database connection
-    """
-
-    logging.info("Making lof_v view")
-
-    db.sql("""
-        CREATE OR REPLACE VIEW lof_v AS (
-            WITH exploded AS (
-                SELECT
-                    vid,
-                    v_json_arr[1] AS v_json -- SnpEff actually puts only one value here
-                FROM
-                    info
-                WHERE
-                    k = 'lof'
-                    AND
-                    vid IN (SELECT vid FROM quality_vids)
-            )
-            SELECT
-                vid,
-                v_json->>'$.gene_name' AS gene_name,
-                v_json->>'$.gene_id' AS gene_id,
-                (v_json->>'$.number_of_transcripts_in_gene')::USMALLINT
-                    AS number_of_transcripts_in_gene,
-                (v_json->>'$.percent_of_transcripts_affected')::FLOAT
-                    AS prop_of_transcripts_affected
-            FROM
-                exploded
-        )
-    """)
-
-
 def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
     """
     Create a view of HGNC identifiers.
@@ -725,7 +678,7 @@ def make_vep_table(db: duckdb.DuckDBPyConnection) -> None:
                 SELECT
                     vid,
                     json_transform(
-                        UNNEST(v_json_arr),
+                        unnest(v_json_arr),
                         '{
                             "am_class": "VARCHAR",
                             "am_pathogenicity": "FLOAT",
@@ -1108,10 +1061,7 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
             hgnc_name VARCHAR,
             hugo_symbol VARCHAR,
             intron VARCHAR,
-            lof_gene_id VARCHAR,
-            lof_gene_name VARCHAR,
-            lof_number_of_transcripts_in_gene UINTEGER,
-            lof_prop_of_transcripts_affected FLOAT,
+            lof VARCHAR,
             molecular_consequence VARCHAR,
             nmd VARCHAR,
             oncogene_high_impact BOOLEAN,
@@ -1168,7 +1118,9 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
                 info_wide.cosmic_tier AS cosmic_tier,
                 info_wide.rs AS dbsnp_rs_id,
                 info_wide.gc_prop AS gc_content,
+                info_wide.lof AS lof,
                 info_wide.mc AS molecular_consequence,
+                info_wide.nmd AS nmd,
                 info_wide.oc_gtex_gtex_gene AS gtex_gene,
                 info_wide.oc_gwas_catalog_disease AS gwas_disease,
                 info_wide.oc_gwas_catalog_pmid AS gwas_pmid,
@@ -1208,15 +1160,8 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
                 vep.somatic AS vep_somatic,
                 vep.swissprot AS vep_swissprot,
                 transcript_likely_lof_v.transcript_likely_lof AS transcript_likely_lof,
-                nmd_v.nmd AS nmd,
                 hgnc_v.hgnc_name AS hgnc_name,
                 hgnc_v.hgnc_group AS hgnc_family,
-                lof_v.gene_id AS lof_gene_id,
-                lof_v.gene_name AS lof_gene_name,
-                lof_v.number_of_transcripts_in_gene AS
-                    lof_number_of_transcripts_in_gene,
-                lof_v.prop_of_transcripts_affected AS
-                    lof_prop_of_transcripts_affected,
                 coalesce(oncogene_tsg.oncogene_high_impact, FALSE) AS
                     oncogene_high_impact,
                 coalesce(oncogene_tsg.tumor_suppressor_high_impact, FALSE) AS
@@ -1241,17 +1186,9 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
             ON
                 variants.vid = transcript_likely_lof_v.vid
             LEFT JOIN
-                nmd_v
-            ON
-                variants.vid = nmd_v.vid
-            LEFT JOIN
                 hgnc_v
             ON
                 variants.vid = hgnc_v.vid
-            LEFT JOIN
-                lof_v
-            ON
-                variants.vid = lof_v.vid
             LEFT JOIN
                 oncogene_tsg
             ON
@@ -1337,10 +1274,7 @@ def get_somatic_variants_as_df(db: duckdb.DuckDBPyConnection) -> pd.DataFrame:
                 "hgnc_name": "string",
                 "hugo_symbol": "string",
                 "intron": "string",
-                "lof_gene_id": "string",
-                "lof_gene_name": "string",
-                "lof_number_of_transcripts_in_gene": "UInt32",
-                "lof_prop_of_transcripts_affected": "Float32",
+                "lof": "string",
                 "molecular_consequence": "string",
                 "nmd": "string",
                 "oncogene_high_impact": "boolean",
