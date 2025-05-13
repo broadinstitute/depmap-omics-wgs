@@ -22,7 +22,7 @@ workflow postprocess_mutations {
     }
 
     output {
-        File somatic_variants = postprocess.somatic_variants
+        File mut_somatic_variants = postprocess.somatic_variants
     }
 }
 
@@ -36,9 +36,9 @@ task postprocess {
 
         String docker_image
         String docker_image_hash_or_tag
-        Int mem_gb = 12
+        Int mem_gb = 16
         Int cpu = 2
-        Int preemptible = 3
+        Int preemptible = 2
         Int max_retries = 2
         Int additional_disk_gb = 0
     }
