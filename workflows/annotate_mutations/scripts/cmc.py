@@ -121,12 +121,20 @@ bcftools norm ./data/cmc/cosmic_cmc_annot.vcf \
     --output=./data/cmc/cosmic_cmc_annot_norm.vcf.gz
 bcftools index ./data/cmc/cosmic_cmc_annot_norm.vcf.gz
 
+bcftools view -H ./data/cmc/cosmic_cmc_annot_norm.vcf.gz \
+    | cut -f 1-2,4-5,8 \
+    | sed -e 's/CMC_TIER=//' \
+    > ./data/cmc/cosmic_cmc_v99.tsv
+
+bgzip ./data/cmc/cosmic_cmc_v99.tsv -k -f
+tabix ./data/cmc/cosmic_cmc_v99.tsv.gz -s1 -b2 -e2 -f
+
 # e.g.
 bcftools annotate input.vcf.gz \
-    --annotations=./data/cmc/cosmic_cmc_annot_norm.vcf.gz \
+    --annotations=./data/cmc/cosmic_cmc_v99.tsv.gz \
     --output=output.vcf.gz \
     --header-lines=./data/cmc/cosmic_cmc.hdr.vcf \
-    --columns=CMC_TIER
+    --columns=CHROM,POS,REF,ALT,CMC_TIER
 """
 
 # rename and upload final .vcf.gz and .tbi files

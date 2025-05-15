@@ -325,10 +325,14 @@ task annot_with_bcftools {
 
         TMP_VCF="~{basename(vcf, '.vcf.gz')}_tmp.vcf.gz"
 
+        bcftools index "~{vcf}"
+
         if ~{annot_seg_dups}; then
             echo "Annotating segmental duplication regions"
+
             echo '##INFO=<ID=SEGDUP,Number=0,Type=Flag,Description="If variant is in a segmental duplication region">' \
                 > segdup.hdr.vcf
+
             bcftools annotate \
                 "~{vcf}" \
                 --annotations="~{segdup_bed}" \
@@ -340,8 +344,10 @@ task annot_with_bcftools {
 
         if ~{annot_repeat_masker}; then
             echo "Annotating repeat masker regions"
+
             echo '##INFO=<ID=RM,Number=0,Type=Flag,Description="If variant is in a Repeat Masker region">' \
                 > repeatmasker.hdr.vcf
+
             bcftools annotate \
                 "~{vcf}" \
                 --annotations="~{repeatmasker_bed}" \
@@ -368,6 +374,7 @@ task annot_with_bcftools {
 
         if ~{annot_oncokb}; then
             echo "Creating OncoKB indexed TSV"
+
             ONCOKB_TAB_BASENAME="~{basename(select_first([oncokb_annotation]), '.csv')}"
 
             # get the columns we care about in proper chr-pos sorted order
@@ -423,12 +430,10 @@ task annot_with_bcftools {
             echo '##INFO=<ID=CMC_TIER,Number=1,Type=Integer,Description="COSMIC CMC Mutation Significance Tier">' \
                 > cosmic_cmc.hdr.vcf
 
-            bcftools index "~{vcf}"
-
             bcftools annotate \
                 "~{vcf}" \
                 --annotations="~{cosmic_cmc}" \
-                --columns="CMC_TIER" \
+                --columns="CHROM,POS,REF,ALT,CMC_TIER" \
                 --header-lines="cosmic_cmc.hdr.vcf" \
                 --output="${TMP_VCF}"
             rm "~{vcf}" && mv "${TMP_VCF}" "~{vcf}"
@@ -464,7 +469,7 @@ task annot_with_bcftools {
             bcftools annotate \
                 "~{vcf}" \
                 --annotations="~{oncogenes_tsg}" \
-                --columns=CHROM,BEG,END,ONCOGENE,TSG \
+                --columns="CHROM,BEG,END,ONCOGENE,TSG" \
                 --merge-logic="ONCOGENE:first,TSG:first" \
                 --header-lines="oncogenes_tsg.hdr.vcf" \
                 --output="${TMP_VCF}"
@@ -482,7 +487,7 @@ task annot_with_bcftools {
             bcftools annotate \
                 "~{vcf}" \
                 --annotations="~{hgnc}" \
-                --columns=CHROM,BEG,END,HGNC_NAME,HGNC_GROUP \
+                --columns="CHROM,BEG,END,HGNC_NAME,HGNC_GROUP" \
                 --merge-logic="HGNC_NAME:unique,HGNC_GROUP:unique" \
                 --header-lines="hgnc.hdr.vcf" \
                 --output="${TMP_VCF}"
