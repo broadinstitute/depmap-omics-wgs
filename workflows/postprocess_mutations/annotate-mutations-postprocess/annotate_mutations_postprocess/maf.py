@@ -34,15 +34,20 @@ def convert_duckdb_to_maf(
 
     logging.info("Annotating VCF")
 
-    try:
-        os.remove(db_path)
-    except OSError:
-        pass
+    # try:
+    #     os.remove(db_path)
+    # except OSError:
+    #     pass
 
     with duckdb.connect(db_path) as db:
         logging.info(f"Reading schema and Parquet files from {parquet_dir_path}")
-        db.sql(f"IMPORT DATABASE '{parquet_dir_path}'")
-
+        # db.sql(f"IMPORT DATABASE '{parquet_dir_path}'")
+        # logging.info("downsampling")
+        # db.sql(
+        #     "delete from vals_info where vid in (select vid from variants where chrom != 'chr21')"
+        # )
+        # logging.info("downsampling")
+        # db.sql("delete from variants where chrom != 'chr21'")
         make_views(db, min_af, min_depth, max_pop_af, max_brca1_func_assay_score)
 
         somatic_variants = get_somatic_variants_as_df(db)
@@ -87,7 +92,7 @@ def make_views(
     make_vep_table(db)
     make_oncogene_tsg_view(db)
     make_rescues_view(db, max_brca1_func_assay_score)
-    make_filtered_vids_view(db, max_pop_af)
+    make_variants_enriched_table(db, max_pop_af)
     make_somatic_variants_table(db)
 
 
@@ -139,8 +144,8 @@ def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
         CREATE OR REPLACE VIEW vals_wide AS (
             SELECT
                 DISTINCT vals.vid,
-                t_ad.ad[1] AS ref_count,
-                t_ad.ad[2] AS alt_count,
+                ref_count: t_ad.ad[1],
+                alt_count: t_ad.ad[2],
                 t_af.af,
                 t_dp.dp,
                 t_gt.gt,
@@ -151,7 +156,7 @@ def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_integer_arr AS ad
+                    ad: v_integer_arr
                 FROM
                     vals
                 WHERE
@@ -161,7 +166,7 @@ def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_float AS af
+                    af: v_float
                 FROM
                     vals
                 WHERE
@@ -171,7 +176,7 @@ def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_integer AS dp
+                    dp: v_integer
                 FROM
                     vals
                 WHERE
@@ -181,7 +186,7 @@ def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_varchar AS gt
+                    gt: v_varchar
                 FROM
                     vals
                 WHERE
@@ -191,7 +196,7 @@ def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_integer AS ps
+                    ps: v_integer
                 FROM
                     vals
                 WHERE
@@ -215,14 +220,14 @@ def make_filters_view(db: duckdb.DuckDBPyConnection) -> None:
             WITH variant_filters AS (
                 SELECT
                     vid,
-                    unnest(filters) AS filter
+                    filter: unnest(filters)
                 FROM
                     variants
             ),
             as_filters AS (
                 SELECT
                     vid,
-                    unnest(str_split_regex(v_varchar, '\\s*\\|\\s*')) AS filter
+                    filter: unnest(str_split_regex(v_varchar, '\\s*\\|\\s*'))
                 FROM
                     info
                 WHERE
@@ -230,13 +235,13 @@ def make_filters_view(db: duckdb.DuckDBPyConnection) -> None:
             )
             SELECT
                 vid,
-                lower(filter) AS filter
+                filter: lower(filter)
             FROM
                 variant_filters
             UNION
             SELECT
                 vid,
-                lower(filter) AS filter
+                filter: lower(filter)
             FROM
                 as_filters
         )
@@ -318,20 +323,23 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
                 t_civic_id.civic_id,
                 t_civic_score.civic_score,
                 t_cosmic_tier.cosmic_tier,
-                t_rs.rs[1] AS rs,
+                rs: t_rs.rs[1],
                 t_gc_prop.gc_prop,
-                list_aggregate(t_mc.mc, 'string_agg', ',') AS mc,
+                mc: list_aggregate(t_mc.mc, 'string_agg', ','),
                 t_lof.lof,
                 t_nmd.nmd,
                 t_oc_gtex_gtex_gene.oc_gtex_gtex_gene,
                 t_oc_gwas_catalog_disease.oc_gwas_catalog_disease,
                 t_oc_gwas_catalog_pmid.oc_gwas_catalog_pmid,
-                t_hess.hess_driver,
+                hess_driver: coalesce(t_hess.hess_driver, FALSE),
                 t_hess.hess_signature,
+                segdup: coalesce(t_segdup.segdup, FALSE),
+                repeat_masker: coalesce(t_repeat_masker.repeat_masker, FALSE),
+                pon: coalesce(t_pon.pon, FALSE),
                 t_oc_pharmgkb_id.oc_pharmgkb_id,
                 t_oc_provean_prediction.oc_provean_prediction,
                 t_oc_revel_score.oc_revel_score,
-                t_oncokb_hotspot.oncokb_hotspot,
+                oncokb_hotspot: coalesce(t_oncokb_hotspot.oncokb_hotspot, FALSE),
                 t_oncokb_muteff.oncokb_muteff,
                 t_oncokb_oncogenic.oncokb_oncogenic
             FROM
@@ -340,7 +348,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_float AS oc_brca1_func_assay_score
+                    oc_brca1_func_assay_score: v_float
                 FROM
                     info
                 WHERE
@@ -351,7 +359,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_varchar AS civic_desc
+                    civic_desc: v_varchar
                 FROM
                     info
                 WHERE
@@ -361,7 +369,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_integer AS civic_id
+                    civic_id: v_integer
                 FROM
                     info
                 WHERE
@@ -371,7 +379,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_float AS civic_score
+                    civic_score: v_float
                 FROM
                     info
                 WHERE
@@ -381,7 +389,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_integer AS cosmic_tier
+                    cosmic_tier: v_integer
                 FROM
                     info
                 WHERE
@@ -391,7 +399,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_varchar_arr AS rs
+                    rs: v_varchar_arr
                 FROM
                     info
                 WHERE
@@ -401,7 +409,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_float AS gc_prop
+                    gc_prop: v_float
                 FROM
                     info
                 WHERE
@@ -411,7 +419,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_varchar_arr AS mc
+                    mc: v_varchar_arr
                 FROM
                     info
                 WHERE
@@ -421,7 +429,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_json_arr AS lof
+                    lof: v_json_arr
                 FROM
                     info
                 WHERE
@@ -431,7 +439,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_json_arr AS nmd
+                    nmd: v_json_arr
                 FROM
                     info
                 WHERE
@@ -441,7 +449,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_varchar AS oc_gtex_gtex_gene
+                    oc_gtex_gtex_gene: v_varchar
                 FROM
                     info
                 WHERE
@@ -451,7 +459,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_varchar AS oc_gwas_catalog_disease
+                    oc_gwas_catalog_disease: v_varchar
                 FROM
                     info
                 WHERE
@@ -461,7 +469,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_varchar AS oc_gwas_catalog_pmid
+                    oc_gwas_catalog_pmid: v_varchar
                 FROM
                     info
                 WHERE
@@ -471,8 +479,8 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_varchar AS hess_signature,
-                    TRUE AS hess_driver
+                    hess_signature: v_varchar,
+                    hess_driver: TRUE
                 FROM
                     info
                 WHERE
@@ -482,7 +490,37 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_varchar AS oc_pharmgkb_id
+                    segdup: TRUE
+                FROM
+                    info
+                WHERE
+                    k = 'segdup'
+            ) t_segdup ON info.vid = t_segdup.vid
+
+            LEFT OUTER JOIN (
+                SELECT
+                    vid,
+                    repeat_masker: TRUE
+                FROM
+                    info
+                WHERE
+                    k = 'rm'
+            ) t_repeat_masker ON info.vid = t_repeat_masker.vid
+
+            LEFT OUTER JOIN (
+                SELECT
+                    vid,
+                    pon: TRUE
+                FROM
+                    info
+                WHERE
+                    k = 'pon'
+            ) t_pon ON info.vid = t_pon.vid
+
+            LEFT OUTER JOIN (
+                SELECT
+                    vid,
+                    oc_pharmgkb_id: v_varchar
                 FROM
                     info
                 WHERE
@@ -492,7 +530,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_varchar AS oc_provean_prediction
+                    oc_provean_prediction: v_varchar
                 FROM
                     info
                 WHERE
@@ -502,7 +540,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_float AS oc_revel_score
+                    oc_revel_score: v_float
                 FROM
                     info
                 WHERE
@@ -512,7 +550,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_varchar AS oncokb_muteff
+                    oncokb_muteff: v_varchar
                 FROM
                     info
                 WHERE
@@ -522,7 +560,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_boolean AS oncokb_hotspot
+                    oncokb_hotspot: v_boolean
                 FROM
                     info
                 WHERE
@@ -532,7 +570,7 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
             LEFT OUTER JOIN (
                 SELECT
                     vid,
-                    v_varchar AS oncokb_oncogenic
+                    oncokb_oncogenic: v_varchar
                 FROM
                     info
                 WHERE
@@ -561,9 +599,9 @@ def make_transcript_likely_lof_view(db: duckdb.DuckDBPyConnection) -> None:
             WITH exploded AS (
                 SELECT
                     vid,
-                    unnest(
+                    revel_cols: unnest(
                         json_transform_strict(v_varchar, '["json"]')
-                    ) AS revel_cols
+                    )
                 FROM
                     info
                 WHERE
@@ -574,13 +612,13 @@ def make_transcript_likely_lof_view(db: duckdb.DuckDBPyConnection) -> None:
             split_to_cols AS (
                 SELECT
                     vid,
-                    json_extract_string(revel_cols, '$[0]') AS transcript_id,
-                    json_extract(revel_cols, '$[1]')::DOUBLE AS score
+                    transcript_id: json_extract_string(revel_cols, '$[0]'),
+                    score: json_extract(revel_cols, '$[1]')::DOUBLE
                 FROM exploded
             )
             SELECT
                 vid,
-                string_agg(transcript_id, ';') AS transcript_likely_lof
+                transcript_likely_lof: string_agg(transcript_id, ';')
             FROM
                 split_to_cols
             WHERE
@@ -605,7 +643,7 @@ def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
             WITH hgnc_name_exploded AS (
                 SELECT
                     vid,
-                    unnest(v_varchar_arr) AS v_varchar
+                    v_varchar: unnest(v_varchar_arr)
                 FROM
                     info
                 WHERE
@@ -616,7 +654,7 @@ def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
             hgnc_name_concat AS (
                 SELECT
                     vid,
-                    string_agg(v_varchar, ';') AS hgnc_name
+                    hgnc_name: string_agg(v_varchar, ';')
                 FROM
                     hgnc_name_exploded
                 GROUP BY
@@ -625,7 +663,7 @@ def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
             hgnc_group_exploded AS (
                 SELECT
                     vid,
-                    unnest(v_varchar_arr) AS v_varchar
+                    v_varchar: unnest(v_varchar_arr)
                 FROM
                     info
                 WHERE
@@ -636,14 +674,14 @@ def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
             hgnc_group_concat AS (
                 SELECT
                     vid,
-                    string_agg(v_varchar, ';') AS hgnc_group
+                    hgnc_group: string_agg(v_varchar, ';')
                 FROM
                     hgnc_group_exploded
                 GROUP BY
                     vid
             )
             SELECT
-                coalesce(hgnc_name_concat.vid, hgnc_group_concat.vid) AS vid,
+                vid: coalesce(hgnc_name_concat.vid, hgnc_group_concat.vid),
                 hgnc_name_concat.hgnc_name,
                 hgnc_group_concat.hgnc_group
             FROM
@@ -677,7 +715,7 @@ def make_vep_table(db: duckdb.DuckDBPyConnection) -> None:
             WITH vep_exploded AS (
                 SELECT
                     vid,
-                    json_transform(
+                    csq: json_transform(
                         unnest(v_json_arr),
                         '{
                             "am_class": "VARCHAR",
@@ -708,7 +746,7 @@ def make_vep_table(db: duckdb.DuckDBPyConnection) -> None:
                             "uniprot_isoform": "VARCHAR",
                             "variant_class": "VARCHAR"
                         }'
-                    ) AS csq
+                    )
                 FROM
                     info
                 WHERE
@@ -732,7 +770,7 @@ def make_vep_table(db: duckdb.DuckDBPyConnection) -> None:
                 csq.gnom_adg_af,
                 csq.hgnc_id,
                 csq.hgvsc,
-                url_decode(csq.hgvsp) AS hgvsp,
+                hgvsp: url_decode(csq.hgvsp),
                 csq.impact,
                 csq.intron,
                 csq.loftool,
@@ -769,7 +807,7 @@ def make_oncogene_tsg_view(db: duckdb.DuckDBPyConnection) -> None:
             WITH oncogene_v AS (
                 SELECT
                     vid,
-                    TRUE AS oncogene_high_impact
+                    oncogene_high_impact: TRUE
                 FROM
                     info
                 WHERE
@@ -780,7 +818,7 @@ def make_oncogene_tsg_view(db: duckdb.DuckDBPyConnection) -> None:
             tsg_v AS (
                 SELECT
                     vid,
-                    TRUE AS tumor_suppressor_high_impact
+                    tumor_suppressor_high_impact: TRUE
                 FROM
                     info
                 WHERE
@@ -789,7 +827,7 @@ def make_oncogene_tsg_view(db: duckdb.DuckDBPyConnection) -> None:
                     vid IN (SELECT vid FROM vep WHERE impact = 'HIGH')
             )
             SELECT
-                coalesce(oncogene_v.vid, tsg_v.vid) AS vid,
+                vid: coalesce(oncogene_v.vid, tsg_v.vid),
                 oncogene_v.oncogene_high_impact,
                 tsg_v.tumor_suppressor_high_impact
             FROM
@@ -821,64 +859,36 @@ def make_rescues_view(
 
     db.sql(f"""
         CREATE OR REPLACE VIEW rescues AS (
-            SELECT
-                DISTINCT vid,
-                TRUE AS rescued
-            FROM
-                info
-            WHERE
-                -- variant must still pass basic quality filters
-                vid IN (SELECT vid FROM quality_vids)
-                AND (
-                    (
-                        k = 'oncokb_muteff'
-                        AND
-                        v_varchar IN ('Loss-of-function', 'Gain-of-function')
-                    )
-                    OR
-                    (
-                        k = 'oncokb_oncogenic'
-                        AND
-                        v_varchar = 'Oncogenic'
-                    )
-                    OR
-                    (
-                        k = 'oncokb_hotspot'
-                        AND
-                        v_boolean
-                    )
-                    OR
-                    (
-                        k = 'cmc_tier'
-                        AND
-                        v_integer = 1
-                    )
-                    OR
-                    (
-                        k = 'oc_brca1_func_assay_score'
-                        AND
-                        v_float <= {max_brca1_func_assay_score}
-                    )
-                    OR
-                    vid IN (
+            WITH rescue_reasons AS (
+                SELECT
+                    vid,
+                    rescued_oncokb_muteff: (
+                        oncokb_muteff IN ('Loss-of-function', 'Gain-of-function')
+                    ),
+                    rescued_oncokb_oncogenic: oncokb_oncogenic = 'Oncogenic',
+                    rescued_oncokb_hotspot: oncokb_hotspot,
+                    rescued_cmc_tier: cosmic_tier = 1,
+                    rescued_oc_brca1_func_assay_score: (
+                        oc_brca1_func_assay_score <= {max_brca1_func_assay_score}
+                    ),
+                    rescued_oncogene_high_impact: vid IN (
                         SELECT
                             vid
                         FROM
                             oncogene_tsg
                         WHERE
-                            oncogene_high_impact OR tumor_suppressor_high_impact
-                    )
-                    OR
-                    vid IN (
+                            oncogene_high_impact
+                    ),
+                    rescued_tumor_suppressor_high_impact: vid IN (
                         SELECT
                             vid
                         FROM
-                            info
+                            oncogene_tsg
                         WHERE
-                            k = 'hess'
-                    )
-                    OR
-                    vid IN (
+                            tumor_suppressor_high_impact
+                    ),
+                    rescued_hess: hess_driver,
+                    rescued_tert: vid IN (
                         SELECT
                             variants.vid
                         FROM
@@ -893,9 +903,8 @@ def make_rescues_view(
                             variants.pos BETWEEN 1295054 AND 1295365
                             AND
                             vep.symbol = 'TERT'
-                    )
-                    OR
-                    vid IN (
+                    ),
+                    rescued_met: vid IN (
                         SELECT
                             variants.vid
                         FROM
@@ -911,14 +920,38 @@ def make_rescues_view(
                             AND
                             vep.symbol = 'MET'
                     )
-                )
+                FROM
+                    info_wide
+                WHERE
+                    -- variant must still pass basic quality filters
+                    vid IN (SELECT vid FROM quality_vids)
             )
+            SELECT
+                *,
+                rescued: TRUE
+            FROM
+                rescue_reasons
+            WHERE
+                rescued_oncokb_muteff
+                OR rescued_oncokb_oncogenic
+                OR rescued_oncokb_hotspot
+                OR rescued_cmc_tier
+                OR rescued_oc_brca1_func_assay_score
+                OR rescued_oncogene_high_impact
+                OR rescued_tumor_suppressor_high_impact
+                OR rescued_hess
+                OR rescued_tert
+                OR rescued_met
+        )
     """)
 
 
-def make_filtered_vids_view(db: duckdb.DuckDBPyConnection, max_pop_af: float) -> None:
+def make_variants_enriched_table(
+    db: duckdb.DuckDBPyConnection, max_pop_af: float
+) -> None:
     """
-    Create a view of filtered variant IDs based on various criteria.
+    Create an enriched, wide view of variants, assigning a `somatic` column if the
+    variant is identified as a high-quality somatic variant.
 
     Identifies variants that pass quality filters and either are rescued or are valid
     somatic alterations (e.g. splice events, protein changes) while not being in
@@ -929,88 +962,117 @@ def make_filtered_vids_view(db: duckdb.DuckDBPyConnection, max_pop_af: float) ->
     :param max_pop_af: Maximum population allele frequency
     """
 
-    logging.info("Making filtered_vids view")
+    logging.info("Making variants_enriched view")
 
     db.sql(f"""
-        CREATE OR REPLACE VIEW filtered_vids AS (
+        DROP TABLE IF EXISTS variants_enriched;
+        
+        CREATE TABLE variants_enriched AS (
+            WITH variants_wide AS (
+                SELECT
+                    variants.* EXCLUDE filters,
+                    vals_wide.* EXCLUDE vid,
+                    info_wide.* EXCLUDE vid,
+                    COLUMNS(vep.*) AS "vep_\\0",
+                    oncogene_high_impact: coalesce(
+                        oncogene_tsg.oncogene_high_impact, FALSE
+                    ),
+                    tumor_suppressor_high_impact: coalesce(
+                        oncogene_tsg.tumor_suppressor_high_impact, FALSE
+                    ),
+                    rescued_oncokb_muteff: coalesce(
+                        rescues.rescued_oncokb_muteff, FALSE
+                    ),
+                    rescued_oncokb_oncogenic: coalesce(
+                        rescues.rescued_oncokb_oncogenic, FALSE
+                    ),
+                    rescued_oncokb_hotspot: coalesce(
+                        rescues.rescued_oncokb_hotspot, FALSE
+                    ),
+                    rescued_cmc_tier: coalesce(rescues.rescued_cmc_tier, FALSE),
+                    rescued_oc_brca1_func_assay_score: coalesce(
+                        rescues.rescued_oc_brca1_func_assay_score, FALSE
+                    ),
+                    rescued_oncogene_high_impact: coalesce(
+                        rescues.rescued_oncogene_high_impact, FALSE
+                    ),
+                    rescued_tumor_suppressor_high_impact: coalesce(
+                        rescues.rescued_tumor_suppressor_high_impact, FALSE
+                    ),
+                    rescued_hess: coalesce(rescues.rescued_hess, FALSE),
+                    rescued_tert: coalesce(rescues.rescued_tert, FALSE),
+                    rescued_met: coalesce(rescues.rescued_met, FALSE),
+                    rescued: coalesce(rescues.rescued, FALSE)
+                FROM
+                    variants
+                LEFT JOIN
+                    vals_wide
+                ON
+                    variants.vid = vals_wide.vid
+                LEFT JOIN
+                    info_wide
+                ON
+                    variants.vid = info_wide.vid
+                LEFT JOIN
+                    hgnc_v
+                ON
+                    variants.vid = hgnc_v.vid
+                LEFT JOIN
+                    vep
+                ON
+                    variants.vid = vep.vid
+                LEFT JOIN
+                    oncogene_tsg
+                ON
+                    variants.vid = oncogene_tsg.vid
+                LEFT JOIN
+                    rescues
+                ON
+                    variants.vid = rescues.vid
+                WHERE
+                    variants.vid IN (SELECT vid FROM quality_vids)
+            ),
+            summarized AS (
+                SELECT
+                    *,
+                    impactful_splice_event: (
+                        contains(vep_consequence, 'splice') AND
+                        vep_impact IN ('HIGH', 'MODERATE')
+                    ),
+                    protein_changed: (
+                        vep_hgvsp IS NOT NULL
+                        AND
+                        NOT ends_with(vep_hgvsp, '=')
+                    ),
+                    in_clustered_event: vid IN (
+                        SELECT
+                            vid
+                        FROM
+                            filters
+                        WHERE
+                            filter = 'clustered_events'
+                    ),
+                    low_pop_prevalence: (
+                        coalesce(vep_gnom_ade_af, 0) <= {max_pop_af}
+                        AND
+                        coalesce(vep_gnom_adg_af, 0) <= {max_pop_af}
+                        AND
+                        NOT pon
+                    )
+                FROM variants_wide
+            )
             SELECT
-                vid
-            FROM
-                variants
-            WHERE
-                vid IN (SELECT vid FROM quality_vids)
-                AND (
-                    -- vid is rescued
-                    vid IN (SELECT vid FROM rescues)
-                    -- vid is a valid somatic alteration
+                *,
+                somatic: (
+                    rescued
                     OR (
-                        vid IN (
-                            SELECT
-                                vid
-                            FROM
-                                vep
-                            WHERE
-                                -- important splice event
-                                (
-                                    contains(consequence, 'splice')
-                                    AND
-                                    impact IN ('HIGH', 'MODERATE')
-                                )
-                                OR
-                                -- protein sequence has changed
-                                (
-                                    hgvsp IS NOT NULL
-                                    AND
-                                    NOT ends_with(hgvsp, '=')
-                                )
-                        )
-                        AND
-                        -- not part of a clustered event according to mutect2
-                        vid NOT IN (
-                            SELECT
-                                vid
-                            FROM
-                                filters
-                            WHERE
-                                filter = 'clustered_event'
-                        )
-                        AND
-                        -- not in a segmental duplication nor repeatmasker region
-                        vid NOT IN (
-                            SELECT
-                                vid
-                            FROM
-                                info
-                            WHERE
-                                k IN ('segdup', 'rm')
-                                AND
-                                v_boolean
-                        )
-                        AND
-                        -- below max population prevalence per gnomAD
-                        vid IN (
-                            SELECT
-                                vid
-                            FROM
-                                vep
-                            WHERE
-                                coalesce(gnom_ade_af, 0) <= {max_pop_af}
-                                AND
-                                coalesce(gnom_adg_af, 0) <= {max_pop_af}
-                                AND
-                                vid NOT IN (
-                                    SELECT
-                                        vid
-                                    FROM
-                                        info
-                                    WHERE
-                                        k  = 'pon'
-                                        AND
-                                        v_boolean
-                                )
-                        )
+                        (impactful_splice_event OR protein_changed)
+                        AND NOT (in_clustered_event OR segdup OR repeat_masker)
+                        AND low_pop_prevalence
                     )
                 )
+            FROM
+                summarized
         )
     """)
 
@@ -1101,104 +1163,82 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
             somatic_variants
         BY NAME (
             SELECT
-                variants.chrom AS chrom,
-                variants.pos AS pos,
-                variants.ref AS ref,
-                variants.alt AS alt,
-                vals_wide.ref_count AS ref_count,
-                vals_wide.alt_count AS alt_count,
-                vals_wide.af AS af,
-                vals_wide.dp AS dp,
-                vals_wide.gt AS gt,
-                vals_wide.ps AS ps,
-                info_wide.oc_brca1_func_assay_score AS brca1_func_score,
-                info_wide.civic_desc AS civic_description,
-                info_wide.civic_id AS civic_id,
-                info_wide.civic_score AS civic_score,
-                info_wide.cosmic_tier AS cosmic_tier,
-                info_wide.rs AS dbsnp_rs_id,
-                info_wide.gc_prop AS gc_content,
-                info_wide.lof AS lof,
-                info_wide.mc AS molecular_consequence,
-                info_wide.nmd AS nmd,
-                info_wide.oc_gtex_gtex_gene AS gtex_gene,
-                info_wide.oc_gwas_catalog_disease AS gwas_disease,
-                info_wide.oc_gwas_catalog_pmid AS gwas_pmid,
-                info_wide.oc_pharmgkb_id AS pharmgkb_id,
-                info_wide.oc_provean_prediction AS provean_prediction,
-                info_wide.oc_revel_score AS revel_score,
-                info_wide.oncokb_muteff AS oncokb_effect,
-                coalesce(info_wide.oncokb_hotspot, FALSE) AS oncokb_hotspot,
-                info_wide.oncokb_oncogenic AS oncokb_oncogenic,
-                coalesce(info_wide.hess_driver, FALSE) AS hess_driver,
-                info_wide.hess_signature AS hess_signature,
-                vep.am_class AS am_class,
-                vep.am_pathogenicity AS am_pathogenicity,
-                vep.hgvsc AS dna_change,
-                vep.feature AS ensembl_feature_id,
-                vep.gene AS ensembl_gene_id,
-                vep.exon AS exon,
-                vep.gnom_ade_af AS gnomade_af,
-                vep.gnom_adg_af AS gnomadg_af,
-                vep.symbol AS hugo_symbol,
-                vep.intron AS intron,
-                vep.poly_phen AS polyphen,
-                vep.hgvsp AS protein_change,
-                vep.sift AS sift,
-                vep.uniprot_isoform AS uniprot_id,
-                vep.consequence AS variant_info,
-                vep.variant_class AS variant_type,
-                vep.biotype AS vep_biotype,
-                vep.clin_sig AS vep_clin_sig,
-                vep.ensp AS vep_ensp,
-                vep.existing_variation AS vep_existing_variation,
-                vep.hgnc_id AS vep_hgnc_id,
-                vep.impact AS vep_impact,
-                vep.loftool AS vep_loftool,
-                vep.mane_select AS vep_mane_select,
-                vep.pli_gene_value AS vep_pli_gene_value,
-                vep.somatic AS vep_somatic,
-                vep.swissprot AS vep_swissprot,
-                transcript_likely_lof_v.transcript_likely_lof AS transcript_likely_lof,
-                hgnc_v.hgnc_name AS hgnc_name,
-                hgnc_v.hgnc_group AS hgnc_family,
-                coalesce(oncogene_tsg.oncogene_high_impact, FALSE) AS
-                    oncogene_high_impact,
-                coalesce(oncogene_tsg.tumor_suppressor_high_impact, FALSE) AS
-                    tumor_suppressor_high_impact,
-                coalesce(rescues.rescued, FALSE) AS rescue
+                chrom,
+                pos,
+                ref,
+                alt,
+                ref_count,
+                alt_count,
+                af,
+                dp,
+                gt,
+                ps,
+                brca1_func_score: oc_brca1_func_assay_score,
+                civic_description: civic_desc,
+                civic_id,
+                civic_score,
+                cosmic_tier,
+                dbsnp_rs_id: rs,
+                gc_content: gc_prop,
+                lof,
+                molecular_consequence: mc,
+                nmd,
+                gtex_gene: oc_gtex_gtex_gene,
+                gwas_disease: oc_gwas_catalog_disease,
+                gwas_pmid: oc_gwas_catalog_pmid,
+                pharmgkb_id: oc_pharmgkb_id,
+                provean_prediction: oc_provean_prediction,
+                revel_score: oc_revel_score,
+                oncokb_effect: oncokb_muteff,
+                oncokb_hotspot,
+                oncokb_oncogenic,
+                hess_driver,
+                hess_signature,
+                am_class: vep_am_class,
+                am_pathogenicity: vep_am_pathogenicity,
+                dna_change: vep_hgvsc,
+                ensembl_feature_id: vep_feature,
+                ensembl_gene_id: vep_gene,
+                exon: vep_exon,
+                gnomade_af: vep_gnom_ade_af,
+                gnomadg_af: vep_gnom_adg_af,
+                hugo_symbol: vep_symbol,
+                intron: vep_intron,
+                polyphen: vep_poly_phen,
+                protein_change: vep_hgvsp,
+                sift: vep_sift,
+                uniprot_id: vep_uniprot_isoform,
+                variant_info: vep_consequence,
+                variant_type: vep_variant_class,
+                vep_biotype,
+                vep_clin_sig,
+                vep_ensp,
+                vep_existing_variation,
+                vep_hgnc_id,
+                vep_impact,
+                vep_loftool,
+                vep_mane_select,
+                vep_pli_gene_value,
+                vep_somatic,
+                vep_swissprot,
+                transcript_likely_lof_v.transcript_likely_lof,
+                hgnc_v.hgnc_name,
+                hgnc_family: hgnc_v.hgnc_group,
+                oncogene_high_impact,
+                tumor_suppressor_high_impact,
+                rescue: rescued
             FROM
-                variants
-            INNER JOIN
-                vals_wide
-            ON
-                variants.vid = vals_wide.vid
-            LEFT JOIN
-                info_wide
-            ON
-                variants.vid = info_wide.vid
-            LEFT JOIN
-                vep
-            ON
-                variants.vid = vep.vid
+                variants_enriched
             LEFT JOIN
                 transcript_likely_lof_v
             ON
-                variants.vid = transcript_likely_lof_v.vid
+                variants_enriched.vid = transcript_likely_lof_v.vid
             LEFT JOIN
                 hgnc_v
             ON
-                variants.vid = hgnc_v.vid
-            LEFT JOIN
-                oncogene_tsg
-            ON
-                variants.vid = oncogene_tsg.vid
-            LEFT JOIN
-                rescues
-            ON
-                variants.vid = rescues.vid
+                variants_enriched.vid = hgnc_v.vid
             WHERE
-                variants.vid IN (SELECT vid from filtered_vids)
+                somatic
             ORDER BY
                 replace(replace(chrom[4:], 'X', '23'), 'Y', '24')::INTEGER,
                 pos,
