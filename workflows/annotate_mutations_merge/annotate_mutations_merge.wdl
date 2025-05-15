@@ -7,10 +7,6 @@ workflow annotate_mutations_merge {
 
         String sample_id
         Array[File] input_vcfs
-
-        # vcf-to-duckdb options
-        Array[String]? compound_info_fields
-        Array[String]? url_encoded_col_name_regexes
     }
 
     call merge_info {
@@ -27,9 +23,7 @@ workflow annotate_mutations_merge {
     call vcf_to_duckdb {
         input:
             vcf = merge_info.vcf_info_merged,
-            vcf_index = index_vcf.vcf_index,
-            compound_info_fields = compound_info_fields,
-            url_encoded_col_name_regexes = url_encoded_col_name_regexes
+            vcf_index = index_vcf.vcf_index
     }
 
     output {
@@ -49,7 +43,7 @@ task index_vcf {
         Int mem_gb = 4
         Int cpu = 1
         Int preemptible = 2
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_disk_gb = 0
     }
 
@@ -96,7 +90,7 @@ task merge_info {
         Int mem_gb = 16
         Int cpu = 4
         Int preemptible = 1
-        Int max_retries = 2
+        Int max_retries = 1
         Int additional_disk_gb = 0
     }
 
@@ -130,15 +124,14 @@ task vcf_to_duckdb {
     input {
         File vcf
         File vcf_index
-        Array[String]? compound_info_fields
-        Array[String]? url_encoded_col_name_regexes
+        Int batch_size = 100000
 
         String docker_image
         String docker_image_hash_or_tag
         Int mem_gb = 32
-        Int cpu = 4
+        Int cpu = 8
         Int preemptible = 1
-        Int max_retries = 2
+        Int max_retries = 1
         Int additional_disk_gb = 0
     }
 
@@ -147,26 +140,17 @@ task vcf_to_duckdb {
     command <<<
         set -euo pipefail
 
-        # construct array of command options
-        OPTIONS=()
-        COMPOUND_INFO_FIELDS="~{default="" sep=" " compound_info_fields}"
-        URL_ENCODED_COL_NAME_REGEXES="~{default="" sep=" " url_encoded_col_name_regexes}"
-
-        for VAL in ${COMPOUND_INFO_FIELDS[@]};do
-            OPTIONS+=(--compound-info-field="$VAL")
-        done
-
-        for VAL in ${URL_ENCODED_COL_NAME_REGEXES[@]};do
-            OPTIONS+=(--url-encoded-col-name-regex="$VAL")
-        done
+        mkdir -p db_tmp
 
         python -m vcf_to_duckdb convert \
             --vcf="~{vcf}" \
             --tab="tmp.tsv" \
             --db="tmp.duckdb" \
             --parquet-dir="./parq" \
+            --db-tmp-dir-path="./db_tmp/" \
             --no-multiallelics \
-            "${OPTIONS[@]}"
+            --config="/app/config.json" \
+            --batch-size=~{batch_size}
     >>>
 
     output {
