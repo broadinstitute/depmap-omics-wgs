@@ -6,10 +6,11 @@ import duckdb
 import pandas as pd
 
 
-def convert_duckdb_to_maf(
+def get_somatic_variants(
     db_path: Path,
     parquet_dir_path: Path,
-    out_file_path: Path,
+    somatic_variants_out_file_path: Path,
+    variants_enriched_out_file_path: Path | None,
     min_af: float = 0.15,
     min_depth: int = 5,
     max_pop_af: float = 1e-05,
@@ -25,7 +26,10 @@ def convert_duckdb_to_maf(
 
     :param db_path: Path to the DuckDB database file
     :param parquet_dir_path: Directory containing Parquet files to import
-    :param out_file_path: Output file path for the MAF file (in Parquet format)
+    :param variants_enriched_out_file_path: Output file path for a wide file of all
+    variants file (in Parquet format)
+    :param somatic_variants_out_file_path: Output file path for the somatic variants
+    file (in Parquet format)
     :param min_af: Minimum allele frequency threshold for variant filtering
     :param min_depth: Minimum read depth threshold for variant filtering
     :param max_pop_af: Maximum population allele frequency for variant filtering
@@ -34,24 +38,25 @@ def convert_duckdb_to_maf(
 
     logging.info("Annotating VCF")
 
-    # try:
-    #     os.remove(db_path)
-    # except OSError:
-    #     pass
+    try:
+        os.remove(db_path)
+    except OSError:
+        pass
 
     with duckdb.connect(db_path) as db:
         logging.info(f"Reading schema and Parquet files from {parquet_dir_path}")
-        # db.sql(f"IMPORT DATABASE '{parquet_dir_path}'")
-        # logging.info("downsampling")
-        # db.sql(
-        #     "delete from vals_info where vid in (select vid from variants where chrom != 'chr21')"
-        # )
-        # logging.info("downsampling")
-        # db.sql("delete from variants where chrom != 'chr21'")
+        db.sql(f"IMPORT DATABASE '{parquet_dir_path}'")
+
         make_views(db, min_af, min_depth, max_pop_af, max_brca1_func_assay_score)
 
+        if variants_enriched_out_file_path is not None:
+            db.table("variants_enriched").to_parquet(
+                file_name=variants_enriched_out_file_path.name,
+                overwrite=True,
+            )
+
         somatic_variants = get_somatic_variants_as_df(db)
-        somatic_variants.to_parquet(out_file_path, index=False)
+        somatic_variants.to_parquet(somatic_variants_out_file_path, index=False)
 
 
 def make_views(
