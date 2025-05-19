@@ -9,6 +9,7 @@ from pandas.testing import assert_frame_equal
 from annotate_mutations_postprocess.maf import get_somatic_variants_as_df, make_views
 
 maf_dtypes = {
+    "sample_id": "string",
     "chrom": "string",
     "pos": "UInt32",
     "ref": "string",
@@ -130,7 +131,7 @@ def db(db_setup: duckdb.DuckDBPyConnection) -> Generator:
 @pytest.mark.usefixtures("db_setup")
 class Test:
     def test_noop(self, db: duckdb.DuckDBPyConnection) -> None:
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
         expected = pd.DataFrame(
@@ -186,13 +187,14 @@ class TestFilter:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -305,13 +307,14 @@ class TestRescue:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -378,6 +381,7 @@ class TestRescue:
                     "vep_swissprot": None,
                 },
                 {
+                    "sample_id": "sid",
                     "chrom": "chr2",
                     "pos": 200,
                     "ref": "A",
@@ -479,13 +483,14 @@ class TestRescue:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -585,13 +590,14 @@ class TestRescue:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -693,13 +699,14 @@ class TestRescue:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -801,13 +808,14 @@ class TestRescue:
             );
         """)
 
-        make_views(db, max_brca1_func_assay_score=-1.328)
+        make_views(db, sample_id="sid", max_brca1_func_assay_score=-1.328)
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -921,13 +929,14 @@ class TestRescue:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -1041,13 +1050,14 @@ class TestRescue:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -1147,13 +1157,14 @@ class TestRescue:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -1253,13 +1264,14 @@ class TestRescue:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr5",
                     "pos": 1295059,
                     "ref": "G",
@@ -1359,13 +1371,14 @@ class TestRescue:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr7",
                     "pos": 116771829,
                     "ref": "G",
@@ -1478,13 +1491,14 @@ class TestFilteredVids:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -1594,13 +1608,14 @@ class TestFilteredVids:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -1678,7 +1693,7 @@ class TestFilteredVids:
             ) VALUES (
                 1, 'chr1', 100, 'G', 'C', ['germline']
             ), (
-                2, 'chr2', 200, 'A', 'T', ['clustered_event']
+                2, 'chr2', 200, 'A', 'T', ['clustered_events']
             );
             
             INSERT INTO vals_info(
@@ -1702,13 +1717,14 @@ class TestFilteredVids:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -1827,13 +1843,14 @@ class TestFilteredVids:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -1957,13 +1974,14 @@ class TestFilteredVids:
             )
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -2061,13 +2079,14 @@ class TestColumns:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -2168,13 +2187,14 @@ class TestColumns:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -2343,13 +2363,14 @@ class TestColumns:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -2478,13 +2499,14 @@ class TestColumns:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -2585,13 +2607,14 @@ class TestColumns:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -2692,13 +2715,14 @@ class TestColumns:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -2811,13 +2835,14 @@ class TestColumns:
             );
         """)
 
-        make_views(db)
+        make_views(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
         expected = pd.DataFrame(
             [
                 {
+                    "sample_id": "sid",
                     "chrom": "chr1",
                     "pos": 100,
                     "ref": "G",
@@ -2884,6 +2909,7 @@ class TestColumns:
                     "vep_swissprot": None,
                 },
                 {
+                    "sample_id": "sid",
                     "chrom": "chr2",
                     "pos": 200,
                     "ref": "A",
