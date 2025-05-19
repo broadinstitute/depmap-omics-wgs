@@ -11,6 +11,7 @@ def get_somatic_variants(
     parquet_dir_path: Path,
     somatic_variants_out_file_path: Path,
     variants_enriched_out_file_path: Path | None,
+    sample_id: str,
     min_af: float = 0.15,
     min_depth: int = 5,
     max_pop_af: float = 1e-05,
@@ -24,10 +25,11 @@ def get_somatic_variants(
     and tables in the database, filters variants based on quality criteria, and exports
     the resulting somatic/rescued variants to a Parquet file.
 
+    :param sample_id: the sample ID
     :param db_path: Path to the DuckDB database file
     :param parquet_dir_path: Directory containing Parquet files to import
     :param variants_enriched_out_file_path: Output file path for a wide file of all
-    variants file (in Parquet format)
+    variants (in Parquet format)
     :param somatic_variants_out_file_path: Output file path for the somatic variants
     file (in Parquet format)
     :param min_af: Minimum allele frequency threshold for variant filtering
@@ -47,7 +49,9 @@ def get_somatic_variants(
         logging.info(f"Reading schema and Parquet files from {parquet_dir_path}")
         db.sql(f"IMPORT DATABASE '{parquet_dir_path}'")
 
-        make_views(db, min_af, min_depth, max_pop_af, max_brca1_func_assay_score)
+        make_views(
+            db, sample_id, min_af, min_depth, max_pop_af, max_brca1_func_assay_score
+        )
 
         if variants_enriched_out_file_path is not None:
             db.table("variants_enriched").to_parquet(
@@ -61,6 +65,7 @@ def get_somatic_variants(
 
 def make_views(
     db: duckdb.DuckDBPyConnection,
+    sample_id: str,
     min_af: float = 0.15,
     min_depth: int = 5,
     max_pop_af: float = 1e-05,
@@ -73,6 +78,7 @@ def make_views(
     quality criteria, extracting information from the vals_info table, and preparing
     data for export.
 
+    :param sample_id: the sample ID
     :param db: DuckDB database connection
     :param min_af: Minimum allele frequency threshold for variant filtering
     :param min_depth: Minimum read depth threshold for variant filtering
@@ -97,7 +103,7 @@ def make_views(
     make_vep_table(db)
     make_oncogene_tsg_view(db)
     make_rescues_view(db, max_brca1_func_assay_score)
-    make_variants_enriched_table(db, max_pop_af)
+    make_variants_enriched_table(db, sample_id, max_pop_af)
     make_somatic_variants_table(db)
 
 
@@ -952,7 +958,7 @@ def make_rescues_view(
 
 
 def make_variants_enriched_table(
-    db: duckdb.DuckDBPyConnection, max_pop_af: float
+    db: duckdb.DuckDBPyConnection, sample_id: str, max_pop_af: float
 ) -> None:
     """
     Create an enriched, wide view of variants, assigning a `somatic` column if the
@@ -963,6 +969,7 @@ def make_variants_enriched_table(
     clustered events, segmental duplications, or repeat regions, and having low
     population allele frequency.
 
+    :param sample_id: the sample ID
     :param db: DuckDB database connection
     :param max_pop_af: Maximum population allele frequency
     """
@@ -1067,6 +1074,7 @@ def make_variants_enriched_table(
                 FROM variants_wide
             )
             SELECT
+                sample_id: '{sample_id}',
                 *,
                 somatic: (
                     rescued
@@ -1096,6 +1104,7 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
 
     db.sql("""
         CREATE TABLE IF NOT EXISTS somatic_variants (
+            sample_id VARCHAR,
             chrom VARCHAR,
             pos UINTEGER,
             ref VARCHAR,
@@ -1168,6 +1177,7 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
             somatic_variants
         BY NAME (
             SELECT
+                sample_id,
                 chrom,
                 pos,
                 ref,
@@ -1287,6 +1297,7 @@ def get_somatic_variants_as_df(db: duckdb.DuckDBPyConnection) -> pd.DataFrame:
         .df()
         .astype(
             {
+                "sample_id": "string",
                 "chrom": "string",
                 "pos": "UInt32",
                 "ref": "string",

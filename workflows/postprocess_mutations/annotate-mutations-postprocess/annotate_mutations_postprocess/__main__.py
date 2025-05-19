@@ -65,6 +65,7 @@ def main():
 
 @app.command()
 def duckdb_to_maf(
+    sample_id: Annotated[str, typer.Option()],
     db: Annotated[Path, typer.Option()],
     parquet_dir: Annotated[Path, typer.Option()],
     somatic_variants_out_file: Annotated[Path, typer.Option()],
@@ -79,6 +80,7 @@ def duckdb_to_maf(
         parquet_dir_path=parquet_dir,
         variants_enriched_out_file_path=variants_enriched_out_file,
         somatic_variants_out_file_path=somatic_variants_out_file,
+        sample_id=sample_id,
         min_af=min_af,
         min_depth=min_depth,
         max_pop_af=max_pop_af,
