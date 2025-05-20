@@ -1,5 +1,6 @@
 import logging
 import os
+from math import ceil
 from pathlib import Path
 
 import pandas as pd
@@ -18,6 +19,7 @@ def get_somatic_variants(
     min_depth: int = 5,
     max_pop_af: float = 1e-05,
     max_brca1_func_assay_score: float = -1.328,
+    batch_size: int = 1000000,
 ) -> None:
     """
     Convert a vcf-to-duckdb DuckDB database to a MAF-like wide table, exported as a
@@ -39,6 +41,7 @@ def get_somatic_variants(
     :param min_depth: Minimum read depth threshold for variant filtering
     :param max_pop_af: Maximum population allele frequency for variant filtering
     :param max_brca1_func_assay_score: Maximum BRCA1 functional assay score for variants
+    :param batch_size: number of variants to process at a time
     """
 
     logging.info("Annotating VCF")
@@ -53,12 +56,18 @@ def get_somatic_variants(
         db.execute(f"PRAGMA temp_directory='{db_tmp_dir_path.name}'")
         db.execute("SET preserve_insertion_order = false;")
 
-        logging.info(f"Reading schema and Parquet files from {parquet_dir_path}")
+        # logging.info(f"Reading schema and Parquet files from {parquet_dir_path}")
         db.sql(f"IMPORT DATABASE '{parquet_dir_path}'")
 
         # make views and tables
-        make_views(
-            db, sample_id, min_af, min_depth, max_pop_af, max_brca1_func_assay_score
+        make_views_and_tables(
+            db,
+            sample_id,
+            min_af,
+            min_depth,
+            max_pop_af,
+            max_brca1_func_assay_score,
+            batch_size,
         )
 
         if variants_enriched_out_file_path is not None:
@@ -90,13 +99,14 @@ def get_somatic_variants(
         somatic_variants.to_parquet(somatic_variants_out_file_path, index=False)
 
 
-def make_views(
+def make_views_and_tables(
     db: duckdb.DuckDBPyConnection,
     sample_id: str,
     min_af: float = 0.15,
     min_depth: int = 5,
     max_pop_af: float = 1e-05,
     max_brca1_func_assay_score: float = -1.328,
+    batch_size: int = 1000000,
 ):
     """
     Create all necessary views and tables in the DuckDB database.
@@ -111,25 +121,43 @@ def make_views(
     :param min_depth: Minimum read depth threshold for variant filtering
     :param max_pop_af: Maximum population allele frequency for variant filtering
     :param max_brca1_func_assay_score: Maximum BRCA1 functional assay score for variants
+    :param batch_size: number of variants to process at a time
     """
 
     # delete lowest quality variants
     delete_low_quality_variants(db, min_af, min_depth)
 
-    # separate vals_info table into two views
-    make_vals_info_views(db)
+    # create empty tables for batch processing
+    make_supporting_tables(db)
 
-    # convert vals to wide view
+    # make views needed to construct variants_enriched
+    make_batch_views(db, limit=0, offset=0)
     make_vals_wide(db)
-
-    # make views and tables to support somatic variant filtering
     make_info_wide(db)
     make_transcript_likely_lof(db)
     make_hgnc(db)
-    make_vep(db)
     make_oncogene_tsg(db)
     make_rescues(db, max_brca1_func_assay_score)
-    make_variants_enriched(db, sample_id, max_pop_af)
+
+    # split the variants into evenly sized batches
+    n_variants = db.table("variants").shape[0]
+    n_batches = 1 + n_variants // batch_size
+    chosen_batch_size = ceil(n_variants / n_batches)
+
+    for i in range(n_batches):
+        logging.info(f"Loading batch {i + 1} of {n_batches}")
+        offset = i * chosen_batch_size
+
+        # recreate views for this batch's variants, vals, and info
+        make_batch_views(db, limit=chosen_batch_size, offset=offset)
+
+        # populate fresh vep table, which is a table for performance reasons
+        populate_vep(db)
+
+        # append batch to variants_enriched
+        make_variants_enriched(db, sample_id, max_pop_af)
+
+    # populate somatic_variant from entire variants_enriched table
     make_somatic_variants(db)
 
 
@@ -203,7 +231,9 @@ def delete_low_quality_variants(
     db.sql("DROP VIEW IF EXISTS low_quality_vids")
 
 
-def make_vals_info_views(db: duckdb.DuckDBPyConnection) -> None:
+def make_batch_views(
+    db: duckdb.DuckDBPyConnection, limit: int = 0, offset: int = 0
+) -> None:
     """
     Create views that separate the vals_info table into 'vals' and 'info' views.
 
@@ -212,7 +242,22 @@ def make_vals_info_views(db: duckdb.DuckDBPyConnection) -> None:
 
     logging.info("Making vals and info views")
 
-    db.sql("""
+    db.sql(f"""
+        CREATE OR REPLACE VIEW variants_batch AS (
+            SELECT
+                *
+            FROM
+                variants
+            WHERE vid IN (
+                SELECT vid
+                FROM variants
+                ORDER BY vid
+                LIMIT {limit} OFFSET {offset}
+            )
+        )
+    """)
+
+    db.sql(f"""
         CREATE OR REPLACE VIEW vals AS (
             SELECT
                 *
@@ -220,10 +265,16 @@ def make_vals_info_views(db: duckdb.DuckDBPyConnection) -> None:
                 vals_info
             WHERE
                 kind = 'val'
+                AND vid IN (
+                    SELECT vid
+                    FROM variants
+                    ORDER BY vid
+                    LIMIT {limit} OFFSET {offset}
+                )
         )
     """)
 
-    db.sql("""
+    db.sql(f"""
         CREATE OR REPLACE VIEW info AS (
             SELECT
                 *
@@ -231,6 +282,208 @@ def make_vals_info_views(db: duckdb.DuckDBPyConnection) -> None:
                 vals_info
             WHERE
                 kind = 'info'
+                AND vid IN (
+                    SELECT vid
+                    FROM variants
+                    ORDER BY vid
+                    LIMIT {limit} OFFSET {offset}
+                )
+        )
+    """)
+
+
+def make_supporting_tables(db: duckdb.DuckDBPyConnection) -> None:
+    db.sql("""
+        DROP TABLE IF EXISTS vep;
+        
+        CREATE TABLE vep (
+            vid UINTEGER PRIMARY KEY,
+            am_class VARCHAR,
+            am_pathogenicity FLOAT,
+            biotype VARCHAR,
+            clin_sig VARCHAR,
+            consequence VARCHAR,
+            ensp VARCHAR,
+            existing_variation VARCHAR,
+            exon VARCHAR,
+            feature VARCHAR,
+            gene VARCHAR,
+            gnom_ade_af FLOAT,
+            gnom_adg_af FLOAT,
+            hgnc_id VARCHAR,
+            hgvsc VARCHAR,
+            hgvsp VARCHAR,
+            impact VARCHAR,
+            intron VARCHAR,
+            loftool FLOAT,
+            mane_select VARCHAR,
+            pli_gene_value FLOAT,
+            poly_phen VARCHAR,
+            sift VARCHAR,
+            somatic VARCHAR,
+            swissprot VARCHAR,
+            symbol VARCHAR,
+            uniprot_isoform VARCHAR,
+            variant_class VARCHAR
+        );
+        
+        DROP TABLE IF EXISTS variants_enriched;
+        
+        CREATE TABLE variants_enriched (
+            sample_id VARCHAR,
+            vid UINTEGER PRIMARY KEY,
+            chrom VARCHAR,
+            pos UINTEGER,
+            id VARCHAR,
+            ref VARCHAR,
+            alt VARCHAR,
+            qual VARCHAR,
+            ref_count INTEGER,
+            alt_count INTEGER,
+            af FLOAT,
+            dp INTEGER,
+            gt VARCHAR,
+            ps INTEGER,
+            somatic BOOLEAN,
+            impactful_splice_event BOOLEAN,
+            in_clustered_event BOOLEAN,
+            segdup BOOLEAN,
+            repeat_masker BOOLEAN,
+            low_pop_prevalence BOOLEAN,
+            pon BOOLEAN,
+            rescued BOOLEAN,
+            rescued_cmc_tier BOOLEAN,
+            rescued_hess BOOLEAN,
+            rescued_met BOOLEAN,
+            rescued_oc_brca1_func_assay_score BOOLEAN,
+            rescued_oncogene_high_impact BOOLEAN,
+            rescued_oncokb_hotspot BOOLEAN,
+            rescued_oncokb_muteff BOOLEAN,
+            rescued_oncokb_oncogenic BOOLEAN,
+            rescued_tert BOOLEAN,
+            rescued_tumor_suppressor_high_impact BOOLEAN,
+            civic_desc VARCHAR,
+            civic_id INTEGER,
+            civic_score FLOAT,
+            cosmic_tier INTEGER,
+            gc_prop FLOAT,
+            hess_driver BOOLEAN,
+            hess_signature VARCHAR,
+            lof JSON[],
+            mc VARCHAR,
+            nmd JSON[],
+            oc_brca1_func_assay_score FLOAT,
+            oc_gtex_gtex_gene VARCHAR,
+            oc_gwas_catalog_disease VARCHAR,
+            oc_gwas_catalog_pmid VARCHAR,
+            oc_pharmgkb_id VARCHAR,
+            oc_provean_prediction VARCHAR,
+            oc_revel_score FLOAT,
+            oncogene_high_impact BOOLEAN,
+            oncokb_hotspot BOOLEAN,
+            oncokb_muteff VARCHAR,
+            oncokb_oncogenic VARCHAR,
+            protein_changed BOOLEAN,
+            rs VARCHAR,
+            tumor_suppressor_high_impact BOOLEAN,
+            vep_am_class VARCHAR,
+            vep_am_pathogenicity FLOAT,
+            vep_biotype VARCHAR,
+            vep_clin_sig VARCHAR,
+            vep_consequence VARCHAR,
+            vep_ensp VARCHAR,
+            vep_existing_variation VARCHAR,
+            vep_exon VARCHAR,
+            vep_feature VARCHAR,
+            vep_gene VARCHAR,
+            vep_gnom_ade_af FLOAT,
+            vep_gnom_adg_af FLOAT,
+            vep_hgnc_id VARCHAR,
+            vep_hgvsc VARCHAR,
+            vep_hgvsp VARCHAR,
+            vep_impact VARCHAR,
+            vep_intron VARCHAR,
+            vep_loftool FLOAT,
+            vep_mane_select VARCHAR,
+            vep_pli_gene_value FLOAT,
+            vep_poly_phen VARCHAR,
+            vep_sift VARCHAR,
+            vep_somatic VARCHAR,
+            vep_swissprot VARCHAR,
+            vep_symbol VARCHAR,
+            vep_uniprot_isoform VARCHAR,
+            vep_variant_class VARCHAR,
+            vep_vid UINTEGER
+        );
+        
+        DROP TABLE IF EXISTS somatic_variants;
+        
+        CREATE TABLE somatic_variants (
+            sample_id VARCHAR,
+            chrom VARCHAR,
+            pos UINTEGER,
+            ref VARCHAR,
+            alt VARCHAR,
+            af DECIMAL(),
+            alt_count UINTEGER,
+            am_class VARCHAR,
+            am_pathogenicity FLOAT,
+            brca1_func_score FLOAT,
+            civic_description VARCHAR,
+            civic_id VARCHAR,
+            civic_score FLOAT,
+            cosmic_tier UINTEGER,
+            dbsnp_rs_id VARCHAR,
+            dna_change VARCHAR,
+            dp USMALLINT,
+            ensembl_feature_id VARCHAR,
+            ensembl_gene_id VARCHAR,
+            exon VARCHAR,
+            gc_content FLOAT,
+            gnomade_af FLOAT,
+            gnomadg_af FLOAT,
+            gt VARCHAR,
+            gtex_gene VARCHAR,
+            gwas_disease VARCHAR,
+            gwas_pmid VARCHAR,
+            hess_driver BOOLEAN,
+            hess_signature VARCHAR,
+            hgnc_family VARCHAR,
+            hgnc_name VARCHAR,
+            hugo_symbol VARCHAR,
+            intron VARCHAR,
+            lof VARCHAR,
+            molecular_consequence VARCHAR,
+            nmd VARCHAR,
+            oncogene_high_impact BOOLEAN,
+            oncokb_effect VARCHAR,
+            oncokb_hotspot BOOLEAN,
+            oncokb_oncogenic VARCHAR,
+            pharmgkb_id VARCHAR,
+            polyphen VARCHAR,
+            protein_change VARCHAR,
+            provean_prediction VARCHAR,
+            ps UINTEGER,
+            ref_count UINTEGER,
+            rescue BOOLEAN,
+            revel_score FLOAT,
+            sift VARCHAR,
+            transcript_likely_lof VARCHAR,
+            tumor_suppressor_high_impact BOOLEAN,
+            uniprot_id VARCHAR,
+            variant_info VARCHAR,
+            variant_type VARCHAR,
+            vep_biotype VARCHAR,
+            vep_clin_sig VARCHAR,
+            vep_ensp VARCHAR,
+            vep_existing_variation VARCHAR,
+            vep_hgnc_id VARCHAR,
+            vep_impact VARCHAR,
+            vep_loftool FLOAT,
+            vep_mane_select VARCHAR,
+            vep_pli_gene_value FLOAT,
+            vep_somatic VARCHAR,
+            vep_swissprot VARCHAR
         )
     """)
 
@@ -248,9 +501,7 @@ def make_vals_wide(db: duckdb.DuckDBPyConnection) -> None:
     logging.info("Making vals_wide")
 
     db.sql("""
-        DROP TABLE IF EXISTS vals_wide;
-        
-        CREATE TABLE vals_wide AS (
+        CREATE OR REPLACE VIEW vals_wide AS (
             SELECT
                 DISTINCT vals.vid,
                 ref_count: t_ad.ad[1],
@@ -262,7 +513,7 @@ def make_vals_wide(db: duckdb.DuckDBPyConnection) -> None:
             FROM
                 vals
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     ad: v_integer_arr
@@ -272,7 +523,7 @@ def make_vals_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'ad'
             ) t_ad ON vals.vid = t_ad.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     af: v_float
@@ -282,7 +533,7 @@ def make_vals_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'af'
             ) t_af ON vals.vid = t_af.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     dp: v_integer
@@ -292,7 +543,7 @@ def make_vals_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'dp'
             ) t_dp ON vals.vid = t_dp.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     gt: v_varchar
@@ -302,7 +553,7 @@ def make_vals_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'gt'
             ) t_gt ON vals.vid = t_gt.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     ps: v_integer
@@ -329,9 +580,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
     logging.info("Making info_wide")
 
     db.sql("""
-        DROP TABLE IF EXISTS info_wide;
-        
-        CREATE TABLE info_wide AS (
+        CREATE OR REPLACE VIEW info_wide AS (
             SELECT
                 DISTINCT info.vid,
                 t_oc_brca1_func_assay_score.oc_brca1_func_assay_score,
@@ -361,7 +610,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
             FROM
                 info
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     oc_brca1_func_assay_score: v_float
@@ -372,7 +621,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
             ) t_oc_brca1_func_assay_score ON
                 info.vid = t_oc_brca1_func_assay_score.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     civic_desc: v_varchar
@@ -382,7 +631,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'civic_desc'
             ) t_civic_desc ON info.vid = t_civic_desc.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     civic_id: v_integer
@@ -392,7 +641,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'civic_id'
             ) t_civic_id ON info.vid = t_civic_id.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     civic_score: v_float
@@ -402,7 +651,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'civic_score'
             ) t_civic_score ON info.vid = t_civic_score.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     cosmic_tier: v_integer
@@ -412,7 +661,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'cmc_tier'
             ) t_cosmic_tier ON info.vid = t_cosmic_tier.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     rs: v_varchar_arr
@@ -422,7 +671,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'rs'
             ) t_rs ON info.vid = t_rs.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     gc_prop: v_float
@@ -432,7 +681,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'gc_prop'
             ) t_gc_prop ON info.vid = t_gc_prop.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     mc: v_varchar_arr
@@ -442,7 +691,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'mc'
             ) t_mc ON info.vid = t_mc.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     lof: v_json_arr
@@ -452,7 +701,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'lof'
             ) t_lof ON info.vid = t_lof.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     nmd: v_json_arr
@@ -462,7 +711,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'nmd'
             ) t_nmd ON info.vid = t_nmd.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     oc_gtex_gtex_gene: v_varchar
@@ -472,7 +721,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'oc_gtex_gtex_gene'
             ) t_oc_gtex_gtex_gene ON info.vid = t_oc_gtex_gtex_gene.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     oc_gwas_catalog_disease: v_varchar
@@ -482,7 +731,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'oc_gwas_catalog_disease'
             ) t_oc_gwas_catalog_disease ON info.vid = t_oc_gwas_catalog_disease.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     oc_gwas_catalog_pmid: v_varchar
@@ -492,7 +741,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'oc_gwas_catalog_pmid'
             ) t_oc_gwas_catalog_pmid ON info.vid = t_oc_gwas_catalog_pmid.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     hess_signature: v_varchar,
@@ -503,7 +752,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'hess'
             ) t_hess ON info.vid = t_hess.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     segdup: TRUE
@@ -513,7 +762,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'segdup'
             ) t_segdup ON info.vid = t_segdup.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     repeat_masker: TRUE
@@ -523,7 +772,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'rm'
             ) t_repeat_masker ON info.vid = t_repeat_masker.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     pon: TRUE
@@ -533,7 +782,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'pon'
             ) t_pon ON info.vid = t_pon.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     oc_pharmgkb_id: v_varchar
@@ -543,7 +792,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'oc_pharmgkb_id'
             ) t_oc_pharmgkb_id ON info.vid = t_oc_pharmgkb_id.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     oc_provean_prediction: v_varchar
@@ -553,7 +802,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'oc_provean_prediction'
             ) t_oc_provean_prediction ON info.vid = t_oc_provean_prediction.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     oc_revel_score: v_float
@@ -563,7 +812,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'oc_revel_score'
             ) t_oc_revel_score ON info.vid = t_oc_revel_score.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     oncokb_muteff: v_varchar
@@ -573,7 +822,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'oncokb_muteff'
             ) t_oncokb_muteff ON info.vid = t_oncokb_muteff.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     oncokb_hotspot: v_boolean
@@ -583,7 +832,7 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                     k = 'oncokb_hotspot'
             ) t_oncokb_hotspot ON info.vid = t_oncokb_hotspot.vid
 
-            LEFT OUTER JOIN (
+            LEFT JOIN (
                 SELECT
                     vid,
                     oncokb_oncogenic: v_varchar
@@ -702,24 +951,24 @@ def make_hgnc(db: duckdb.DuckDBPyConnection) -> None:
     """)
 
 
-def make_vep(db: duckdb.DuckDBPyConnection) -> None:
+def populate_vep(db: duckdb.DuckDBPyConnection) -> None:
     """
     Create a table of Variant Effect Predictor (VEP) annotations.
 
     Processes the csq field from the info table to extract VEP annotations for each
-    variant. Creates a physical table rather than a view for performance reasons.
+    variant. This is a physical table due to the relative slowness of the
+    `vep_exploded` CTE, the fact it gets queried several times later, and that views in
+    DuckDB aren't materialized.
 
     :param db: DuckDB database connection
     """
 
-    logging.info("Making vep")
+    logging.info("Populating vep")
 
-    # this is a physical table due to the relative slowness of the `vep_exploded` CTE
-    # and the fact it gets queried several times later
+    db.sql("TRUNCATE vep;")
+
     db.sql("""
-        CREATE TABLE IF NOT EXISTS vep
-        AS
-        SELECT * FROM (
+        INSERT INTO vep BY NAME (
             WITH vep_exploded AS (
                 SELECT
                     vid,
@@ -755,7 +1004,10 @@ def make_vep(db: duckdb.DuckDBPyConnection) -> None:
                             "variant_class": "VARCHAR"
                         }'
                     )
-                FROM info WHERE k = 'csq'
+                FROM
+                    info
+                WHERE
+                    k = 'csq'
             )
             SELECT
                 vid,
@@ -815,8 +1067,7 @@ def make_oncogene_tsg(db: duckdb.DuckDBPyConnection) -> None:
                     info
                 WHERE
                     k = 'oncogene'
-                    AND
-                    vid IN (SELECT vid FROM vep WHERE impact = 'HIGH')
+                    AND vid IN (SELECT vid FROM vep WHERE impact = 'HIGH')
             ),
             tsg_v AS (
                 SELECT
@@ -826,8 +1077,7 @@ def make_oncogene_tsg(db: duckdb.DuckDBPyConnection) -> None:
                     info
                 WHERE
                     k = 'tsg'
-                    AND
-                    vid IN (SELECT vid FROM vep WHERE impact = 'HIGH')
+                    AND vid IN (SELECT vid FROM vep WHERE impact = 'HIGH')
             )
             SELECT
                 vid: coalesce(oncogene_v.vid, tsg_v.vid),
@@ -861,9 +1111,7 @@ def make_rescues(
     logging.info("Making rescues")
 
     db.sql(f"""
-        DROP TABLE IF EXISTS rescues;
-        
-        CREATE TABLE rescues AS (
+        CREATE OR REPLACE VIEW rescues AS (
             WITH rescue_reasons AS (
                 SELECT
                     vid,
@@ -895,33 +1143,33 @@ def make_rescues(
                     rescued_hess: hess_driver,
                     rescued_tert: vid IN (
                         SELECT
-                            variants.vid
+                            variants_batch.vid
                         FROM
-                            variants
+                            variants_batch
                         INNER JOIN
                             vep
                         ON
-                            variants.vid = vep.vid
+                            variants_batch.vid = vep.vid
                         WHERE
-                            variants.chrom = 'chr5'
+                            variants_batch.chrom = 'chr5'
                             AND
-                            variants.pos BETWEEN 1295054 AND 1295365
+                            variants_batch.pos BETWEEN 1295054 AND 1295365
                             AND
                             vep.symbol = 'TERT'
                     ),
                     rescued_met: vid IN (
                         SELECT
-                            variants.vid
+                            variants_batch.vid
                         FROM
-                            variants
+                            variants_batch
                         INNER JOIN
                             vep
                         ON
-                            variants.vid = vep.vid
+                            variants_batch.vid = vep.vid
                         WHERE
-                            variants.chrom = 'chr7'
+                            variants_batch.chrom = 'chr7'
                             AND
-                            variants.pos BETWEEN 116771825 AND 116771840
+                            variants_batch.pos BETWEEN 116771825 AND 116771840
                             AND
                             vep.symbol = 'MET'
                     )
@@ -964,15 +1212,13 @@ def make_variants_enriched(
     :param max_pop_af: Maximum population allele frequency
     """
 
-    logging.info("Making variants_enriched")
+    logging.info("Populating variants_enriched")
 
     db.sql(f"""
-        DROP TABLE IF EXISTS variants_enriched;
-        
-        CREATE TABLE variants_enriched AS (
+        INSERT INTO variants_enriched BY NAME (
             WITH variants_wide AS (
                 SELECT
-                    variants.* EXCLUDE filters,
+                    variants_batch.* EXCLUDE filters,
                     vals_wide.* EXCLUDE vid,
                     info_wide.* EXCLUDE vid,
                     COLUMNS(vep.*) AS "vep_\\0",
@@ -1006,31 +1252,14 @@ def make_variants_enriched(
                     rescued_met: coalesce(rescues.rescued_met, FALSE),
                     rescued: coalesce(rescues.rescued, FALSE)
                 FROM
-                    variants
-                LEFT JOIN
-                    vals_wide
-                ON
-                    variants.vid = vals_wide.vid
-                LEFT JOIN
-                    info_wide
-                ON
-                    variants.vid = info_wide.vid
-                LEFT JOIN
-                    hgnc_v
-                ON
-                    variants.vid = hgnc_v.vid
-                LEFT JOIN
-                    vep
-                ON
-                    variants.vid = vep.vid
-                LEFT JOIN
-                    oncogene_tsg
-                ON
-                    variants.vid = oncogene_tsg.vid
-                LEFT JOIN
-                    rescues
-                ON
-                    variants.vid = rescues.vid
+                    variants_batch
+                    
+                LEFT JOIN vals_wide ON variants_batch.vid = vals_wide.vid
+                LEFT JOIN info_wide ON variants_batch.vid = info_wide.vid
+                LEFT JOIN hgnc_v ON variants_batch.vid = hgnc_v.vid
+                LEFT JOIN vep ON variants_batch.vid = vep.vid
+                LEFT JOIN oncogene_tsg ON variants_batch.vid = oncogene_tsg.vid
+                LEFT JOIN rescues ON variants_batch.vid = rescues.vid
             ),
             summarized AS (
                 SELECT
@@ -1052,7 +1281,7 @@ def make_variants_enriched(
                                 vid,
                                 lower(unnest(filters)) AS filter_val
                             FROM
-                            variants
+                            variants_batch
                         )
                         WHERE
                             filter_val = 'clustered_events'
@@ -1093,79 +1322,9 @@ def make_somatic_variants(db: duckdb.DuckDBPyConnection) -> None:
     :param db: DuckDB database connection
     """
 
-    logging.info("Making somatic_variants")
+    logging.info("Populating somatic_variants")
 
-    db.sql("""
-        CREATE TABLE IF NOT EXISTS somatic_variants (
-            sample_id VARCHAR,
-            chrom VARCHAR,
-            pos UINTEGER,
-            ref VARCHAR,
-            alt VARCHAR,
-            af DECIMAL(),
-            alt_count UINTEGER,
-            am_class VARCHAR,
-            am_pathogenicity FLOAT,
-            brca1_func_score FLOAT,
-            civic_description VARCHAR,
-            civic_id VARCHAR,
-            civic_score FLOAT,
-            cosmic_tier UINTEGER,
-            dbsnp_rs_id VARCHAR,
-            dna_change VARCHAR,
-            dp USMALLINT,
-            ensembl_feature_id VARCHAR,
-            ensembl_gene_id VARCHAR,
-            exon VARCHAR,
-            gc_content FLOAT,
-            gnomade_af FLOAT,
-            gnomadg_af FLOAT,
-            gt VARCHAR,
-            gtex_gene VARCHAR,
-            gwas_disease VARCHAR,
-            gwas_pmid VARCHAR,
-            hess_driver BOOLEAN,
-            hess_signature VARCHAR,
-            hgnc_family VARCHAR,
-            hgnc_name VARCHAR,
-            hugo_symbol VARCHAR,
-            intron VARCHAR,
-            lof VARCHAR,
-            molecular_consequence VARCHAR,
-            nmd VARCHAR,
-            oncogene_high_impact BOOLEAN,
-            oncokb_effect VARCHAR,
-            oncokb_hotspot BOOLEAN,
-            oncokb_oncogenic VARCHAR,
-            pharmgkb_id VARCHAR,
-            polyphen VARCHAR,
-            protein_change VARCHAR,
-            provean_prediction VARCHAR,
-            ps UINTEGER,
-            ref_count UINTEGER,
-            rescue BOOLEAN,
-            revel_score FLOAT,
-            sift VARCHAR,
-            transcript_likely_lof VARCHAR,
-            tumor_suppressor_high_impact BOOLEAN,
-            uniprot_id VARCHAR,
-            variant_info VARCHAR,
-            variant_type VARCHAR,
-            vep_biotype VARCHAR,
-            vep_clin_sig VARCHAR,
-            vep_ensp VARCHAR,
-            vep_existing_variation VARCHAR,
-            vep_hgnc_id VARCHAR,
-            vep_impact VARCHAR,
-            vep_loftool FLOAT,
-            vep_mane_select VARCHAR,
-            vep_pli_gene_value FLOAT,
-            vep_somatic VARCHAR,
-            vep_swissprot VARCHAR
-        )
-    """)
-
-    db.sql("""
+    db.sql(f"""
         INSERT INTO
             somatic_variants
         BY NAME (
@@ -1237,22 +1396,34 @@ def make_somatic_variants(db: duckdb.DuckDBPyConnection) -> None:
                 rescue: rescued
             FROM
                 variants_enriched
+            
             LEFT JOIN
                 transcript_likely_lof_v
             ON
                 variants_enriched.vid = transcript_likely_lof_v.vid
+            
             LEFT JOIN
                 hgnc_v
             ON
                 variants_enriched.vid = hgnc_v.vid
-            WHERE
-                somatic
+            
+            WHERE somatic
+            
             ORDER BY
                 replace(replace(chrom[4:], 'X', '23'), 'Y', '24')::INTEGER,
                 pos,
                 alt
         )
     """)
+
+
+def get_somatic_variants_as_df(db: duckdb.DuckDBPyConnection) -> pd.DataFrame:
+    """
+    Retrieve somatic variants from the database as a pandas DataFrame.
+
+    :param db: DuckDB database connection
+    :returns: A pandas DataFrame containing somatic variants with all annotations
+    """
 
     # if we end up with duplicate variants, we must have introduced a fan trap due to a
     # missing `group by` somewhere
@@ -1275,15 +1446,6 @@ def make_somatic_variants(db: duckdb.DuckDBPyConnection) -> None:
 
     if len(dups) > 0:
         raise ValueError(f"{len(dups)} duplicate variants in final result set:\n{dups}")
-
-
-def get_somatic_variants_as_df(db: duckdb.DuckDBPyConnection) -> pd.DataFrame:
-    """
-    Retrieve somatic variants from the database as a pandas DataFrame.
-
-    :param db: DuckDB database connection
-    :returns: A pandas DataFrame containing somatic variants with all annotations
-    """
 
     return (
         db.table("somatic_variants")

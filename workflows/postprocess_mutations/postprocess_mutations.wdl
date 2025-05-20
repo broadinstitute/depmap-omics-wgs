@@ -5,6 +5,7 @@ workflow postprocess_mutations {
         String workflow_version = "1.0"
         String workflow_source_url # populated automatically with URL of this script
 
+        String sample_id
         Array[File] duckdb
         Float min_af = 0.15
         Int min_depth = 5
@@ -14,6 +15,7 @@ workflow postprocess_mutations {
 
     call postprocess {
         input:
+            sample_id = sample_id,
             duckdb = duckdb,
             min_af = min_af,
             min_depth = min_depth,
@@ -22,28 +24,31 @@ workflow postprocess_mutations {
     }
 
     output {
+        File mut_enriched_variants = postprocess.enriched_variants
         File mut_somatic_variants = postprocess.somatic_variants
     }
 }
 
 task postprocess {
     input {
+        String sample_id
         Array[File] duckdb
         Float min_af
         Int min_depth
         Float max_pop_af
         Float max_brca1_func_assay_score
+        Int batch_size = 100000
 
         String docker_image
         String docker_image_hash_or_tag
         Int mem_gb = 16
-        Int cpu = 2
+        Int cpu = 4
         Int preemptible = 2
-        Int max_retries = 2
+        Int max_retries = 0
         Int additional_disk_gb = 0
     }
 
-    Int disk_space = ceil(3 * size(duckdb, "GiB")) + 10 + additional_disk_gb
+    Int disk_space = ceil(10 * size(duckdb, "GiB")) + 20 + additional_disk_gb
 
     command <<<
         set -euo pipefail
@@ -51,19 +56,25 @@ task postprocess {
         mkdir -p parq
         mv ~{sep=" " duckdb} parq/
 
-        python -m annotate_mutations_postprocess duckdb-to-maf \
+        mkdir -p db_tmp
+
+        python -m annotate_mutations_postprocess get-somatic-variants \
             --db="tmp.duckdb" \
             --parquet-dir="./parq" \
-            --out-file="somatic_variants.parquet" \
+            --variants-enriched-out-file="~{sample_id}.enriched_variants.parquet" \
+            --somatic-variants-out-file="~{sample_id}.somatic_variants.parquet" \
+            --db-tmp-dir-path="./db_tmp/" \
+            --sample-id="~{sample_id}" \
             --min-af=~{min_af} \
             --min-depth=~{min_depth} \
             --max-pop-af=~{max_pop_af} \
-            --max-brca1-func-assay-score=~{max_brca1_func_assay_score}
-
+            --max-brca1-func-assay-score=~{max_brca1_func_assay_score} \
+            --batch-size=~{batch_size}
     >>>
 
     output {
-        File somatic_variants = "somatic_variants.parquet"
+        File enriched_variants = "~{sample_id}.enriched_variants.parquet"
+        File somatic_variants = "~{sample_id}.somatic_variants.parquet"
     }
 
     runtime {

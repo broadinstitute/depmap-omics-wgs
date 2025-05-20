@@ -75,6 +75,7 @@ def get_somatic_variants(
     min_depth: Annotated[int, typer.Option()] = 5,
     max_pop_af: Annotated[float, typer.Option()] = 1e-05,
     max_brca1_func_assay_score: Annotated[float, typer.Option()] = -1.328,
+    batch_size: Annotated[int, typer.Option()] = 1000000,
 ) -> None:
     postprocess_utils.get_somatic_variants(
         db_path=db,
@@ -87,6 +88,7 @@ def get_somatic_variants(
         min_depth=min_depth,
         max_pop_af=max_pop_af,
         max_brca1_func_assay_score=max_brca1_func_assay_score,
+        batch_size=batch_size,
     )
 
 

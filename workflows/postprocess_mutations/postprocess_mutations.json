@@ -7,7 +7,8 @@
     "postprocess_mutations.min_af": "0.15",
     "postprocess_mutations.min_depth": "5",
     "postprocess_mutations.postprocess.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/annotate-mutations-postprocess\"",
-    "postprocess_mutations.postprocess.docker_image_hash_or_tag": "\":production\""
+    "postprocess_mutations.postprocess.docker_image_hash_or_tag": "\":production\"",
+    "postprocess_mutations.sample_id": "this.sample_id"
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
@@ -18,6 +19,7 @@
   "namespace": "cds-pipelines",
   "name": "postprocess_mutations",
   "outputs": {
+    "postprocess_mutations.mut_enriched_variants": "this.mut_enriched_variants",
     "postprocess_mutations.mut_somatic_variants": "this.mut_somatic_variants"
   },
   "rootEntityType": "sample"

@@ -8,7 +8,7 @@ from pandas.testing import assert_frame_equal
 import duckdb
 from annotate_mutations_postprocess.postprocess_utils import (
     get_somatic_variants_as_df,
-    make_views,
+    make_views_and_tables,
 )
 
 somatic_variant_dtypes = {
@@ -134,7 +134,7 @@ def db(db_setup: duckdb.DuckDBPyConnection) -> Generator:
 @pytest.mark.usefixtures("db_setup")
 class Test:
     def test_noop(self, db: duckdb.DuckDBPyConnection) -> None:
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
         expected = pd.DataFrame(
@@ -190,7 +190,7 @@ class TestFilter:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -310,7 +310,7 @@ class TestRescue:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -486,7 +486,7 @@ class TestRescue:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -593,7 +593,7 @@ class TestRescue:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -702,7 +702,7 @@ class TestRescue:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -811,7 +811,7 @@ class TestRescue:
             );
         """)
 
-        make_views(db, sample_id="sid", max_brca1_func_assay_score=-1.328)
+        make_views_and_tables(db, sample_id="sid", max_brca1_func_assay_score=-1.328)
 
         observed = get_somatic_variants_as_df(db)
 
@@ -932,7 +932,7 @@ class TestRescue:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -1053,7 +1053,7 @@ class TestRescue:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -1160,7 +1160,7 @@ class TestRescue:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -1267,7 +1267,7 @@ class TestRescue:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -1374,7 +1374,7 @@ class TestRescue:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -1494,7 +1494,7 @@ class TestFilteredVids:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -1611,7 +1611,7 @@ class TestFilteredVids:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -1720,7 +1720,7 @@ class TestFilteredVids:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -1846,7 +1846,7 @@ class TestFilteredVids:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -1977,7 +1977,7 @@ class TestFilteredVids:
             )
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -2082,7 +2082,7 @@ class TestColumns:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -2190,7 +2190,7 @@ class TestColumns:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -2366,7 +2366,7 @@ class TestColumns:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -2502,7 +2502,7 @@ class TestColumns:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -2610,7 +2610,7 @@ class TestColumns:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -2718,7 +2718,7 @@ class TestColumns:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
@@ -2838,7 +2838,7 @@ class TestColumns:
             );
         """)
 
-        make_views(db, sample_id="sid")
+        make_views_and_tables(db, sample_id="sid")
 
         observed = get_somatic_variants_as_df(db)
 
