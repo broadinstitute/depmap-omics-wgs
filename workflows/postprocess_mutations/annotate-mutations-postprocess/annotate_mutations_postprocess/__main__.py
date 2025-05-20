@@ -6,7 +6,7 @@ from typing import Annotated
 import pandas as pd
 import typer
 
-from annotate_mutations_postprocess.maf import get_somatic_variants
+import annotate_mutations_postprocess.postprocess_utils as postprocess_utils
 
 pd.set_option("display.max_columns", 30)
 pd.set_option("display.max_colwidth", 50)
@@ -64,7 +64,7 @@ def main():
 
 
 @app.command()
-def duckdb_to_maf(
+def get_somatic_variants(
     sample_id: Annotated[str, typer.Option()],
     db: Annotated[Path, typer.Option()],
     parquet_dir: Annotated[Path, typer.Option()],
@@ -76,7 +76,7 @@ def duckdb_to_maf(
     max_pop_af: Annotated[float, typer.Option()] = 1e-05,
     max_brca1_func_assay_score: Annotated[float, typer.Option()] = -1.328,
 ) -> None:
-    get_somatic_variants(
+    postprocess_utils.get_somatic_variants(
         db_path=db,
         parquet_dir_path=parquet_dir,
         variants_enriched_out_file_path=variants_enriched_out_file,

@@ -6,9 +6,12 @@ import pytest
 from pandas.testing import assert_frame_equal
 
 import duckdb
-from annotate_mutations_postprocess.maf import get_somatic_variants_as_df, make_views
+from annotate_mutations_postprocess.postprocess_utils import (
+    get_somatic_variants_as_df,
+    make_views,
+)
 
-maf_dtypes = {
+somatic_variant_dtypes = {
     "sample_id": "string",
     "chrom": "string",
     "pos": "UInt32",
@@ -136,8 +139,8 @@ class Test:
         observed = get_somatic_variants_as_df(db)
         expected = pd.DataFrame(
             [],
-            columns=list(maf_dtypes.keys()),  # pyright: ignore
-        ).astype(maf_dtypes)
+            columns=list(somatic_variant_dtypes.keys()),  # pyright: ignore
+        ).astype(somatic_variant_dtypes)
         assert_frame_equal(observed, expected)
 
 
@@ -261,7 +264,7 @@ class TestFilter:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -448,7 +451,7 @@ class TestRescue:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -557,7 +560,7 @@ class TestRescue:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -664,7 +667,7 @@ class TestRescue:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -773,7 +776,7 @@ class TestRescue:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -882,7 +885,7 @@ class TestRescue:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -1003,7 +1006,7 @@ class TestRescue:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -1124,7 +1127,7 @@ class TestRescue:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -1231,7 +1234,7 @@ class TestRescue:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -1338,7 +1341,7 @@ class TestRescue:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -1445,7 +1448,7 @@ class TestRescue:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -1565,7 +1568,7 @@ class TestFilteredVids:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -1682,7 +1685,7 @@ class TestFilteredVids:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -1791,7 +1794,7 @@ class TestFilteredVids:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -1917,7 +1920,7 @@ class TestFilteredVids:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -2048,7 +2051,7 @@ class TestFilteredVids:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -2153,7 +2156,7 @@ class TestColumns:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -2261,7 +2264,7 @@ class TestColumns:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -2437,7 +2440,7 @@ class TestColumns:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -2573,7 +2576,7 @@ class TestColumns:
                     "vep_swissprot": "O60447.171",
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -2681,7 +2684,7 @@ class TestColumns:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -2789,7 +2792,7 @@ class TestColumns:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
 
@@ -2976,6 +2979,6 @@ class TestColumns:
                     "vep_swissprot": None,
                 },
             ]
-        ).astype(maf_dtypes)
+        ).astype(somatic_variant_dtypes)
 
         assert_frame_equal(observed, expected)
