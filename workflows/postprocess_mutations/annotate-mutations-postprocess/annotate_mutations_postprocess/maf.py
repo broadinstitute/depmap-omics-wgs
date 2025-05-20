@@ -2,8 +2,9 @@ import logging
 import os
 from pathlib import Path
 
-import duckdb
 import pandas as pd
+
+import duckdb
 
 
 def get_somatic_variants(
@@ -11,6 +12,7 @@ def get_somatic_variants(
     parquet_dir_path: Path,
     somatic_variants_out_file_path: Path,
     variants_enriched_out_file_path: Path | None,
+    db_tmp_dir_path: Path,
     sample_id: str,
     min_af: float = 0.15,
     min_depth: int = 5,
@@ -25,13 +27,14 @@ def get_somatic_variants(
     and tables in the database, filters variants based on quality criteria, and exports
     the resulting somatic/rescued variants to a Parquet file.
 
-    :param sample_id: the sample ID
     :param db_path: Path to the DuckDB database file
     :param parquet_dir_path: Directory containing Parquet files to import
     :param variants_enriched_out_file_path: Output file path for a wide file of all
     variants (in Parquet format)
     :param somatic_variants_out_file_path: Output file path for the somatic variants
     file (in Parquet format)
+    :param db_tmp_dir_path: path to a temporary directory to use for DuckDB offloading
+    :param sample_id: the sample ID
     :param min_af: Minimum allele frequency threshold for variant filtering
     :param min_depth: Minimum read depth threshold for variant filtering
     :param max_pop_af: Maximum population allele frequency for variant filtering
@@ -46,19 +49,39 @@ def get_somatic_variants(
         pass
 
     with duckdb.connect(db_path) as db:
+        # set some misc. DuckDB settings
+        db.execute(f"PRAGMA temp_directory='{db_tmp_dir_path.name}'")
+        db.execute("SET preserve_insertion_order = false;")
+
         logging.info(f"Reading schema and Parquet files from {parquet_dir_path}")
         db.sql(f"IMPORT DATABASE '{parquet_dir_path}'")
 
+        # make views and tables
         make_views(
             db, sample_id, min_af, min_depth, max_pop_af, max_brca1_func_assay_score
         )
 
         if variants_enriched_out_file_path is not None:
-            db.table("variants_enriched").to_parquet(
-                file_name=variants_enriched_out_file_path.name,
-                overwrite=True,
+            # write wide version of all quality variants to parquet
+            logging.info(
+                f"Writing enriched variants to {variants_enriched_out_file_path}"
             )
+            db.sql(f"""
+                COPY
+                    variants_enriched
+                TO
+                    '{variants_enriched_out_file_path}'
+                (
+                    OVERWRITE,
+                    FORMAT parquet,
+                    COMPRESSION zstd,
+                    COMPRESSION_LEVEL 22
+                )
+            """)
 
+        # write the somatic variants to parquet
+        # (via data frame to ensure backwards-compatible dtypes)
+        logging.info(f"Writing somatic variants to {somatic_variants_out_file_path}")
         somatic_variants = get_somatic_variants_as_df(db)
         somatic_variants.to_parquet(somatic_variants_out_file_path, index=False)
 
@@ -86,25 +109,94 @@ def make_views(
     :param max_brca1_func_assay_score: Maximum BRCA1 functional assay score for variants
     """
 
+    # delete lowest quality variants
+    delete_low_quality_variants(db, min_af, min_depth)
+
     # separate vals_info table into two views
     make_vals_info_views(db)
 
     # convert vals to wide view
-    make_vals_wide_view(db)
+    make_vals_wide(db)
 
-    # make views for all filters and global filter for high-quality variants
-    make_filters_view(db)
-    make_quality_vids_view(db, min_af, min_depth)
+    # make views and tables to support somatic variant filtering
+    make_info_wide(db)
+    make_transcript_likely_lof(db)
+    make_hgnc(db)
+    make_vep(db)
+    make_oncogene_tsg(db)
+    make_rescues(db, max_brca1_func_assay_score)
+    make_variants_enriched(db, sample_id, max_pop_af)
+    make_somatic_variants(db)
 
-    # all views/queries after this point should filter on quality_vids
-    make_info_wide_view(db)
-    make_transcript_likely_lof_view(db)
-    make_hgnc_view(db)
-    make_vep_table(db)
-    make_oncogene_tsg_view(db)
-    make_rescues_view(db, max_brca1_func_assay_score)
-    make_variants_enriched_table(db, sample_id, max_pop_af)
-    make_somatic_variants_table(db)
+
+def delete_low_quality_variants(
+    db: duckdb.DuckDBPyConnection, min_af: float, min_depth: int
+) -> None:
+    """
+    Delete variants based on allele frequency, read depth, and collected filters.
+
+    :param db: DuckDB database connection
+    :param min_af: Minimum allele frequency threshold
+    :param min_depth: Minimum read depth threshold
+    """
+
+    logging.info("Deleting low quality variants")
+
+    db.sql(rf"""
+        CREATE OR REPLACE VIEW low_quality_vids AS (
+            SELECT DISTINCT
+                vid
+            FROM
+                vals_info
+            WHERE (
+                kind = 'val'
+                AND k = 'af'
+                AND v_float < {min_af}
+            )
+            OR (
+                kind = 'val'
+                AND k = 'dp'
+                AND v_integer < {min_depth}
+            )
+            OR vid IN (
+                SELECT
+                    vid
+                FROM (
+                    SELECT
+                        vid,
+                        unnest(
+                            str_split_regex(lower(v_varchar), '\s*\|\s*')
+                        ) AS filter_val
+                    FROM
+                        vals_info
+                    WHERE
+                        kind = 'info'
+                        AND k = 'as_filter_status'
+                    UNION
+                    SELECT
+                        vid,
+                        lower(unnest(filters)) AS filter_val
+                    FROM
+                        variants
+                )
+                WHERE filter_val IN (
+                    'multiallelic',
+                    'map_qual',
+                    'slippage',
+                    'strand_bias',
+                    'weak_evidence', 
+                    'base_qual'
+                )
+            )
+        )
+    """)
+
+    db.sql("""
+        DELETE FROM vals_info WHERE vid in (SELECT vid FROM low_quality_vids);
+        DELETE FROM variants WHERE vid in (SELECT vid FROM low_quality_vids);
+    """)
+
+    db.sql("DROP VIEW IF EXISTS low_quality_vids")
 
 
 def make_vals_info_views(db: duckdb.DuckDBPyConnection) -> None:
@@ -139,7 +231,7 @@ def make_vals_info_views(db: duckdb.DuckDBPyConnection) -> None:
     """)
 
 
-def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
+def make_vals_wide(db: duckdb.DuckDBPyConnection) -> None:
     """
     Create a wide view of data from the vals view.
 
@@ -149,10 +241,12 @@ def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
     :param db: DuckDB database connection
     """
 
-    logging.info("Making vals_wide view")
+    logging.info("Making vals_wide")
 
     db.sql("""
-        CREATE OR REPLACE VIEW vals_wide AS (
+        DROP TABLE IF EXISTS vals_wide;
+        
+        CREATE TABLE vals_wide AS (
             SELECT
                 DISTINCT vals.vid,
                 ref_count: t_ad.ad[1],
@@ -217,102 +311,7 @@ def make_vals_wide_view(db: duckdb.DuckDBPyConnection) -> None:
     """)
 
 
-def make_filters_view(db: duckdb.DuckDBPyConnection) -> None:
-    """
-    Create a view of variant filters from the variants and info tables.
-
-    :param db: DuckDB database connection
-    """
-
-    logging.info("Making filters view")
-
-    db.sql("""
-        CREATE OR REPLACE VIEW filters AS (
-            WITH variant_filters AS (
-                SELECT
-                    vid,
-                    filter: unnest(filters)
-                FROM
-                    variants
-            ),
-            as_filters AS (
-                SELECT
-                    vid,
-                    filter: unnest(str_split_regex(v_varchar, '\\s*\\|\\s*'))
-                FROM
-                    info
-                WHERE
-                    k = 'as_filter_status'
-            )
-            SELECT
-                vid,
-                filter: lower(filter)
-            FROM
-                variant_filters
-            UNION
-            SELECT
-                vid,
-                filter: lower(filter)
-            FROM
-                as_filters
-        )
-    """)
-
-
-def make_quality_vids_view(
-    db: duckdb.DuckDBPyConnection, min_af: float, min_depth: int
-) -> None:
-    """
-    Create a view of high-quality variant IDs based on filtering criteria.
-
-    Filters variants based on allele frequency and read depth, and absence of certain
-    filters.
-
-    :param db: DuckDB database connection
-    :param min_af: Minimum allele frequency threshold
-    :param min_depth: Minimum read depth threshold
-    """
-
-    logging.info("Making quality_vids view")
-
-    db.sql(f"""
-        CREATE OR REPLACE VIEW quality_vids AS (
-            SELECT
-                vid
-            FROM
-                variants
-            WHERE
-                vid IN (
-                    SELECT
-                        vid
-                    FROM
-                        vals_wide
-                    WHERE
-                        vals_wide.af >= {min_af}
-                        AND
-                        vals_wide.dp >= {min_depth}
-                )
-                AND
-                vid NOT IN (
-                    SELECT
-                        vid
-                    FROM
-                        filters
-                    WHERE
-                        filter IN (
-                            'multiallelic',
-                            'map_qual',
-                            'slippage',
-                            'strand_bias',
-                            'weak_evidence',
-                            'base_qual'
-                        )
-                )
-        )
-    """)
-
-
-def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
+def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
     """
     Create a wide view of variant information from the info table.
 
@@ -323,10 +322,12 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
     :param db: DuckDB database connection
     """
 
-    logging.info("Making info_wide view")
+    logging.info("Making info_wide")
 
     db.sql("""
-        CREATE OR REPLACE VIEW info_wide AS (
+        DROP TABLE IF EXISTS info_wide;
+        
+        CREATE TABLE info_wide AS (
             SELECT
                 DISTINCT info.vid,
                 t_oc_brca1_func_assay_score.oc_brca1_func_assay_score,
@@ -587,13 +588,11 @@ def make_info_wide_view(db: duckdb.DuckDBPyConnection) -> None:
                 WHERE
                     k = 'oncokb_oncogenic'
             ) t_oncokb_oncogenic ON info.vid = t_oncokb_oncogenic.vid
-
-            WHERE info.vid IN (SELECT vid FROM quality_vids)
         )
     """)
 
 
-def make_transcript_likely_lof_view(db: duckdb.DuckDBPyConnection) -> None:
+def make_transcript_likely_lof(db: duckdb.DuckDBPyConnection) -> None:
     """
     Create a view of transcripts likely to have loss-of-function (LoF) variants.
 
@@ -603,7 +602,7 @@ def make_transcript_likely_lof_view(db: duckdb.DuckDBPyConnection) -> None:
     :param db: DuckDB database connection
     """
 
-    logging.info("Making transcript_likely_lof_v view")
+    logging.info("Making transcript_likely_lof_v")
 
     db.sql("""
         CREATE OR REPLACE VIEW transcript_likely_lof_v AS (
@@ -617,8 +616,6 @@ def make_transcript_likely_lof_view(db: duckdb.DuckDBPyConnection) -> None:
                     info
                 WHERE
                     k = 'oc_revel_all'
-                    AND
-                    vid IN (SELECT vid FROM quality_vids)
             ),
             split_to_cols AS (
                 SELECT
@@ -640,14 +637,14 @@ def make_transcript_likely_lof_view(db: duckdb.DuckDBPyConnection) -> None:
     """)
 
 
-def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
+def make_hgnc(db: duckdb.DuckDBPyConnection) -> None:
     """
     Create a view of HGNC identifiers.
 
     :param db: DuckDB database connection
     """
 
-    logging.info("Making hgnc_v view")
+    logging.info("Making hgnc_v")
 
     db.sql("""
         CREATE OR REPLACE VIEW hgnc_v AS (
@@ -659,8 +656,6 @@ def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
                     info
                 WHERE
                     k = 'hgnc_name'
-                    AND
-                    vid IN (SELECT vid FROM quality_vids)
             ),
             hgnc_name_concat AS (
                 SELECT
@@ -679,8 +674,6 @@ def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
                     info
                 WHERE
                     k = 'hgnc_group'
-                    AND
-                    vid IN (SELECT vid FROM quality_vids)
             ),
             hgnc_group_concat AS (
                 SELECT
@@ -705,7 +698,7 @@ def make_hgnc_view(db: duckdb.DuckDBPyConnection) -> None:
     """)
 
 
-def make_vep_table(db: duckdb.DuckDBPyConnection) -> None:
+def make_vep(db: duckdb.DuckDBPyConnection) -> None:
     """
     Create a table of Variant Effect Predictor (VEP) annotations.
 
@@ -715,7 +708,7 @@ def make_vep_table(db: duckdb.DuckDBPyConnection) -> None:
     :param db: DuckDB database connection
     """
 
-    logging.info("Making vep table")
+    logging.info("Making vep")
 
     # this is a physical table due to the relative slowness of the `vep_exploded` CTE
     # and the fact it gets queried several times later
@@ -758,12 +751,7 @@ def make_vep_table(db: duckdb.DuckDBPyConnection) -> None:
                             "variant_class": "VARCHAR"
                         }'
                     )
-                FROM
-                    info
-                WHERE
-                    k = 'csq'
-                    AND
-                    vid IN (SELECT vid FROM quality_vids)
+                FROM info WHERE k = 'csq'
             )
             SELECT
                 vid,
@@ -800,7 +788,7 @@ def make_vep_table(db: duckdb.DuckDBPyConnection) -> None:
     """)
 
 
-def make_oncogene_tsg_view(db: duckdb.DuckDBPyConnection) -> None:
+def make_oncogene_tsg(db: duckdb.DuckDBPyConnection) -> None:
     """
     Create a view of oncogene and tumor suppressor gene (TSG) information.
 
@@ -811,7 +799,7 @@ def make_oncogene_tsg_view(db: duckdb.DuckDBPyConnection) -> None:
     :param db: DuckDB database connection
     """
 
-    logging.info("Making oncogene_tsg view")
+    logging.info("Making oncogene_tsg")
 
     db.sql("""
         CREATE OR REPLACE VIEW oncogene_tsg AS (
@@ -851,7 +839,7 @@ def make_oncogene_tsg_view(db: duckdb.DuckDBPyConnection) -> None:
     """)
 
 
-def make_rescues_view(
+def make_rescues(
     db: duckdb.DuckDBPyConnection, max_brca1_func_assay_score: float
 ) -> None:
     """
@@ -866,10 +854,12 @@ def make_rescues_view(
     :param max_brca1_func_assay_score: Maximum BRCA1 functional assay score for variants
     """
 
-    logging.info("Making rescues view")
+    logging.info("Making rescues")
 
     db.sql(f"""
-        CREATE OR REPLACE VIEW rescues AS (
+        DROP TABLE IF EXISTS rescues;
+        
+        CREATE TABLE rescues AS (
             WITH rescue_reasons AS (
                 SELECT
                     vid,
@@ -931,11 +921,7 @@ def make_rescues_view(
                             AND
                             vep.symbol = 'MET'
                     )
-                FROM
-                    info_wide
-                WHERE
-                    -- variant must still pass basic quality filters
-                    vid IN (SELECT vid FROM quality_vids)
+                FROM info_wide
             )
             SELECT
                 *,
@@ -957,7 +943,7 @@ def make_rescues_view(
     """)
 
 
-def make_variants_enriched_table(
+def make_variants_enriched(
     db: duckdb.DuckDBPyConnection, sample_id: str, max_pop_af: float
 ) -> None:
     """
@@ -974,7 +960,7 @@ def make_variants_enriched_table(
     :param max_pop_af: Maximum population allele frequency
     """
 
-    logging.info("Making variants_enriched view")
+    logging.info("Making variants_enriched")
 
     db.sql(f"""
         DROP TABLE IF EXISTS variants_enriched;
@@ -1041,8 +1027,6 @@ def make_variants_enriched_table(
                     rescues
                 ON
                     variants.vid = rescues.vid
-                WHERE
-                    variants.vid IN (SELECT vid FROM quality_vids)
             ),
             summarized AS (
                 SELECT
@@ -1059,10 +1043,15 @@ def make_variants_enriched_table(
                     in_clustered_event: vid IN (
                         SELECT
                             vid
-                        FROM
-                            filters
+                        FROM (
+                            SELECT
+                                vid,
+                                lower(unnest(filters)) AS filter_val
+                            FROM
+                            variants
+                        )
                         WHERE
-                            filter = 'clustered_events'
+                            filter_val = 'clustered_events'
                     ),
                     low_pop_prevalence: (
                         coalesce(vep_gnom_ade_af, 0) <= {max_pop_af}
@@ -1090,7 +1079,7 @@ def make_variants_enriched_table(
     """)
 
 
-def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
+def make_somatic_variants(db: duckdb.DuckDBPyConnection) -> None:
     """
     Create a table of somatic variants with all annotations.
 
@@ -1100,7 +1089,7 @@ def make_somatic_variants_table(db: duckdb.DuckDBPyConnection) -> None:
     :param db: DuckDB database connection
     """
 
-    logging.info("Making somatic_variants table")
+    logging.info("Making somatic_variants")
 
     db.sql("""
         CREATE TABLE IF NOT EXISTS somatic_variants (

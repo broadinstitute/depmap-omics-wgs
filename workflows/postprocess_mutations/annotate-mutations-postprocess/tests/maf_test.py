@@ -1,11 +1,11 @@
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from typing import Generator
 
-import duckdb
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 
+import duckdb
 from annotate_mutations_postprocess.maf import get_somatic_variants_as_df, make_views
 
 maf_dtypes = {
