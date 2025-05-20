@@ -64,7 +64,8 @@ def get_somatic_variants(
         if variants_enriched_out_file_path is not None:
             # write wide version of all quality variants to parquet
             logging.info(
-                f"Writing enriched variants to {variants_enriched_out_file_path}"
+                f"Writing {db.table('variants_enriched').count('*').fetchone()[0]}"
+                f" enriched variants to {variants_enriched_out_file_path}"
             )
             db.sql(f"""
                 COPY
@@ -81,8 +82,11 @@ def get_somatic_variants(
 
         # write the somatic variants to parquet
         # (via data frame to ensure backwards-compatible dtypes)
-        logging.info(f"Writing somatic variants to {somatic_variants_out_file_path}")
         somatic_variants = get_somatic_variants_as_df(db)
+        logging.info(
+            f"Writing {somatic_variants.shape[0]} somatic variants"
+            f" to {somatic_variants_out_file_path}"
+        )
         somatic_variants.to_parquet(somatic_variants_out_file_path, index=False)
 
 
