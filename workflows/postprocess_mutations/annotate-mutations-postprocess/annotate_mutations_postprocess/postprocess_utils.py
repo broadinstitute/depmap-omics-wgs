@@ -44,8 +44,6 @@ def get_somatic_variants(
     :param batch_size: number of variants to process at a time
     """
 
-    logging.info("Annotating VCF")
-
     try:
         os.remove(db_path)
     except OSError:
@@ -56,7 +54,7 @@ def get_somatic_variants(
         db.execute(f"PRAGMA temp_directory='{db_tmp_dir_path.name}'")
         db.execute("SET preserve_insertion_order = false;")
 
-        # logging.info(f"Reading schema and Parquet files from {parquet_dir_path}")
+        logging.info(f"Reading schema and Parquet files from {parquet_dir_path}")
         db.sql(f"IMPORT DATABASE '{parquet_dir_path}'")
 
         # make views and tables
@@ -89,8 +87,8 @@ def get_somatic_variants(
                 )
             """)
 
-        # write the somatic variants to parquet
-        # (via data frame to ensure backwards-compatible dtypes)
+        # write the somatic variants to parquet (via data frame to ensure
+        # backwards-compatible dtypes)
         somatic_variants = get_somatic_variants_as_df(db)
         logging.info(
             f"Writing {somatic_variants.shape[0]} somatic variants"
@@ -157,7 +155,7 @@ def make_views_and_tables(
         # append batch to variants_enriched
         make_variants_enriched(db, sample_id, max_pop_af)
 
-    # populate somatic_variant from entire variants_enriched table
+    # populate somatic_variants from entire variants_enriched table
     make_somatic_variants(db)
 
 
