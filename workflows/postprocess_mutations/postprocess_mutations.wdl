@@ -37,13 +37,13 @@ task postprocess {
         Int min_depth
         Float max_pop_af
         Float max_brca1_func_assay_score
-        Int batch_size = 100000
+        Int batch_size = 500000
 
         String docker_image
         String docker_image_hash_or_tag
-        Int mem_gb = 16
-        Int cpu = 4
-        Int preemptible = 2
+        Int mem_gb = 32
+        Int cpu = 8
+        Int preemptible = 1
         Int max_retries = 0
         Int additional_disk_gb = 0
     }
