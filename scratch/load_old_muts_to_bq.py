@@ -1,7 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import pandas as pd
-from google.cloud import bigquery, storage
+from google.api_core.exceptions import NotFound
+from google.cloud import bigquery
 from nebelung.terra_workspace import TerraWorkspace
 
 pd.set_option("display.max_columns", 30)
@@ -26,7 +27,7 @@ samples = ws.get_entities("sample")
 eval_samples = samples.loc[
     :,
     ["sample_id", "wgs_cn_full_annotated_parquet"],
-].iloc[3:]
+]
 
 eval_samples.set_index("sample_id", inplace=True)
 
@@ -529,9 +530,7 @@ schema = [
 ]
 
 
-def upload_parquet_to_bq(dataset_id: str, table_name: str, gcs_uri: str):
-    table_id = f"{bq_client.project}.{dataset_id}.{table_name}"
-
+def upload_parquet_to_bq(table_id: str, gcs_uri: str):
     job_config = bigquery.LoadJobConfig(
         source_format=bigquery.SourceFormat.PARQUET,
         schema=schema,
@@ -546,16 +545,23 @@ def upload_parquet_to_bq(dataset_id: str, table_name: str, gcs_uri: str):
 
 
 with ThreadPoolExecutor(max_workers=4) as executor:
+    futures = []
+
     for sample_id, r in eval_samples["wgs_cn_full_annotated_parquet"].items():
-        futures = [
-            executor.submit(
-                upload_parquet_to_bq,
-                dataset_id="mut_eval",
-                table_name=sample_id.replace("-", "_"),
-                gcs_uri=f,
+        table_name = sample_id.replace("-", "_")
+        table_id = f"{bq_client.project}.mut_eval.{table_name}"
+
+        try:
+            bq_client.get_table(table_id)
+            print(f"Table {table_id} already exists. Skipping upload.")
+            continue
+        except NotFound:
+            pass
+
+        for f in r["items"]:
+            futures.append(
+                executor.submit(upload_parquet_to_bq, table_id=table_id, gcs_uri=f)
             )
-            for f in r["items"]
-        ]
 
     for future in as_completed(futures):
         try:
