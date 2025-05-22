@@ -454,3 +454,49 @@ job_config = bigquery.QueryJobConfig(
 print(f"Inserting into diff")
 query_job = client.query(query, job_config=job_config)
 query_job.result()
+
+# get old data for only_old (e.g. variants uncalled in new)
+"""
+SELECT cast(chrom AS STRING) as chrom,
+cast(pos AS INT64) as pos,
+cast(ref AS STRING) as ref,
+cast(alt AS STRING) as alt,
+cast(af AS FLOAT64) as af,
+cast(dp AS INT64) as dp,
+cast(ref_count AS INT64) as ref_count,
+cast(alt_count AS INT64) as alt_count,
+cast(gt AS STRING) as gt,
+cast(ps AS INT64) as ps,
+cast(variant_type AS STRING) as variant_type,
+cast(variant_info AS STRING) as variant_info,
+cast(dna_change AS STRING) as dna_change,
+cast(protein_change AS STRING) as protein_change,
+cast(hugo_symbol AS STRING) as hugo_symbol,
+cast(hgnc_name AS STRING) as hgnc_name,
+cast(hgnc_family AS STRING) as hgnc_family,
+cast(vep_impact AS STRING) as vep_impact,
+cast(gnomade_af AS FLOAT64) as gnomade_af,
+cast(gnomadg_af AS FLOAT64) as gnomadg_af,
+cast(oncogene_high_impact AS BOOL) as oncogene_high_impact,
+cast(tumor_suppressor_high_impact AS BOOL) as tumor_suppressor_high_impact,
+cast(lof AS BOOL) as lof,
+cast(driver AS BOOL) as driver,
+cast(likely_driver AS BOOL) as likely_driver,
+cast(transcript_likely_lof AS STRING) as transcript_likely_lof,
+cast(brca1_func_score AS FLOAT64) as brca1_func_score,
+cast(civic_id AS FLOAT64) as civic_id,
+cast(civic_description AS STRING) as civic_description,
+cast(civic_score AS FLOAT64) as civic_score,
+cast(hess_driver AS BOOL) as hess_driver,
+cast(hess_signture AS STRING) as hess_signture,
+cast(cosmic_tier AS INT64) as cosmic_tier,
+cast(oncokb_effect AS STRING) as oncokb_effect,
+cast(oncokb_hotspot AS BOOL) as oncokb_hotspot,
+cast(oncokb_oncogenic AS STRING) as oncokb_oncogenic,
+cast(segdup AS BOOL) as segdup,
+cast(rm AS BOOL) as rm,
+cast(rescue AS BOOL) as rescue, 'CDS-69ogei' as sample_id FROM `depmap-omics.mut_eval.CDS_69ogei_somatic` where chrom='chr13' and pos=69882456
+union all
+SELECT cast(chrom AS STRING) as chrom,
+etc...
+"""
