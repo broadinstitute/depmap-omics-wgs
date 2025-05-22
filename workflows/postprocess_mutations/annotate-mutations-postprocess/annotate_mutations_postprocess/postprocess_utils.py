@@ -410,8 +410,7 @@ def make_supporting_tables(db: duckdb.DuckDBPyConnection) -> None:
             vep_swissprot VARCHAR,
             vep_symbol VARCHAR,
             vep_uniprot_isoform VARCHAR,
-            vep_variant_class VARCHAR,
-            vep_vid UINTEGER
+            vep_variant_class VARCHAR
         );
         
         DROP TABLE IF EXISTS somatic_variants;
@@ -1261,7 +1260,7 @@ def make_variants_enriched(
             ),
             summarized AS (
                 SELECT
-                    *,
+                    * EXCLUDE vep_vid,
                     impactful_splice_event: (
                         contains(vep_consequence, 'splice') AND
                         vep_impact IN ('HIGH', 'MODERATE')
