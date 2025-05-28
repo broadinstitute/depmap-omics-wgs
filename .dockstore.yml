@@ -1,0 +1,13 @@
+version: 1.2
+workflows:
+  - subclass: WDL
+    name: call_cnvs
+    readMePath: /workflows/call_cnvs/README.md
+    primaryDescriptorPath: /workflows/call_cnvs/call_cnvs.wdl
+    testParameterFiles:
+      - /workflows/call_cnvs/call_cnvs.json
+    filters:
+      branches:
+        - main
+        - dev
+    publish: True
