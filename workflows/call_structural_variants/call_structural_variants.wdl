@@ -6,35 +6,60 @@ workflow call_structural_variants {
         String workflow_source_url # populated automatically with URL of this script
 
         String sample_id
-        File bam
-        File bai
+        File tumor_bam
+        File tumor_bai
+        File? normal_bam
+        File? normal_bai
         File ref_fasta
         File ref_fasta_index
+        Boolean is_major_contigs_only = true
+
+        # from https://github.com/Illumina/manta/tree/master/docs/userGuide#extended-use-cases
+        File major_contig_bed = "gs://ccleparams/manta_major_contigs.bed.gz"
+        File major_contig_bed_index = "gs://ccleparams/manta_major_contigs.bed.gz.tbi"
     }
 
     call run_manta {
         input: sample_id = sample_id,
-            bam = bam,
-            bai = bai,
+            tumor_bam = tumor_bam,
+            tumor_bai = tumor_bai,
+            normal_bam = normal_bam,
+            normal_bai = normal_bai,
             ref_fasta = ref_fasta,
-            ref_fasta_index = ref_fasta_index
+            ref_fasta_index = ref_fasta_index,
+            major_contig_bed = major_contig_bed,
+            major_contig_bed_index = major_contig_bed_index,
+            is_major_contigs_only = is_major_contigs_only
     }
 
     output {
+        File? diploid_sv_vcf = run_manta.diploid_sv_vcf
+        File? diploid_sv_vcf_index = run_manta.diploid_sv_vcf_index
         File somatic_sv_vcf = run_manta.somatic_sv_vcf
         File somatic_sv_vcf_index = run_manta.somatic_sv_vcf_index
+        File candidate_sv_vcf = run_manta.candidate_sv_vcf
+        File candidate_sv_vcf_index = run_manta.candidate_sv_vcf_index
+        File candidate_indel_vcf = run_manta.candidate_indel_vcf
+        File candidate_indel_vcf_index = run_manta.candidate_indel_vcf_index
     }
 }
 
 task run_manta {
     input {
         String sample_id
-        File bam
-        File bai
+        File tumor_bam
+        File tumor_bai
+        File? normal_bam
+        File? normal_bai
         File ref_fasta
         File ref_fasta_index
+        File major_contig_bed
+        File major_contig_bed_index
+        Boolean is_major_contigs_only
+        String docker_image
+        String docker_image_hash_or_tag
 
-        Int preemptible = 2
+        Int preemptible = 1
         Int max_retries = 0
         Int cpu = 8
         Float mem_per_job_gb = 0.4
@@ -44,17 +69,38 @@ task run_manta {
     Float jobs_per_cpu = 1.3
     Int num_jobs = round(cpu * jobs_per_cpu)
     Int mem_gb = ceil(num_jobs * mem_per_job_gb)
-    Int disk_space = ceil(size(bam, "GiB")) + 10 + additional_disk_gb
+    Int disk_space = (
+        ceil(size(tumor_bam, "GiB") + size(normal_bam, "GiB") + size(ref_fasta, "GiB"))
+        + 10 + additional_disk_gb
+     )
 
     command <<<
+        set -euo pipefail
+        
         # link localized files to working dir
-        ln -vs "~{bam}" "~{basename(bam)}"
-        ln -vs "~{bai}" "~{basename(bai)}"
+        ln -vs "~{tumor_bam}" "~{basename(tumor_bam)}"
+        ln -vs "~{tumor_bai}" "~{basename(tumor_bai)}"
+
+        if [[ -f "~{normal_bam}" ]]; then
+            ln -vs "~{normal_bam}" "normal.bam"
+            ln -vs "~{normal_bai}" "normal.bai"
+            normal_command_line="--normalBam normal.bam"
+        fi
+
         ln -vs "~{ref_fasta}" "~{basename(ref_fasta)}"
         ln -vs "~{ref_fasta_index}" "~{basename(ref_fasta_index)}"
 
+        if [ "~{is_major_contigs_only}" = "true" ]
+        then
+            ln -vs "~{major_contig_bed}" "~{basename(major_contig_bed)}"
+            ln -vs "~{major_contig_bed_index}" "~{basename(major_contig_bed_index)}"
+            major_contig_line="--callRegions ~{basename(major_contig_bed)}"
+        fi
+
         configManta.py \
-            --tumorBam="~{basename(bam)}" \
+            --tumorBam="~{basename(tumor_bam)}" \
+            $normal_command_line \
+            $major_contig_line \
             --referenceFasta="~{basename(ref_fasta)}" \
             --runDir="."
 
@@ -66,21 +112,46 @@ task run_manta {
             --memGb=$((~{num_jobs} * 2)) \
             --quiet
 
-        mv results/variants/tumorSV.vcf.gz "~{sample_id}.somaticSV.vcf.gz"
-        mv results/variants/tumorSV.vcf.gz.tbi "~{sample_id}.somaticSV.vcf.gz.tbi"
+        if [[ -f "~{normal_bam}" ]]; then
+           mv results/variants/diploidSV.vcf.gz "~{sample_id}.diploidSV.vcf.gz"
+           mv results/variants/diploidSV.vcf.gz.tbi "~{sample_id}.diploidSV.vcf.gz.tbi"
+           mv results/variants/somaticSV.vcf.gz "~{sample_id}.somaticSV.vcf.gz"
+           mv results/variants/somaticSV.vcf.gz.tbi "~{sample_id}.somaticSV.vcf.gz.tbi"
+        else
+           touch "~{sample_id}.diploidSV.vcf.gz"
+           touch "~{sample_id}.diploidSV.vcf.gz.tbi"
+           mv results/variants/tumorSV.vcf.gz "~{sample_id}.somaticSV.vcf.gz"
+           mv results/variants/tumorSV.vcf.gz.tbi "~{sample_id}.somaticSV.vcf.gz.tbi"
+        fi
+
+        mv results/variants/candidateSV.vcf.gz "~{sample_id}.candidateSV.vcf.gz"
+        mv results/variants/candidateSV.vcf.gz.tbi "~{sample_id}.candidateSV.vcf.gz.tbi"
+        mv results/variants/candidateSmallIndels.vcf.gz "~{sample_id}.candidateSmallIndels.vcf.gz"
+        mv results/variants/candidateSmallIndels.vcf.gz.tbi "~{sample_id}.candidateSmallIndels.vcf.gz.tbi"
     >>>
 
     output {
+        File? diploid_sv_vcf = "~{sample_id}.diploidSV.vcf.gz"
+        File? diploid_sv_vcf_index = "~{sample_id}.diploidSV.vcf.gz.tbi"
         File somatic_sv_vcf = "~{sample_id}.somaticSV.vcf.gz"
         File somatic_sv_vcf_index = "~{sample_id}.somaticSV.vcf.gz.tbi"
+        File candidate_sv_vcf = "~{sample_id}.candidateSV.vcf.gz"
+        File candidate_sv_vcf_index = "~{sample_id}.candidateSV.vcf.gz.tbi"
+        File candidate_indel_vcf = "~{sample_id}.candidateSmallIndels.vcf.gz"
+        File candidate_indel_vcf_index = "~{sample_id}.candidateSmallIndels.vcf.gz.tbi"
+
     }
 
     runtime {
-        docker: "us-docker.pkg.dev/depmap-omics/public/manta:production"
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
         memory: "~{mem_gb} GiB"
         disks: "local-disk ~{disk_space} SSD"
         preemptible: preemptible
         maxRetries: max_retries
         cpu: cpu
+    }
+
+    meta {
+        allowNestedInputs: true
     }
 }

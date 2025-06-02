@@ -1,11 +1,16 @@
 {
   "deleted": false,
   "inputs": {
-    "call_structural_variants.sample_id": "this.sample_id",
-    "call_structural_variants.bam": "this.analysis_ready_bam",
-    "call_structural_variants.bai": "this.analysis_ready_bai",
+    "call_structural_variants.is_major_contigs_only": "true",
+    "call_structural_variants.major_contig_bed": "\"gs://ccleparams/manta_major_contigs.bed.gz\"",
+    "call_structural_variants.major_contig_bed_index": "\"gs://ccleparams/manta_major_contigs.bed.gz.tbi\"",
     "call_structural_variants.ref_fasta": "this.ref_fasta",
-    "call_structural_variants.ref_fasta_index": "this.ref_fasta_index"
+    "call_structural_variants.ref_fasta_index": "this.ref_fasta_index",
+    "call_structural_variants.run_manta.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/manta\"",
+    "call_structural_variants.run_manta.docker_image_hash_or_tag": "\":production\"",
+    "call_structural_variants.sample_id": "this.sample_id",
+    "call_structural_variants.tumor_bai": "this.analysis_ready_bai",
+    "call_structural_variants.tumor_bam": "this.analysis_ready_bam"
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
@@ -16,6 +21,10 @@
   "namespace": "cds-pipelines",
   "name": "call_structural_variants",
   "outputs": {
+    "call_structural_variants.candidate_sv_vcf": "this.candidate_sv_vcf",
+    "call_structural_variants.candidate_sv_vcf_index": "this.candidate_sv_vcf_index",
+    "call_structural_variants.candidate_indel_vcf": "this.candidate_indel_vcf",
+    "call_structural_variants.candidate_indel_vcf_index": "this.candidate_indel_vcf_index",
     "call_structural_variants.somatic_sv_vcf": "this.somatic_sv_vcf",
     "call_structural_variants.somatic_sv_vcf_index": "this.somatic_sv_vcf_index"
   },
