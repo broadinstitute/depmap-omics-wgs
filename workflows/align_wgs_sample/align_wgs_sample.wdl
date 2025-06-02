@@ -65,6 +65,7 @@ workflow align_wgs_sample {
         File ref_bwt
         File ref_pac
         File ref_sa
+        File? ref_alt
     }
 
     call ToUbams.CramToUnmappedBams {
@@ -120,7 +121,8 @@ workflow align_wgs_sample {
                     ref_ann = ref_ann,
                     ref_bwt = ref_bwt,
                     ref_pac = ref_pac,
-                    ref_sa = ref_sa
+                    ref_sa = ref_sa,
+                    ref_alt = ref_alt
             }
         }
     }
@@ -145,7 +147,8 @@ workflow align_wgs_sample {
                     ref_ann = ref_ann,
                     ref_bwt = ref_bwt,
                     ref_pac = ref_pac,
-                    ref_sa = ref_sa
+                    ref_sa = ref_sa,
+                    ref_alt = ref_alt
             }
         }
     }
@@ -535,6 +538,7 @@ task bwa_pe {
         File ref_bwt
         File ref_pac
         File ref_sa
+        File? ref_alt
         Int cpu = 16
         Int preemptible = 1
         Int max_retries = 1
@@ -591,6 +595,7 @@ task bwa_se {
         File ref_pac
         File ref_sa
         File ref_fasta_index
+        File? ref_alt
         Int cpu = 16
         Int preemptible = 1
         Int max_retries = 1
