@@ -15,6 +15,7 @@ version 1.0
 #   - Scatter BQSR tasks.
 #   - Check to see if BQSR has already been run but the input BAM file is missing `OQ`
 #     tags, which would make re-running BQSR inappropriate.
+#   - Added optional ref_alt input for BWA.
 #
 # Use this file as a base and manually implement changes in the upstream code in order
 # to retain these modifications.

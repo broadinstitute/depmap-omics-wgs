@@ -40,6 +40,7 @@ class TerraSample(CoercedDataFrame):
         isin={"CRAM", "BAM"}, nullable=True
     )
     delivery_ref: Series[pd.StringDtype]
+    delivery_ref_alt: Series[pd.StringDtype]
     delivery_ref_amb: Series[pd.StringDtype]
     delivery_ref_ann: Series[pd.StringDtype]
     delivery_ref_bwt: Series[pd.StringDtype]
@@ -51,6 +52,7 @@ class TerraSample(CoercedDataFrame):
     analysis_ready_bam: Series[pd.StringDtype] = pa.Field(nullable=True)
     analysis_ready_bai: Series[pd.StringDtype] = pa.Field(nullable=True)
     ref: Series[pd.StringDtype]
+    ref_alt: Series[pd.StringDtype]
     ref_amb: Series[pd.StringDtype]
     ref_ann: Series[pd.StringDtype]
     ref_bwt: Series[pd.StringDtype]
