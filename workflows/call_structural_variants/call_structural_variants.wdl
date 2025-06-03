@@ -76,7 +76,7 @@ task run_manta {
 
     command <<<
         set -euo pipefail
-        
+
         # link localized files to working dir
         ln -vs "~{tumor_bam}" "~{basename(tumor_bam)}"
         ln -vs "~{tumor_bai}" "~{basename(tumor_bai)}"
@@ -139,7 +139,6 @@ task run_manta {
         File candidate_sv_vcf_index = "~{sample_id}.candidateSV.vcf.gz.tbi"
         File candidate_indel_vcf = "~{sample_id}.candidateSmallIndels.vcf.gz"
         File candidate_indel_vcf_index = "~{sample_id}.candidateSmallIndels.vcf.gz.tbi"
-
     }
 
     runtime {
