@@ -4,8 +4,6 @@ https://cancer.sanger.ac.uk/cosmic/download/cosmic/v99/fusion
 """
 
 import datetime
-import re
-from collections import OrderedDict
 
 import pandas as pd
 
