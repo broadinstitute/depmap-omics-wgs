@@ -287,7 +287,6 @@ task annot_with_bcftools {
         Boolean annot_oncogenes_tsg
         Boolean annot_hgnc
         Boolean annot_gc_prop
-        String? exclude_string
         File? segdup_bed
         File? segdup_bed_index
         File? repeatmasker_bed
@@ -317,7 +316,7 @@ task annot_with_bcftools {
     }
 
     Int disk_space = (
-        ceil(size(vcf, "GiB") + 2 * 10 * size(vcf, "GiB")) + 10 + additional_disk_gb
+        ceil(10 * size(vcf, "GiB")) + 10 + additional_disk_gb
     )
 
     command <<<

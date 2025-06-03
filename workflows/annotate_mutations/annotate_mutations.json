@@ -57,7 +57,6 @@
     "annotate_mutations.snpeff_snpsift.docker_image_hash_or_tag": "\":production\"",
     "annotate_mutations.split_vcf_by_chrom.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/bcftools\"",
     "annotate_mutations.split_vcf_by_chrom.docker_image_hash_or_tag": "\":production\"",
-    "annotate_mutations.use_gnomad": "true",
     "annotate_mutations.vep_chrom_cache_url_prefix": "\"gs://ccleparams/wgs/mutation/annotation/vep/v113/\"",
     "annotate_mutations.vep_chrom_cache_url_suffix": "\".gz\"",
     "annotate_mutations.vep_pick_order": "\"mane_select,mane_plus_clinical,canonical,ccds,biotype,rank\"",
