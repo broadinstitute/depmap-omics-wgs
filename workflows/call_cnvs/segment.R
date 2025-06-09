@@ -1,11 +1,12 @@
 library(readr)
+library(dplyr)
 library(HMMcopy)
 
 set.seed(0)
 
-rfile <- commandArgs(TRUE)[1]
-gfile <- commandArgs(TRUE)[2]
-mfile <- commandArgs(TRUE)[3]
+rfile <- commandArgs(TRUE)[1] # coverage
+gfile <- commandArgs(TRUE)[2] # gc_wig
+mfile <- commandArgs(TRUE)[3] # map_wig
 sampleid <- commandArgs(TRUE)[4]
 lower_thresh <- 0
 mappability_thresh <- 0.9
@@ -75,15 +76,22 @@ mycorrect <- function(x, mappability = 0.9, samplesize = 50000, verbose = TRUE) 
 }
 
 
-uncorrected_reads <- wigsToRangedData(rfile, gfile, mfile, verbose = FALSE)
+mappability <- read_tsv(mfile, col_names = c("chr","start","end","map"))
+gc_content <- read_tsv(gfile, col_names = c("chr","start","end","gc"))
+read_cov <- read_tsv(rfile, col_names = c("chr", "start", "end","reads"))
+
+uncorrected_reads <- read_cov %>%
+  inner_join(gc_content, by = c("chr", "start","end")) %>%
+  inner_join(mappability, by = c("chr", "start","end"))
 corrected_copy <- mycorrect(uncorrected_reads)
 
 param <- data.frame(strength = 1e+30, e = 0.99999999, mu = c(-2, -1, 0,
     1, 2), lambda = 2, nu = 2.1, kappa = 75, m = c(-2, -1, 0, 1, 2), eta = 0.3,
     gamma = 3, S = 0)
 
-corrected_copy <- corrected_copy[corrected_copy$reads >= lower_thresh &
-    corrected_copy$map >= mappability_thresh, ]
+corrected_copy[corrected_copy$reads < lower_thresh |
+                                   corrected_copy$map < mappability_thresh, "copy"] <- NA
+
 segmented_copy <- HMMsegment(corrected_copy, maxiter = 500, param = param,
     autosomes = rep(TRUE, nrow(corrected_copy)))
 

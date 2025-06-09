@@ -1,21 +1,25 @@
-FROM bitnami/minideb:bullseye
+FROM rocker/r-ver:4.4.0
 
-ENV DEBIAN_FRONTEND noninteractive
-
-RUN apt-get -y update && \
-    apt-get -y install --no-install-recommends --no-install-suggests \
-    build-essential \
+# install system deps for common R packages and Bioconductor
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libxml2-dev \
+    ca-certificates \
     curl \
-    g++ \
-    gcc \
+    git \
     make \
-    r-base
+    && rm -rf /var/lib/apt/lists/*
 
-RUN R -e "install.packages(c('readr', 'BiocManager'), repos='https://cloud.r-project.org')"
-RUN R -e "BiocManager::install('HMMcopy', update=FALSE)"
-
+# install bedtools
 RUN curl -SL "https://github.com/arq5x/bedtools2/releases/download/v2.31.0/bedtools.static" \
     -o /usr/bin/bedtools && \
     chmod +x /usr/bin/bedtools
 
-COPY ./segment.R /usr/src/
+# restore R packages
+WORKDIR /app
+COPY ./renv.lock ./
+RUN Rscript -e "install.packages(c('renv', 'BiocManager'), repos = 'https://cloud.r-project.org')" \
+    && Rscript -e "options(repos = BiocManager::repositories()); renv::restore(lockfile = 'renv.lock', clean = TRUE)"
+
+COPY ./segment.R ./

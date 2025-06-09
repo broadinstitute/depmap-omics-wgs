@@ -29,7 +29,7 @@ workflow call_cnvs {
     call call_segments {
         input:
             sample_id = sample_id,
-            coverage_wig = calc_bin_coverage.coverage_wig,
+            coverage = calc_bin_coverage.coverage,
             chrom_sizes = chrom_sizes,
             gc_wig = gc_wig,
             map_wig = map_wig,
@@ -92,21 +92,10 @@ task calc_bin_coverage {
             "~{sample_id}.coverage.unsorted.bg" \
         > "~{sample_id}.coverage.tsv" && \
         rm "~{sample_id}.coverage.unsorted.bg"
-
-        echo "converting bed graph to bigwig to wig"
-        bedGraphToBigWig \
-            "~{sample_id}.coverage.tsv" \
-            "~{chrom_sizes}" \
-            "~{sample_id}.coverage.bw" && \
-        rm "~{sample_id}.coverage.tsv"
-
-        bigWigToWig \
-            "~{sample_id}.coverage.bw" \
-            "~{sample_id}.coverage.wig"
     >>>
 
     output {
-        File coverage_wig = "~{sample_id}.coverage.wig"
+        File coverage = "~{sample_id}.coverage.tsv"
     }
 
     runtime {
@@ -126,7 +115,7 @@ task calc_bin_coverage {
 task call_segments {
     input {
         String sample_id
-        File coverage_wig
+        File coverage
         File chrom_sizes
         File gc_wig
         File map_wig
@@ -143,7 +132,7 @@ task call_segments {
     }
 
     Int disk_space = ceil(
-        size(coverage_wig, "GiB")
+        size(coverage, "GiB")
         + size(gc_wig, "GiB")
         + size(map_wig, "GiB")
         + size(protein_coding_genes_bed, "GiB")
@@ -153,18 +142,16 @@ task call_segments {
     command <<<
         set -euo pipefail
 
-        # extract coverage column and reformat header lines
-        sed "s/#bedGraph section /fixedStep chrom=/g" "~{coverage_wig}" \
-            | sed "s/:/ start=/g" \
-            | sed "s/\-[0-9]*/ step=1000 span=1000/g" \
-            | awk '{ if (index($1, "chr") == 1) { print $4 } else print $0 }' \
-            > "~{sample_id}.coverage.formatted.wig"
+        # symlink reference files to working dir
+        ln -vs "~{coverage}" "coverage.tsv"
+        ln -vs "~{gc_wig}" "gc.wig"
+        ln -vs "~{map_wig}" "map.wig"
 
         # segment with HMM
-        Rscript /usr/src/segment.R \
-            "~{sample_id}.coverage.formatted.wig" \
-            "~{gc_wig}" \
-            "~{map_wig}" \
+        Rscript /app/segment.R \
+            "coverage.wig" \
+            "gc.wig \
+            "map.wig" \
             "~{sample_id}" \
             100 \
             0.9
@@ -208,12 +195,12 @@ task call_segments {
             > "~{sample_id}.cn_gene.tsv"
 
         # calculate weighted-mean copy numbers for protein-coding gene
-        awk '{ if (NR > 1 && $6 >= 0.9) print }' "~{sample_id}.read_cov_bin.tsv" \
+        sed '1d' "~{sample_id}.read_cov_bin.tsv" \
             | bedtools intersect -a "~{protein_coding_genes_bed}" -b stdin -wao \
             | awk '{ print $0"\t"$17*$18 }' \
             | sort --key="1,1V" --key="2,2n" --key="3,3n" --key="4,4n" \
             | bedtools groupby -g 1,2,3,4 -c 18,19,19 -o sum,sum,count \
-            | awk '{ print $0"\t"$6/($5+1) }' \
+            | awk '{ if ($6 == 0) { print $0"\tNA"} else {print $0"\t"$6/($5+1) }}' \
             > "~{sample_id}.cn_gene_weighted_mean.tsv"
     >>>
 
