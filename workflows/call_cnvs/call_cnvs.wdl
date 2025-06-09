@@ -38,6 +38,7 @@ workflow call_cnvs {
     }
 
     output {
+        File bin_coverage = calc_bin_coverage.coverage
         File segments = call_segments.segments
         File read_cov_bin = call_segments.read_cov_bin
         File input_params = call_segments.input_params
@@ -92,10 +93,12 @@ task calc_bin_coverage {
             "~{sample_id}.coverage.unsorted.bg" \
         > "~{sample_id}.coverage.tsv" && \
         rm "~{sample_id}.coverage.unsorted.bg"
+
+        gzip "~{sample_id}.coverage.tsv"
     >>>
 
     output {
-        File coverage = "~{sample_id}.coverage.tsv"
+        File coverage = "~{sample_id}.coverage.tsv.gz"
     }
 
     runtime {
@@ -149,8 +152,8 @@ task call_segments {
 
         # segment with HMM
         Rscript /app/segment.R \
-            "coverage.wig" \
-            "gc.wig \
+            "coverage.tsv" \
+            "gc.wig" \
             "map.wig" \
             "~{sample_id}" \
             100 \
@@ -202,11 +205,13 @@ task call_segments {
             | bedtools groupby -g 1,2,3,4 -c 18,19,19 -o sum,sum,count \
             | awk '{ if ($6 == 0) { print $0"\tNA"} else {print $0"\t"$6/($5+1) }}' \
             > "~{sample_id}.cn_gene_weighted_mean.tsv"
+
+        gzip "~{sample_id}.read_cov_bin.tsv"
     >>>
 
     output {
         File segments = "~{sample_id}.cn_segments_for_purecn.tsv"
-        File read_cov_bin = "~{sample_id}.read_cov_bin.tsv"
+        File read_cov_bin = "~{sample_id}.read_cov_bin.tsv.gz"
         File input_params = "~{sample_id}.input_params.tsv"
         File cn_by_gene_weighted_mean = "~{sample_id}.cn_gene_weighted_mean.tsv"
     }
