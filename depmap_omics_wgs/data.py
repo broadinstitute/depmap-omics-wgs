@@ -154,20 +154,24 @@ def refresh_legacy_terra_samples(
     samples = terra_workspace.get_entities("sample")
     legacy_samples = legacy_terra_workspace.get_entities("sample")
 
-    src_samples = samples.loc[
-        :,
-        [
-            "sample_id",
-            "analysis_ready_bam",
-            "analysis_ready_bai",
-            "cnv_cn_by_gene_weighted_mean",
-            "cnv_segments",
-        ],
-    ].rename(
-        columns={
-            "analysis_ready_bam": "internal_bam_filepath",
-            "analysis_ready_bai": "internal_bai_filepath",
-        }
+    src_samples = (
+        samples.loc[
+            :,
+            [
+                "sample_id",
+                "analysis_ready_bam",
+                "analysis_ready_bai",
+                "cnv_cn_by_gene_weighted_mean",
+                "cnv_segments",
+            ],
+        ]
+        .rename(
+            columns={
+                "analysis_ready_bam": "internal_bam_filepath",
+                "analysis_ready_bai": "internal_bai_filepath",
+            }
+        )
+        .replace({"": pd.NA})
     )
 
     if "internal_bam_filepath" not in legacy_samples.columns:
@@ -182,15 +186,16 @@ def refresh_legacy_terra_samples(
     if "cnv_segments" not in legacy_samples.columns:
         legacy_samples["cnv_segments"] = pd.NA
 
-    dest_samples = legacy_samples[
+    dest_samples = legacy_samples.loc[
+        :,
         [
             "sample_id",
             "internal_bam_filepath",
             "internal_bai_filepath",
             "cnv_cn_by_gene_weighted_mean",
             "cnv_segments",
-        ]
-    ]
+        ],
+    ].replace({"": pd.NA})
 
     diff = src_samples.merge(
         dest_samples, on="sample_id", how="left", suffixes=("_src", "_dest")
