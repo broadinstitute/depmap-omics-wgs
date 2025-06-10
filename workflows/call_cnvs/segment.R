@@ -76,9 +76,9 @@ mycorrect <- function(x, mappability = 0.9, samplesize = 50000, verbose = TRUE) 
 }
 
 
-mappability <- read_tsv(mfile, col_names = c("chr","start","end","map"))
-gc_content <- read_tsv(gfile, col_names = c("chr","start","end","gc"))
-read_cov <- read_tsv(rfile, col_names = c("chr", "start", "end","reads"))
+mappability <- read_tsv(mfile, col_names = c("chr","start","end","map"), show_col_types = FALSE)
+gc_content <- read_tsv(gfile, col_names = c("chr","start","end","gc"), show_col_types = FALSE)
+read_cov <- read_tsv(rfile, col_names = c("chr", "start", "end","reads"), show_col_types = FALSE)
 
 uncorrected_reads <- read_cov %>%
   inner_join(gc_content, by = c("chr", "start","end")) %>%
