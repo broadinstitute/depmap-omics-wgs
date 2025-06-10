@@ -103,6 +103,7 @@ workflow_wdl_path = "./workflows/postprocess_mutations/postprocess_mutations.wdl
 method_config_json_path = "./workflows/postprocess_mutations/postprocess_mutations.json"
 
 [ref.hg19]
+ref_alt = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.alt"
 ref_amb = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.amb"
 ref_ann = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.ann"
 ref_bwt = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.bwt"
@@ -113,6 +114,7 @@ ref_pac = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.pac"
 ref_sa = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.sa"
 
 [ref.hg38]
+ref_alt = "gs://ccleparams/hg38ref/Homo_sapiens_assembly38.fasta.alt"
 ref_amb = "gs://ccleparams/hg38ref/Homo_sapiens_assembly38.fasta.amb"
 ref_ann = "gs://ccleparams/hg38ref/Homo_sapiens_assembly38.fasta.ann"
 ref_bwt = "gs://ccleparams/hg38ref/Homo_sapiens_assembly38.fasta.bwt"
@@ -121,13 +123,3 @@ ref_fasta = "gs://ccleparams/hg38ref/Homo_sapiens_assembly38.fasta"
 ref_fasta_index = "gs://ccleparams/hg38ref/Homo_sapiens_assembly38.fasta.fai"
 ref_pac = "gs://ccleparams/hg38ref/Homo_sapiens_assembly38.fasta.pac"
 ref_sa = "gs://ccleparams/hg38ref/Homo_sapiens_assembly38.fasta.sa"
-
-[ref.giab]
-ref_amb = "gs://ccleparams/GIAB_hg38_patched_ref/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.amb"
-ref_ann = "gs://ccleparams/GIAB_hg38_patched_ref/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.ann"
-ref_bwt = "gs://ccleparams/GIAB_hg38_patched_ref/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.bwt"
-ref_dict = "gs://ccleparams/GIAB_hg38_patched_ref/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.dict"
-ref_fasta = "gs://ccleparams/GIAB_hg38_patched_ref/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta"
-ref_fasta_index = "gs://ccleparams/GIAB_hg38_patched_ref/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.fai"
-ref_pac = "gs://ccleparams/GIAB_hg38_patched_ref/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.pac"
-ref_sa = "gs://ccleparams/GIAB_hg38_patched_ref/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.sa"
