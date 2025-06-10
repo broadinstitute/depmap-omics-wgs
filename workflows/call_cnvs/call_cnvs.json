@@ -24,7 +24,6 @@
   "name": "call_cnvs",
   "outputs": {
     "call_cnvs.bin_coverage": "this.cnv_bin_coverage",
-    "call_cnvs.cn_by_gene": "this.cnv_cn_by_gene",
     "call_cnvs.cn_by_gene_weighted_mean":  "this.cnv_cn_by_gene_weighted_mean",
     "call_cnvs.input_params":  "this.cnv_input_params",
     "call_cnvs.read_cov_bin": "this.cnv_read_cov_bin",
