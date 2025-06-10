@@ -59,7 +59,8 @@ def copy_to_cclebams(
     gcp_project_id: str,
     gcs_destination_bucket: str,
     gcs_destination_prefix: str,
-    dry_run: bool,
+    overwrite: bool = False,
+    dry_run: bool = True,
 ) -> TypedDataFrame[CopiedSampleFiles]:
     """
     Copy all BAM files in the samples data frame to our bucket.
@@ -68,6 +69,7 @@ def copy_to_cclebams(
     :param gcp_project_id: the ID of a GCP project to use for billing
     :param gcs_destination_bucket: the name of the destination bucket
     :param gcs_destination_prefix: an object prefix for the copied BAMs
+    :param overwrite: whether to overwrite existing files at the destination
     :param dry_run: whether to skip updates to external data stores
     :return: a data frame of files we attempted to copy
     """
@@ -123,7 +125,7 @@ def copy_to_cclebams(
 
             new_url = urlunsplit(("gs", dest_bucket.name, dest_obj_key, "", ""))
 
-            if dest_blob.exists():
+            if dest_blob.exists() and not overwrite:
                 logging.info(f"{dest_blob.name} already exists in {dest_bucket.name}")
                 copy_results.append({"url": url, "new_url": new_url, "copied": True})
 
