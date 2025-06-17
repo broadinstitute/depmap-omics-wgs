@@ -3,7 +3,7 @@ version 1.0
 workflow call_cnvs {
     input {
         String workflow_version = "1.0" # internal semver
-        String workflow_source_url # populated automatically with URL of this script
+        String workflow_source_url = "" # populated automatically with URL of this script
 
         String sample_id
         File bam
