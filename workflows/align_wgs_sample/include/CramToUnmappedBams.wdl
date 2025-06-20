@@ -151,24 +151,27 @@ task CramToBam {
         File cram_file
         String output_basename
         Int disk_size
+        Int cpu = 4
         Int memory_in_MiB = 7000
     }
+
+    Int index_threads = cpu - 1
 
     command <<<
         set -euo pipefail
 
-        samtools view -h -T ~{ref_fasta} ~{cram_file} |
-        samtools view -b -o ~{output_basename}.bam -
-        samtools index -b ~{output_basename}.bam
+        samtools view -@ ~{cpu} -h -T ~{ref_fasta} ~{cram_file} |
+        samtools view -@ ~{cpu} -b -o ~{output_basename}.bam -
+        samtools index -@ ~{index_threads} -b ~{output_basename}.bam
         mv ~{output_basename}.bam.bai ~{output_basename}.bai
     >>>
 
     runtime {
         docker: "us.gcr.io/broad-gotc-prod/samtools:1.0.0-1.11-1624651616"
-        cpu: 3
+        cpu: cpu
         memory: "~{memory_in_MiB} MiB"
         disks: "local-disk " + disk_size + " SSD"
-        preemptible: 3
+        preemptible: 2
     }
 
     output {
@@ -242,6 +245,7 @@ task SplitOutUbamByReadGroup {
         File input_bam
         File rg_to_ubam_file
         Int disk_size
+        Int cpu = 2
         Int memory_in_MiB = 3000
     }
 
@@ -251,7 +255,7 @@ task SplitOutUbamByReadGroup {
         set -euo pipefail
 
         echo "Read Group ~{tmp[0][0]} from ~{input_bam} is being written to ~{tmp[0][1]}"
-        samtools view -b -h -r ~{tmp[0][0]} -o ~{tmp[0][1]} ~{input_bam}
+        samtools view -@ ~{cpu} -b -h -r ~{tmp[0][0]} -o ~{tmp[0][1]} ~{input_bam}
     >>>
 
     output {
@@ -260,7 +264,7 @@ task SplitOutUbamByReadGroup {
 
     runtime {
         docker: "us.gcr.io/broad-gotc-prod/samtools:1.0.0-1.11-1624651616"
-        cpu: 2
+        cpu: cpu
         disks: "local-disk " + disk_size + " SSD"
         memory: "~{memory_in_MiB} MiB"
         preemptible: 3

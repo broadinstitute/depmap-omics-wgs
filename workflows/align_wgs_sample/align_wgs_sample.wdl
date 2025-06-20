@@ -265,7 +265,7 @@ workflow align_wgs_sample {
 task bam_readgroup_to_contents {
     input {
         File bam
-        Int preemptible = 10
+        Int preemptible = 5
         Int max_retries = 1
         Int cpu = 1
         Int additional_memory_mb = 0
@@ -396,7 +396,7 @@ task emit_pe_records {
         Array[File]+ fastq2_files
         Array[Object]+ readgroups
         String fastq1_suffix = "_1.fq.gz"
-        Int preemptible = 10
+        Int preemptible = 5
         Int max_retries = 1
         Int cpu = 1
         Int additional_memory_mb = 0
@@ -462,7 +462,7 @@ task emit_se_records {
         String fastq_o1_suffix = "_o1.fq.gz"
         String fastq_o2_suffix = "_o2.fq.gz"
         String fastq_s_suffix = "_s.fq.gz"
-        Int preemptible = 10
+        Int preemptible = 5
         Int max_retries = 1
         Int cpu = 1
         Int additional_memory_mb = 0
@@ -540,8 +540,8 @@ task bwa_pe {
         File ref_pac
         File ref_sa
         File? ref_alt
-        Int cpu = 16
-        Int preemptible = 1
+        Int cpu = 8
+        Int preemptible = 2
         Int max_retries = 1
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
@@ -551,9 +551,10 @@ task bwa_pe {
     File fastq2 = fastq_record.reverse_fastq
     String readgroup = fastq_record.readgroup
     String outbam = fastq_record.readgroup_id + ".bam"
-    Float ref_size =size([ref_fasta, ref_dict, ref_amb, ref_ann, ref_bwt, ref_pac, ref_sa, ref_fasta_index], "GiB")
-    Int mem = ceil(size([fastq1, fastq2], "MiB")) + 10000 + additional_memory_mb
-    Int disk_space = ceil((size([fastq1, fastq2], "GiB") * 4) + ref_size) + 10 + additional_disk_gb
+    Float ref_size = size([ref_fasta, ref_dict, ref_amb, ref_ann, ref_bwt, ref_pac, ref_sa, ref_fasta_index], "GiB")
+    Int computed_mem = 8000 + ceil(size([fastq1, fastq2], "MiB") * 0.1) + additional_memory_mb
+    Int mem = if computed_mem < 16000 then computed_mem else 16000
+    Int disk_space = ceil((size([fastq1, fastq2], "GiB") * 2) + ref_size) + 10 + additional_disk_gb
 
     command <<<
         set -euo pipefail
@@ -566,6 +567,7 @@ task bwa_pe {
             ~{fastq1} \
             ~{fastq2} \
         | samtools view \
+            -@ ~{cpu} \
             -Shb \
             -o ~{outbam} \
             -
@@ -597,8 +599,8 @@ task bwa_se {
         File ref_sa
         File ref_fasta_index
         File? ref_alt
-        Int cpu = 16
-        Int preemptible = 1
+        Int cpu = 8
+        Int preemptible = 2
         Int max_retries = 1
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
@@ -608,8 +610,9 @@ task bwa_se {
     String readgroup = fastq_record.readgroup
     String outbam = fastq_record.readgroup_id + ".bam"
     Float ref_size = size([ref_fasta, ref_dict, ref_amb, ref_ann, ref_bwt, ref_pac, ref_sa, ref_fasta_index], "GiB")
-    Int mem = ceil(size(fastq, "MiB")) + 10000 + additional_memory_mb
-    Int disk_space = ceil((size(fastq, "GiB") * 4) + ref_size) + 10 + additional_disk_gb
+    Int computed_mem = 8000 + ceil(size(fastq, "MiB") * 0.1) + additional_memory_mb
+    Int mem = if computed_mem < 16000 then computed_mem else 16000
+    Int disk_space = ceil((size(fastq, "GiB") * 2) + ref_size) + 10 + additional_disk_gb
 
     command <<<
         set -euo pipefail
@@ -621,6 +624,7 @@ task bwa_se {
             ~{ref_fasta} \
             ~{fastq} \
         | samtools view \
+            -@ ~{cpu} \
             -Shb \
             -o ~{outbam} \
             -
@@ -714,8 +718,9 @@ task sort_and_index_markdup_bam {
         Int additional_disk_gb = 0
     }
 
-    Int mem = ceil(size(input_bam, "MiB")) + 10000 + additional_memory_mb
-    Int disk_space = ceil(size(input_bam, "GiB") * 3.25) + 20 + additional_disk_gb
+    Int computed_mem = ceil(size(input_bam, "MiB") * 0.25) + 12000 + additional_memory_mb
+    Int mem = if computed_mem < 48000 then computed_mem else 48000
+    Int disk_space = ceil(size(input_bam, "GiB") * 3) + 10 + additional_disk_gb
     Int mem_per_thread = floor(mem / cpu * 0.85)
     Int index_threads = cpu - 1
     String output_bam = output_bam_basename + ".bam"
@@ -732,8 +737,8 @@ task sort_and_index_markdup_bam {
             ~{input_bam}
 
         samtools index \
-            -b \
             -@ ~{index_threads} \
+            -b \
             ~{output_bam} \
             ~{output_bai}
     >>>
