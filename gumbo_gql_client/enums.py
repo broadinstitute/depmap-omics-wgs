@@ -23,19 +23,23 @@ class depmap_model_type_constraint(str, Enum):
 
 
 class depmap_model_type_select_column(str, Enum):
-    depmap_code = "depmap_code"
+    created_at = "created_at"
+    id = "id"
     lineage = "lineage"
     oncotree_code = "oncotree_code"
     primary_disease = "primary_disease"
     subtype = "subtype"
+    updated_at = "updated_at"
 
 
 class depmap_model_type_update_column(str, Enum):
-    depmap_code = "depmap_code"
+    created_at = "created_at"
+    id = "id"
     lineage = "lineage"
     oncotree_code = "oncotree_code"
     primary_disease = "primary_disease"
     subtype = "subtype"
+    updated_at = "updated_at"
 
 
 class genomic_fingerprint_comparison_constraint(str, Enum):
@@ -134,16 +138,16 @@ class genomic_fingerprint_failure_genomic_fingerprint_comparison_constraint(str,
 class genomic_fingerprint_failure_genomic_fingerprint_comparison_select_column(
     str, Enum
 ):
-    genomicfingerprintcomparison_id = "genomicfingerprintcomparison_id"
-    genomicfingerprintfailure_id = "genomicfingerprintfailure_id"
+    genomic_fingerprint_comparison_id = "genomic_fingerprint_comparison_id"
+    genomic_fingerprint_failure_id = "genomic_fingerprint_failure_id"
     id = "id"
 
 
 class genomic_fingerprint_failure_genomic_fingerprint_comparison_update_column(
     str, Enum
 ):
-    genomicfingerprintcomparison_id = "genomicfingerprintcomparison_id"
-    genomicfingerprintfailure_id = "genomicfingerprintfailure_id"
+    genomic_fingerprint_comparison_id = "genomic_fingerprint_comparison_id"
+    genomic_fingerprint_failure_id = "genomic_fingerprint_failure_id"
     id = "id"
 
 
@@ -184,15 +188,19 @@ class media_constraint(str, Enum):
 
 
 class media_select_column(str, Enum):
+    created_at = "created_at"
     formulation = "formulation"
-    media_id = "media_id"
+    id = "id"
     serum_free = "serum_free"
+    updated_at = "updated_at"
 
 
 class media_update_column(str, Enum):
+    created_at = "created_at"
     formulation = "formulation"
-    media_id = "media_id"
+    id = "id"
     serum_free = "serum_free"
+    updated_at = "updated_at"
 
 
 class model_condition_constraint(str, Enum):
@@ -201,7 +209,6 @@ class model_condition_constraint(str, Enum):
 
 
 class model_condition_select_column(str, Enum):
-    batch_doubling_time = "batch_doubling_time"
     cell_characteristics = "cell_characteristics"
     cell_format = "cell_format"
     cell_grouping = "cell_grouping"
@@ -212,12 +219,13 @@ class model_condition_select_column(str, Enum):
     condition_only = "condition_only"
     contaminated = "contaminated"
     contamination_details = "contamination_details"
+    created_at = "created_at"
     days_with_drug = "days_with_drug"
     drug = "drug"
     drug_concentration = "drug_concentration"
     expansion_team = "expansion_team"
-    growth_media = "growth_media"
-    model_condition_id = "model_condition_id"
+    id = "id"
+    media_id = "media_id"
     model_id = "model_id"
     parent_model_condition_id = "parent_model_condition_id"
     passage_number = "passage_number"
@@ -229,6 +237,7 @@ class model_condition_select_column(str, Enum):
     source = "source"
     source_doubling_time = "source_doubling_time"
     supplements = "supplements"
+    updated_at = "updated_at"
 
 
 class model_condition_select_column_model_condition_aggregate_bool_exp_bool_and_arguments_columns(
@@ -244,7 +253,6 @@ class model_condition_select_column_model_condition_aggregate_bool_exp_bool_or_a
 
 
 class model_condition_update_column(str, Enum):
-    batch_doubling_time = "batch_doubling_time"
     cell_characteristics = "cell_characteristics"
     cell_format = "cell_format"
     cell_grouping = "cell_grouping"
@@ -255,12 +263,13 @@ class model_condition_update_column(str, Enum):
     condition_only = "condition_only"
     contaminated = "contaminated"
     contamination_details = "contamination_details"
+    created_at = "created_at"
     days_with_drug = "days_with_drug"
     drug = "drug"
     drug_concentration = "drug_concentration"
     expansion_team = "expansion_team"
-    growth_media = "growth_media"
-    model_condition_id = "model_condition_id"
+    id = "id"
+    media_id = "media_id"
     model_id = "model_id"
     parent_model_condition_id = "parent_model_condition_id"
     passage_number = "passage_number"
@@ -272,6 +281,7 @@ class model_condition_update_column(str, Enum):
     source = "source"
     source_doubling_time = "source_doubling_time"
     supplements = "supplements"
+    updated_at = "updated_at"
 
 
 class model_constraint(str, Enum):
@@ -294,6 +304,7 @@ class model_select_column(str, Enum):
     consent_2015 = "consent_2015"
     converge_id = "converge_id"
     cosmic_id = "cosmic_id"
+    created_at = "created_at"
     cultured_drug_resistance = "cultured_drug_resistance"
     date_cell_line_received = "date_cell_line_received"
     date_first_publication = "date_first_publication"
@@ -309,11 +320,13 @@ class model_select_column(str, Enum):
     geo_loc = "geo_loc"
     growth_pattern = "growth_pattern"
     hcmi_id = "hcmi_id"
+    id = "id"
     inferred_ethnicity = "inferred_ethnicity"
+    media_id = "media_id"
     model_data_sharing = "model_data_sharing"
     model_data_sharing_comments = "model_data_sharing_comments"
     model_derivation_material = "model_derivation_material"
-    model_id = "model_id"
+    model_id_alias = "model_id_alias"
     model_subtype_features = "model_subtype_features"
     model_transfer = "model_transfer"
     model_transfer_comments = "model_transfer_comments"
@@ -321,7 +334,6 @@ class model_select_column(str, Enum):
     model_type = "model_type"
     new_histological_subtype = "new_histological_subtype"
     onboarded_doubling_time = "onboarded_doubling_time"
-    onboarded_media = "onboarded_media"
     orspid = "orspid"
     patient_id = "patient_id"
     patient_resistance = "patient_resistance"
@@ -333,7 +345,6 @@ class model_select_column(str, Enum):
     peddep_subgroup = "peddep_subgroup"
     permission_to_release = "permission_to_release"
     plate_coating = "plate_coating"
-    primary_disease = "primary_disease"
     primary_or_metastasis = "primary_or_metastasis"
     proposed_deliverable = "proposed_deliverable"
     proposed_release_date = "proposed_release_date"
@@ -355,6 +366,7 @@ class model_select_column(str, Enum):
     transformed_type = "transformed_type"
     treatment_details = "treatment_details"
     treatment_status = "treatment_status"
+    updated_at = "updated_at"
     wtsi_master_cell_id = "wtsi_master_cell_id"
 
 
@@ -374,6 +386,7 @@ class model_update_column(str, Enum):
     consent_2015 = "consent_2015"
     converge_id = "converge_id"
     cosmic_id = "cosmic_id"
+    created_at = "created_at"
     cultured_drug_resistance = "cultured_drug_resistance"
     date_cell_line_received = "date_cell_line_received"
     date_first_publication = "date_first_publication"
@@ -389,11 +402,13 @@ class model_update_column(str, Enum):
     geo_loc = "geo_loc"
     growth_pattern = "growth_pattern"
     hcmi_id = "hcmi_id"
+    id = "id"
     inferred_ethnicity = "inferred_ethnicity"
+    media_id = "media_id"
     model_data_sharing = "model_data_sharing"
     model_data_sharing_comments = "model_data_sharing_comments"
     model_derivation_material = "model_derivation_material"
-    model_id = "model_id"
+    model_id_alias = "model_id_alias"
     model_subtype_features = "model_subtype_features"
     model_transfer = "model_transfer"
     model_transfer_comments = "model_transfer_comments"
@@ -401,7 +416,6 @@ class model_update_column(str, Enum):
     model_type = "model_type"
     new_histological_subtype = "new_histological_subtype"
     onboarded_doubling_time = "onboarded_doubling_time"
-    onboarded_media = "onboarded_media"
     orspid = "orspid"
     patient_id = "patient_id"
     patient_resistance = "patient_resistance"
@@ -413,7 +427,6 @@ class model_update_column(str, Enum):
     peddep_subgroup = "peddep_subgroup"
     permission_to_release = "permission_to_release"
     plate_coating = "plate_coating"
-    primary_disease = "primary_disease"
     primary_or_metastasis = "primary_or_metastasis"
     proposed_deliverable = "proposed_deliverable"
     proposed_release_date = "proposed_release_date"
@@ -435,6 +448,7 @@ class model_update_column(str, Enum):
     transformed_type = "transformed_type"
     treatment_details = "treatment_details"
     treatment_status = "treatment_status"
+    updated_at = "updated_at"
     wtsi_master_cell_id = "wtsi_master_cell_id"
 
 
@@ -466,6 +480,7 @@ class omics_profile_select_column(str, Enum):
     collaborator_sample_id = "collaborator_sample_id"
     consortium_release_date = "consortium_release_date"
     consortium_retracted_date = "consortium_retracted_date"
+    created_at = "created_at"
     datatype = "datatype"
     deliverables = "deliverables"
     destination_datasets = "destination_datasets"
@@ -473,6 +488,7 @@ class omics_profile_select_column(str, Enum):
     eta_for_omics_completion = "eta_for_omics_completion"
     extraction_needed = "extraction_needed"
     ibm_release_date = "ibm_release_date"
+    id = "id"
     internal_release_date = "internal_release_date"
     internal_retracted_date = "internal_retracted_date"
     issue = "issue"
@@ -493,7 +509,6 @@ class omics_profile_select_column(str, Enum):
     prioritized = "prioritized"
     product = "product"
     product_goal = "product_goal"
-    profile_id = "profile_id"
     profile_source = "profile_source"
     project = "project"
     proposed_release_date = "proposed_release_date"
@@ -512,6 +527,7 @@ class omics_profile_select_column(str, Enum):
     smid_ordered = "smid_ordered"
     smid_returned = "smid_returned"
     status = "status"
+    updated_at = "updated_at"
     version = "version"
     wgs_delivery_date = "wgs_delivery_date"
     workspace = "workspace"
@@ -559,6 +575,7 @@ class omics_profile_update_column(str, Enum):
     collaborator_sample_id = "collaborator_sample_id"
     consortium_release_date = "consortium_release_date"
     consortium_retracted_date = "consortium_retracted_date"
+    created_at = "created_at"
     datatype = "datatype"
     deliverables = "deliverables"
     destination_datasets = "destination_datasets"
@@ -566,6 +583,7 @@ class omics_profile_update_column(str, Enum):
     eta_for_omics_completion = "eta_for_omics_completion"
     extraction_needed = "extraction_needed"
     ibm_release_date = "ibm_release_date"
+    id = "id"
     internal_release_date = "internal_release_date"
     internal_retracted_date = "internal_retracted_date"
     issue = "issue"
@@ -586,7 +604,6 @@ class omics_profile_update_column(str, Enum):
     prioritized = "prioritized"
     product = "product"
     product_goal = "product_goal"
-    profile_id = "profile_id"
     profile_source = "profile_source"
     project = "project"
     proposed_release_date = "proposed_release_date"
@@ -605,6 +622,7 @@ class omics_profile_update_column(str, Enum):
     smid_ordered = "smid_ordered"
     smid_returned = "smid_returned"
     status = "status"
+    updated_at = "updated_at"
     version = "version"
     wgs_delivery_date = "wgs_delivery_date"
     workspace = "workspace"
@@ -617,22 +635,24 @@ class omics_sequencing_constraint(str, Enum):
 class omics_sequencing_select_column(str, Enum):
     bam_qc = "bam_qc"
     blacklist = "blacklist"
+    created_at = "created_at"
     expected_type = "expected_type"
     gp_alignment = "gp_alignment"
+    id = "id"
     issue = "issue"
     month_sequencing_billed = "month_sequencing_billed"
+    omics_profile_id = "omics_profile_id"
     pdo_id = "pdo_id"
     prioritized = "prioritized"
     processed_sequence = "processed_sequence"
     processing_qc = "processing_qc"
-    profile_id = "profile_id"
     sequencing_date = "sequencing_date"
-    sequencing_id = "sequencing_id"
     sm_id = "sm_id"
     source = "source"
-    str_profile = "str_profile"
+    str_profile_id = "str_profile_id"
     stranded = "stranded"
     update_time = "update_time"
+    updated_at = "updated_at"
     version = "version"
     year_sequencing_billed = "year_sequencing_billed"
 
@@ -658,22 +678,24 @@ class omics_sequencing_select_column_omics_sequencing_aggregate_bool_exp_bool_or
 class omics_sequencing_update_column(str, Enum):
     bam_qc = "bam_qc"
     blacklist = "blacklist"
+    created_at = "created_at"
     expected_type = "expected_type"
     gp_alignment = "gp_alignment"
+    id = "id"
     issue = "issue"
     month_sequencing_billed = "month_sequencing_billed"
+    omics_profile_id = "omics_profile_id"
     pdo_id = "pdo_id"
     prioritized = "prioritized"
     processed_sequence = "processed_sequence"
     processing_qc = "processing_qc"
-    profile_id = "profile_id"
     sequencing_date = "sequencing_date"
-    sequencing_id = "sequencing_id"
     sm_id = "sm_id"
     source = "source"
-    str_profile = "str_profile"
+    str_profile_id = "str_profile_id"
     stranded = "stranded"
     update_time = "update_time"
+    updated_at = "updated_at"
     version = "version"
     year_sequencing_billed = "year_sequencing_billed"
 
@@ -800,11 +822,15 @@ class patient_constraint(str, Enum):
 
 
 class patient_select_column(str, Enum):
-    patient_id = "patient_id"
+    created_at = "created_at"
+    id = "id"
+    updated_at = "updated_at"
 
 
 class patient_update_column(str, Enum):
-    patient_id = "patient_id"
+    created_at = "created_at"
+    id = "id"
+    updated_at = "updated_at"
 
 
 class sequencing_alignment_constraint(str, Enum):
@@ -921,13 +947,17 @@ class task_entity_constraint(str, Enum):
 
 
 class task_entity_select_column(str, Enum):
+    created_at = "created_at"
     id = "id"
-    sequencing_id = "sequencing_id"
+    omics_sequencing_id = "omics_sequencing_id"
+    updated_at = "updated_at"
 
 
 class task_entity_update_column(str, Enum):
+    created_at = "created_at"
     id = "id"
-    sequencing_id = "sequencing_id"
+    omics_sequencing_id = "omics_sequencing_id"
+    updated_at = "updated_at"
 
 
 class task_result_constraint(str, Enum):
@@ -955,6 +985,7 @@ class task_result_select_column(str, Enum):
     terra_workspace_id = "terra_workspace_id"
     terra_workspace_name = "terra_workspace_name"
     terra_workspace_namespace = "terra_workspace_namespace"
+    updated_at = "updated_at"
     url = "url"
     value = "value"
     workflow_name = "workflow_name"
@@ -983,6 +1014,7 @@ class task_result_update_column(str, Enum):
     terra_workspace_id = "terra_workspace_id"
     terra_workspace_name = "terra_workspace_name"
     terra_workspace_namespace = "terra_workspace_namespace"
+    updated_at = "updated_at"
     url = "url"
     value = "value"
     workflow_name = "workflow_name"
@@ -999,6 +1031,7 @@ class terra_sync_select_column(str, Enum):
     id = "id"
     terra_workspace_name = "terra_workspace_name"
     terra_workspace_namespace = "terra_workspace_namespace"
+    updated_at = "updated_at"
 
 
 class terra_sync_update_column(str, Enum):
@@ -1006,3 +1039,4 @@ class terra_sync_update_column(str, Enum):
     id = "id"
     terra_workspace_name = "terra_workspace_name"
     terra_workspace_namespace = "terra_workspace_namespace"
+    updated_at = "updated_at"

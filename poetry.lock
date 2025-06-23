@@ -260,13 +260,13 @@ tests = ["pytest"]
 
 [[package]]
 name = "ariadne-codegen"
-version = "0.13.0"
+version = "0.14.0"
 description = "Generate fully typed GraphQL client from schema, queries and mutations!"
 optional = false
 python-versions = "*"
 files = [
-    {file = "ariadne_codegen-0.13.0-py2.py3-none-any.whl", hash = "sha256:61d0be4b1ba711bc5df35aaf0fa61d04cf4ea6f25a0038b687f845ab4f859a23"},
-    {file = "ariadne_codegen-0.13.0.tar.gz", hash = "sha256:52aa67037dcd88a2f6013118e69ba0ed35a49f37312668a1969907f0e9c9bf8b"},
+    {file = "ariadne_codegen-0.14.0-py2.py3-none-any.whl", hash = "sha256:e0553960bd298ddc49aeeb748a0be3a37acbdfdee7d7c26fce7154715fa826e0"},
+    {file = "ariadne_codegen-0.14.0.tar.gz", hash = "sha256:d5b15470195c3858b88a2bae855b5c04602ffae40228077b6cfb26a57d3f14f6"},
 ]
 
 [package.dependencies]
@@ -4808,4 +4808,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "7c890dfed0b4481e2f6915ef1c897459cbbb8ac3533391eb4a8622f85d0c9d33"
+content-hash = "66e513df1db5231ee7e4cfd1db1e5cb4b88c8c32fb31b06cfb7fb23bc577953d"

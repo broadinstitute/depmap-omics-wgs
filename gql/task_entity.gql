@@ -1,7 +1,7 @@
 query SequencingTaskEntities {
-  records: task_entity(where: { sequencing_id: { _is_null: false } }) {
+  records: task_entity(where: { omics_sequencing_id: { _is_null: false } }) {
     id
-    sequencing_id
+    omics_sequencing_id
   }
 }
 
@@ -15,7 +15,7 @@ mutation InsertTaskEntities(
   insert_task_entity(objects: $objects) {
     returning {
       id
-      sequencing_id
+      omics_sequencing_id
     }
   }
 }

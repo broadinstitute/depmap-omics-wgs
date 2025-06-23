@@ -9,7 +9,7 @@ class SequencingTaskEntities(BaseModel):
 
 class SequencingTaskEntitiesRecords(BaseModel):
     id: int
-    sequencing_id: Optional[str]
+    omics_sequencing_id: Optional[str]
 
 
 SequencingTaskEntities.model_rebuild()

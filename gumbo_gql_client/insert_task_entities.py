@@ -18,7 +18,7 @@ class InsertTaskEntitiesInsertTaskEntity(BaseModel):
 
 class InsertTaskEntitiesInsertTaskEntityReturning(BaseModel):
     id: int
-    sequencing_id: Optional[str]
+    omics_sequencing_id: Optional[str]
 
 
 InsertTaskEntities.model_rebuild()

@@ -1,6 +1,6 @@
 query SequencingIds {
   records: omics_sequencing {
-    sequencing_id
+    id
   }
 }
 
@@ -20,6 +20,6 @@ query UnprocessedSequencings {
       ]
     }
   ) {
-    omics_sequencing_id: sequencing_id
+    id
   }
 }

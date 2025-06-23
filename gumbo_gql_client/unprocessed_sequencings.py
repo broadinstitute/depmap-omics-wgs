@@ -8,7 +8,7 @@ class UnprocessedSequencings(BaseModel):
 
 
 class UnprocessedSequencingsRecords(BaseModel):
-    omics_sequencing_id: str
+    id: str
 
 
 UnprocessedSequencings.model_rebuild()

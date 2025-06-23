@@ -8,7 +8,7 @@ class SequencingIds(BaseModel):
 
 
 class SequencingIdsRecords(BaseModel):
-    sequencing_id: str
+    id: str
 
 
 SequencingIds.model_rebuild()

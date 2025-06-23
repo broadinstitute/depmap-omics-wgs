@@ -8,7 +8,7 @@ query GetTaskResults($where: task_result_bool_exp!) {
     size
     task_entity {
       id
-      sequencing_id
+      omics_sequencing_id
     }
     terra_entity_name
     terra_entity_type

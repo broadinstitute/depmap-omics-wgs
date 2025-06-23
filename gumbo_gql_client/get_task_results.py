@@ -37,7 +37,7 @@ class GetTaskResultsRecords(BaseModel):
 
 class GetTaskResultsRecordsTaskEntity(BaseModel):
     id: int
-    sequencing_id: Optional[str]
+    omics_sequencing_id: Optional[str]
 
 
 GetTaskResults.model_rebuild()

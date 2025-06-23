@@ -49,13 +49,15 @@ def refresh_terra_samples(
 
     # get long data frame of both GP-delivered and CDS (analysis ready) CRAM/BAMs
     wgs_sequencings = model_to_df(
-        gumbo_client.wgs_sequencing_alignments(timeout=30.0), GumboWgsSequencing
+        gumbo_client.wgs_sequencing_alignments(timeout=30.0),
+        GumboWgsSequencing,
+        mutator=partial(pd_flatten, name_columns_with_parent=False),
     )
 
     # make wide, separating delivery and analysis-ready CRAM/BAMs
     samples = (
         wgs_sequencings.loc[wgs_sequencings["sequencing_alignment_source"].eq("GP")]
-        .drop(columns="sequencing_alignment_source")
+        .drop(columns=["sequencing_alignment_source", "size"])
         .rename(
             columns={
                 "omics_sequencing_id": "sample_id",
@@ -69,7 +71,17 @@ def refresh_terra_samples(
             wgs_sequencings.loc[
                 wgs_sequencings["sequencing_alignment_source"].eq("CDS")
             ]
-            .drop(columns="sequencing_alignment_source")
+            .drop(
+                columns=[
+                    "sequencing_alignment_source",
+                    "size",
+                    "model_id",
+                    "model_condition_id",
+                    "omics_profile_id",
+                    "cell_line_name",
+                    "stripped_cell_line_name",
+                ]
+            )
             .rename(
                 columns={
                     "omics_sequencing_id": "sample_id",
@@ -596,7 +608,7 @@ def put_task_results(
         gumbo_client.insert_task_entities(
             username=gumbo_client.username,
             objects=[
-                task_entity_insert_input(sequencing_id=x) for x in missing_seq_ids
+                task_entity_insert_input(omics_sequencing_id=x) for x in missing_seq_ids
             ],
             timeout=60.0,
         )

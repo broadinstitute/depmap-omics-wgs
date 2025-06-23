@@ -28,7 +28,7 @@ class GumboClient(BaseClient):
             """
             query SequencingIds {
               records: omics_sequencing {
-                sequencing_id
+                id
               }
             }
             """
@@ -47,7 +47,7 @@ class GumboClient(BaseClient):
               records: omics_sequencing(
                 where: {_and: [{expected_type: {_eq: "wgs"}, blacklist: {_neq: true}, _or: [{processed_sequence: {_neq: true}}, {processed_sequence: {_is_null: true}}], omics_profile: {blacklist_omics: {_neq: true}}}]}
               ) {
-                omics_sequencing_id: sequencing_id
+                id
               }
             }
             """
@@ -66,15 +66,25 @@ class GumboClient(BaseClient):
         query = gql(
             """
             query WgsSequencingAlignments {
-              records: sequencing_alignment(
-                where: {_and: [{omics_sequencing: {expected_type: {_eq: "wgs"}, blacklist: {_neq: true}, omics_profile: {blacklist_omics: {_neq: true}}}}]}
-              ) {
-                index_url
-                reference_genome
+              records: omics_mapping(where: {datatype: {_eq: "wgs"}}) {
+                model_id
+                model_condition_id
+                omics_profile_id
                 omics_sequencing_id
-                sequencing_alignment_source
-                url
-                size
+                model {
+                  cell_line_name
+                  stripped_cell_line_name
+                }
+                omics_sequencing {
+                  sequencing_alignments {
+                    sequencing_alignment_id: id
+                    url
+                    index_url
+                    reference_genome
+                    sequencing_alignment_source
+                    size
+                  }
+                }
               }
             }
             """
@@ -121,9 +131,9 @@ class GumboClient(BaseClient):
         query = gql(
             """
             query SequencingTaskEntities {
-              records: task_entity(where: {sequencing_id: {_is_null: false}}) {
+              records: task_entity(where: {omics_sequencing_id: {_is_null: false}}) {
                 id
-                sequencing_id
+                omics_sequencing_id
               }
             }
             """
@@ -150,7 +160,7 @@ class GumboClient(BaseClient):
               insert_task_entity(objects: $objects) {
                 returning {
                   id
-                  sequencing_id
+                  omics_sequencing_id
                 }
               }
             }
@@ -181,7 +191,7 @@ class GumboClient(BaseClient):
                 size
                 task_entity {
                   id
-                  sequencing_id
+                  omics_sequencing_id
                 }
                 terra_entity_name
                 terra_entity_type

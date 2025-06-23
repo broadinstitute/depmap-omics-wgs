@@ -24,6 +24,11 @@ class GumboClient(AriadneGumboClient):
 
 
 class GumboWgsSequencing(CoercedDataFrame):
+    model_id: Series[pd.StringDtype]
+    cell_line_name: Series[pd.StringDtype]
+    stripped_cell_line_name: Series[pd.StringDtype]
+    model_condition_id: Series[pd.StringDtype]
+    omics_profile_id: Series[pd.StringDtype]
     omics_sequencing_id: Series[pd.StringDtype]
     sequencing_alignment_source: Series[pd.StringDtype] = pa.Field(isin=["GP", "CDS"])
     reference_genome: Series[pd.StringDtype]
@@ -34,6 +39,11 @@ class GumboWgsSequencing(CoercedDataFrame):
 
 class TerraSample(CoercedDataFrame):
     sample_id: Series[pd.StringDtype] = pa.Field(unique=True)
+    model_id: Series[pd.StringDtype]
+    cell_line_name: Series[pd.StringDtype]
+    stripped_cell_line_name: Series[pd.StringDtype]
+    model_condition_id: Series[pd.StringDtype]
+    omics_profile_id: Series[pd.StringDtype]
     delivery_cram_bam: Series[pd.StringDtype] = pa.Field(nullable=True)
     delivery_crai_bai: Series[pd.StringDtype] = pa.Field(nullable=True)
     delivery_file_format: Series[pd.StringDtype] = pa.Field(
@@ -65,7 +75,7 @@ class TerraSample(CoercedDataFrame):
 
 class GumboTaskEntity(CoercedDataFrame):
     id: Series[pd.StringDtype]
-    sequencing_id: Series[pd.StringDtype] = pa.Field(nullable=True)
+    omics_sequencing_id: Series[pd.StringDtype] = pa.Field(nullable=True)
 
 
 class GumboTaskResult(CoercedDataFrame):
