@@ -1,11 +1,9 @@
-import datetime
-import json
 import logging
 from functools import partial
 
 import pandas as pd
 import requests
-from firecloud import api as firecloud_api
+from firecloud_api_cds import api as firecloud_api
 from nebelung.terra_workspace import TerraWorkspace
 from nebelung.utils import call_firecloud_api, type_data_frame
 from pd_flatten import pd_flatten
@@ -20,16 +18,8 @@ from depmap_omics_wgs.types import (
     TerraSample,
     TypedDataFrame,
 )
-from depmap_omics_wgs.utils import (
-    compute_uuidv3,
-    get_gcs_object_metadata,
-    model_to_df,
-)
-from gumbo_gql_client import (
-    sequencing_alignment_insert_input,
-    task_entity_insert_input,
-    task_result_insert_input,
-)
+from depmap_omics_wgs.utils import model_to_df
+from gumbo_gql_client import sequencing_alignment_insert_input
 
 
 def refresh_terra_samples(

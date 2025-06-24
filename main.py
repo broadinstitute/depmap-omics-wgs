@@ -1,10 +1,10 @@
 import base64
 import json
 import logging
+import tomllib
 
 import functions_framework
 import google.cloud.logging
-import tomllib
 from cloudevents.http import CloudEvent
 from dotenv import load_dotenv
 from nebelung.terra_workspace import TerraWorkspace
