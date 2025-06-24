@@ -19,5 +19,5 @@ RUN pip install poetry==${POETRY_VERSION}
 COPY pyproject.toml poetry.lock ./
 RUN poetry install --only main --no-root --no-cache
 
-COPY annotate_mutations_postprocess ./annotate_mutations_postprocess
+COPY select_somatic_variants ./select_somatic_variants
 RUN poetry install --only-root

@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "annotate-mutations-postprocess"
+name = "select-somatic-variants"
 version = "0.1.0"
 description = ""
 authors = []
 readme = "README.md"
-packages = [{include = "annotate_mutations_postprocess"}]
+packages = [{include = "select_somatic_variants"}]
 package-mode = false
 
 [tool.poetry.dependencies]
@@ -15,9 +15,10 @@ pyarrow = "^18.1.0"
 typer = "^0.15.1"
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.11.8"
-pyright = "^1.1.400"
+ruff = "^0.12.0"
+pyright = "^1.1.402"
 pytest = "^8.3.4"
+pandas-stubs = "^2.2.3.250527"
 
 [tool.ruff]
 select = [

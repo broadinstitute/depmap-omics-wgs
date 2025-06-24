@@ -6,7 +6,7 @@ from typing import Annotated
 import pandas as pd
 import typer
 
-import annotate_mutations_postprocess.postprocess_utils as postprocess_utils
+import select_somatic_variants.utils as postprocess_utils
 
 pd.set_option("display.max_columns", 30)
 pd.set_option("display.max_colwidth", 50)

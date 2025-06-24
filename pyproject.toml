@@ -34,6 +34,7 @@ gffutils = "^0.13"
 natsort = "^8.4.0"
 bioblend = "^1.5.0"
 google-cloud-bigquery = "^3.33.0"
+pandas-stubs = "^2.2.3.250527"
 
 [[tool.poetry.source]]
 name = "public-python"

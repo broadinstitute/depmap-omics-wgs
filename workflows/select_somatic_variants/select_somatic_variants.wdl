@@ -1,6 +1,6 @@
 version 1.0
 
-workflow postprocess_mutations {
+workflow select_somatic_variants {
     input {
         String workflow_version = "1.0"
         String workflow_source_url = "" # populated automatically with URL of this script

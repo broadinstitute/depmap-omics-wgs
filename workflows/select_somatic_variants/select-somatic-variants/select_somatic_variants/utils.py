@@ -3,9 +3,8 @@ import os
 from math import ceil
 from pathlib import Path
 
-import pandas as pd
-
 import duckdb
+import pandas as pd
 
 
 def get_somatic_variants(
@@ -70,8 +69,10 @@ def get_somatic_variants(
 
         if variants_enriched_out_file_path is not None:
             # write wide version of all quality variants to parquet
+            r = db.table("variants_enriched").count("*").fetchone()
+            n_somatic_variants = r[0]  # pyright: ignore
             logging.info(
-                f"Writing {db.table('variants_enriched').count('*').fetchone()[0]}"
+                f"Writing {n_somatic_variants}"
                 f" enriched variants to {variants_enriched_out_file_path}"
             )
             db.sql(f"""

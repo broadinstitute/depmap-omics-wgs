@@ -93,14 +93,14 @@ method_synopsis = "Merge info fields in annotation mutations VCF files"
 workflow_wdl_path = "./workflows/annotate_mutations_merge/annotate_mutations_merge.wdl"
 method_config_json_path = "./workflows/annotate_mutations_merge/annotate_mutations_merge.json"
 
-[terra.postprocess_mutations]
+[terra.select_somatic_variants]
 method_namespace = "cds-pipelines"
-method_name = "postprocess_mutations"
+method_name = "select_somatic_variants"
 method_config_namespace = "cds-pipelines"
-method_config_name = "postprocess_mutations"
+method_config_name = "select_somatic_variants"
 method_synopsis = "Postprocess annotated mutations to extract and rescue somatic variants"
-workflow_wdl_path = "./workflows/postprocess_mutations/postprocess_mutations.wdl"
-method_config_json_path = "./workflows/postprocess_mutations/postprocess_mutations.json"
+workflow_wdl_path = "./workflows/select_somatic_variants/select_somatic_variants.wdl"
+method_config_json_path = "./workflows/select_somatic_variants/select_somatic_variants.json"
 
 [ref.hg19]
 ref_alt = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.alt"

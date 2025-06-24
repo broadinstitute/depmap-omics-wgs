@@ -1,12 +1,12 @@
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from typing import Generator
 
+import duckdb
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 
-import duckdb
-from annotate_mutations_postprocess.postprocess_utils import (
+from select_somatic_variants.utils import (
     get_somatic_variants_as_df,
     make_views_and_tables,
 )
@@ -2760,7 +2760,7 @@ class TestColumns:
                     "intron": None,
                     "lof": None,
                     "molecular_consequence": None,
-                    "nmd": """[{"gene_name":"LRRC20","gene_id":"E1.15","number_of_transcripts_in_gene":"1","percent_of_transcripts_affected":"1.00"}]""",
+                    "nmd": """['{"gene_name":"LRRC20","gene_id":"E1.15","number_of_transcripts_in_gene":"1","percent_of_transcripts_affected":"1.00"}']""",
                     "oncogene_high_impact": False,
                     "oncokb_effect": "Loss-of-function",
                     "oncokb_hotspot": False,
