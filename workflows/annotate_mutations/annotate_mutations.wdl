@@ -232,7 +232,7 @@ task gather_vcfs {
         Int additional_disk_gb = 0
     }
 
-    Int command_mem_mb = 1000 * mem_gb - 500
+    Int command_mem_mb = 1000 * mem_gb - 2000
     Int disk_space = ceil(3 * size(vcfs, "GiB")) + 10 + additional_disk_gb
 
     parameter_meta {
