@@ -26,8 +26,8 @@ tqdm = "^4.67.1"
 
 [tool.poetry.group.dev.dependencies]
 pyarrow = "^15.0.2"
-ruff = "^0.4.10"
-pyright = "^1.1.365"
+ruff = "^0.12.0"
+pyright = "^1.1.402"
 jupyter = "^1.0.0"
 pyliftover = "^0.4.1"
 gffutils = "^0.13"

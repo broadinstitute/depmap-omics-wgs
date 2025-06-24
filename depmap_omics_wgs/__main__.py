@@ -148,15 +148,5 @@ def onboard_aligned_bams(ctx: typer.Context) -> None:
     )
 
 
-@app.command()
-def persist_outputs_in_gumbo(ctx: typer.Context) -> None:
-    data.put_task_results(
-        gumbo_client=ctx.obj["get_gumbo_client"](),
-        terra_workspace=ctx.obj["terra_workspace"],
-        gcp_project_id=config["gcp_project_id"],
-        uuid_namespace=config["uuid_namespace"],
-    )
-
-
 if __name__ == "__main__":
     app()
