@@ -15,7 +15,6 @@ from depmap_omics_wgs.utils import (
     get_hasura_creds,
     get_secret_from_sm,
     make_workflow_from_config,
-    submit_delta_job,
 )
 
 pd.set_option("display.max_columns", 30)
@@ -111,8 +110,7 @@ def delta_job(
     entity_id_col: Annotated[str, typer.Option()],
     expression: Annotated[str, typer.Option()],
 ) -> None:
-    submit_delta_job(
-        terra_workspace=ctx.obj["terra_workspace"],
+    ctx.obj["terra_workspace"].submit_delta_job(
         terra_workflow=make_workflow_from_config(config, workflow_name),
         entity_type=entity_type,
         entity_set_type=entity_set_type,

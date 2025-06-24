@@ -115,7 +115,10 @@ def refresh_terra_samples(
 
     sample_ids = samples.pop("sample_id")
     samples.insert(0, "entity:sample_id", sample_ids)
-    terra_workspace.upload_entities(df=samples)
+    # don't replace recently populated cells like `analysis_ready_bam` with blanks in
+    # case we haven't run `onboard_aligned_bams` since the most recent alignment jobs
+    # have completed, thus `delete_empty=False`
+    terra_workspace.upload_entities(df=samples, delete_empty=False)
 
 
 def set_ref_urls(
