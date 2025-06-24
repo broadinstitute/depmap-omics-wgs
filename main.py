@@ -11,10 +11,7 @@ from nebelung.terra_workspace import TerraWorkspace
 
 from depmap_omics_wgs.data import onboard_aligned_bams, refresh_terra_samples
 from depmap_omics_wgs.types import GumboClient
-from depmap_omics_wgs.utils import (
-    get_hasura_creds,
-    make_workflow_from_config,
-)
+from depmap_omics_wgs.utils import get_hasura_creds, make_workflow_from_config
 
 
 @functions_framework.cloud_event
