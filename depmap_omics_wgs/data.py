@@ -15,8 +15,6 @@ from depmap_omics_wgs.types import (
     AlignedSamplesWithObjectMetadata,
     CopiedSampleFiles,
     GumboClient,
-    GumboTaskEntity,
-    GumboTaskResult,
     GumboWgsSequencing,
     NewSequencingAlignments,
     TerraSample,

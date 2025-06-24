@@ -73,21 +73,6 @@ class TerraSample(CoercedDataFrame):
     ref_sa: Series[pd.StringDtype]
 
 
-class GumboTaskEntity(CoercedDataFrame):
-    id: Series[pd.StringDtype]
-    omics_sequencing_id: Series[pd.StringDtype] = pa.Field(nullable=True)
-
-
-class GumboTaskResult(CoercedDataFrame):
-    sample_id: Series[pd.StringDtype]
-    label: Series[pd.StringDtype]
-    url: Series[pd.StringDtype] = pa.Field(nullable=True)
-    value: Series[dict[str, Any]] = pa.Field(nullable=True)
-    workflow_name: Series[pd.StringDtype] = pa.Field(nullable=True)
-    workflow_version: Series[pd.StringDtype] = pa.Field(nullable=True)
-    completed_at: Series[pd.Timestamp]
-
-
 class GcsObject(CoercedDataFrame):
     url: Series[pd.StringDtype]
     size: Series[pd.Int64Dtype]

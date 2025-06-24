@@ -21,7 +21,7 @@ typer = "^0.9.0"
 pygithub = "^2.3.0"
 pd-flatten = "^0.1.1"
 google-cloud-secret-manager = "^2.22.1"
-nebelung = "^2.6.0"
+nebelung = "^2.7.0"
 tqdm = "^4.67.1"
 
 [tool.poetry.group.dev.dependencies]

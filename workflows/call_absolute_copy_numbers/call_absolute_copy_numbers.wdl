@@ -16,9 +16,6 @@ struct PureCnSolution {
 
 workflow call_absolute_copy_numbers {
     input {
-        String workflow_version = "1.0"
-        String workflow_source_url = "" # populated automatically with URL of this script
-
         String sample_id
         File called_segments
         File called_mutations

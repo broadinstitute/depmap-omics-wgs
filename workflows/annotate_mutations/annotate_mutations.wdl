@@ -2,9 +2,6 @@ version 1.0
 
 workflow annotate_mutations {
     input {
-        String workflow_version = "1.0"
-        String workflow_source_url = "" # populated automatically with URL of this script
-
         File ref_fasta
         File ref_fasta_index
         File ref_dict
@@ -179,7 +176,7 @@ task split_vcf_by_chrom {
         Int mem_gb = 2
         Int cpu = 1
         Int preemptible = 2
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_disk_gb = 0
     }
 
@@ -228,10 +225,10 @@ task gather_vcfs {
 
         String docker_image
         String docker_image_hash_or_tag
-        Int mem_gb = 16
+        Int mem_gb = 24
         Int cpu = 2
         Int preemptible = 2
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_disk_gb = 0
     }
 
@@ -311,7 +308,7 @@ task annot_with_bcftools {
         Int mem_gb = 4
         Int cpu = 1
         Int preemptible = 2
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_disk_gb = 0
     }
 
@@ -557,7 +554,7 @@ task snpeff_snpsift {
         Int mem_gb = 16
         Int cpu = 1
         Int preemptible = 1
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_disk_gb = 0
     }
 
@@ -637,7 +634,7 @@ task open_cravat {
         Int mem_gb = 16
         Int cpu = 4
         Int preemptible = 1
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_disk_gb = 20
     }
 
@@ -720,7 +717,7 @@ task ensembl_vep {
         Int mem_gb = 8
         Int cpu = 2
         Int preemptible = 2
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_disk_gb = 0
     }
 

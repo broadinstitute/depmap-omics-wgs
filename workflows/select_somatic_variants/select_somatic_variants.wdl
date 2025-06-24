@@ -2,9 +2,6 @@ version 1.0
 
 workflow select_somatic_variants {
     input {
-        String workflow_version = "1.0"
-        String workflow_source_url = "" # populated automatically with URL of this script
-
         String sample_id
         Array[File] duckdb
         Float min_af = 0.15

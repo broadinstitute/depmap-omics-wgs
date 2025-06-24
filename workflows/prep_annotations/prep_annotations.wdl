@@ -2,9 +2,6 @@ version 1.0
 
 workflow prep_annotations {
     input {
-        String workflow_version = "1.0"
-        String workflow_source_url = "" # populated automatically with URL of this script
-
         File ref_fasta
         File ref_fasta_index
         File ref_dict
