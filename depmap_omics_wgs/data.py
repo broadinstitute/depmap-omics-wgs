@@ -327,12 +327,12 @@ def onboard_aligned_bams(
         ]
     )
 
-    if len(seq_ids_no_cds) == 0:
-        logging.info("No new aligned BAM files to onboard")
-        return
-
     # subset to newly-aligned sequencings that need to be onboarded
     samples = samples.loc[samples["sample_id"].isin(list(seq_ids_no_cds))]
+
+    if samples.shape[0] == 0:
+        logging.info("No new aligned BAM files to onboard")
+        return
 
     # get GCS blob metadata for the BAMs
     objects_metadata = get_objects_metadata(samples["analysis_ready_bam"])

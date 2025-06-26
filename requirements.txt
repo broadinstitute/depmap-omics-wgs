@@ -103,13 +103,13 @@ grpc-google-iam-v1==0.14.2
     # via
     #   google-cloud-logging
     #   google-cloud-secret-manager
-grpcio==1.73.0
+grpcio==1.73.1
     # via
     #   google-api-core
     #   googleapis-common-protos
     #   grpc-google-iam-v1
     #   grpcio-status
-grpcio-status==1.73.0
+grpcio-status==1.73.1
     # via google-api-core
 gunicorn==23.0.0
     # via functions-framework
@@ -119,7 +119,7 @@ httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via ariadne-codegen
-hypothesis==6.135.14
+hypothesis==6.135.16
     # via pandera
 idna==3.10
     # via
