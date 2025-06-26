@@ -1,0 +1,28 @@
+{
+  "deleted": false,
+  "inputs": {
+    "annotate_structural_variants.ref_fasta_bgz": "\"gs://ccleparams/references/Homo_sapiens.GRCh38.dna.primary_assembly.fa.bgz\"",
+    "annotate_structural_variants.sample_id": "this.sample_id",
+    "annotate_structural_variants.vcf": "this.sv_somatic_vcf",
+    "annotate_structural_variants.include_string_pre_annot": "\"FILTER=\\\"PASS\\\"|FILTER=\\\"MaxDepth\\\"\"",
+    "annotate_structural_variants.include_string_post_annot": "\"SUM(FORMAT/PR[0:1]+FORMAT/SR[0:1]) >= 5\"",
+    "annotate_structural_variants.gnomad": "\"gs://ccleparams/sv/gnomad.v4.1.sv.sites.pass.vcf.gz\"",
+    "annotate_structural_variants.gnomad_idx": "\"gs://ccleparams/sv/gnomad.v4.1.sv.sites.pass.vcf.gz.tbi\"",
+    "annotate_structural_variants.cosmic_fusion_gene_pairs": "\"gs://ccleparams/sv/cosmic_fusion_gene_pairs_2025-06-03.csv\"",
+    "annotate_structural_variants.vep_chrom_cache_url_prefix": "\"gs://ccleparams/wgs/mutation/annotation/vep/v113/\"",
+    "annotate_structural_variants.vep_chrom_cache_url_suffix": "\".gz\"",
+    "annotate_structural_variants.xy_intervals": "\"gs://ccleparams/references/references_wgs_xy.intervals\""
+  },
+  "methodConfigVersion": 1,
+  "methodRepoMethod": {
+    "methodNamespace": "cds-pipelines",
+    "methodName": "annotate_structural_variants",
+    "methodVersion": 1
+  },
+  "namespace": "cds-pipelines",
+  "name": "annotate_structural_variants",
+  "outputs": {
+    "annotate_structural_variants.candidate_sv_vcf": "this.candidate_sv_vcf"
+  },
+  "rootEntityType": "sample"
+}

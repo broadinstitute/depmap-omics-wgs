@@ -8,6 +8,9 @@ dry_run = false
 [terra]
 repo_namespace = "cds-pipelines"
 workspace_namespace = "broad-firecloud-ccle"
+#workspace_name = "depmap-omics-wgs-hras"
+#workspace_name = "depmap-omics-wgs-mut-dev"
+#workspace_name = "depmap-omics-wgs-sv-dev"
 workspace_name = "depmap-omics-wgs"
 legacy_workspace_namespace = "broad-firecloud-ccle"
 legacy_workspace_name = "DepMap_WGS_CN"

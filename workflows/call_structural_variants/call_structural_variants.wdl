@@ -33,14 +33,14 @@ workflow call_structural_variants {
     }
 
     output {
-        File? diploid_sv_vcf = run_manta.diploid_sv_vcf
-        File? diploid_sv_vcf_index = run_manta.diploid_sv_vcf_index
-        File somatic_sv_vcf = run_manta.somatic_sv_vcf
-        File somatic_sv_vcf_index = run_manta.somatic_sv_vcf_index
-        File candidate_sv_vcf = run_manta.candidate_sv_vcf
-        File candidate_sv_vcf_index = run_manta.candidate_sv_vcf_index
-        File candidate_indel_vcf = run_manta.candidate_indel_vcf
-        File candidate_indel_vcf_index = run_manta.candidate_indel_vcf_index
+        File? sv_diploid_vcf = run_manta.diploid_sv_vcf
+        File? sv_diploid_vcf_index = run_manta.diploid_sv_vcf_index
+        File sv_somatic_vcf = run_manta.somatic_sv_vcf
+        File sv_somatic_vcf_index = run_manta.somatic_sv_vcf_index
+        File sv_candidate_vcf = run_manta.candidate_sv_vcf
+        File sv_candidate_vcf_index = run_manta.candidate_sv_vcf_index
+        File sv_candidate_indel_vcf = run_manta.candidate_indel_vcf
+        File sv_candidate_indel_vcf_index = run_manta.candidate_indel_vcf_index
     }
 }
 
