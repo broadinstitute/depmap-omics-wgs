@@ -10,8 +10,8 @@ repo_namespace = "cds-pipelines"
 workspace_namespace = "broad-firecloud-ccle"
 #workspace_name = "depmap-omics-wgs-hras"
 #workspace_name = "depmap-omics-wgs-mut-dev"
-#workspace_name = "depmap-omics-wgs-sv-dev"
-workspace_name = "depmap-omics-wgs"
+workspace_name = "depmap-omics-wgs-sv-dev"
+#workspace_name = "depmap-omics-wgs"
 legacy_workspace_namespace = "broad-firecloud-ccle"
 legacy_workspace_name = "DepMap_WGS_CN"
 
@@ -50,15 +50,6 @@ method_config_name = "call_cnvs"
 method_synopsis = "Call CNVs"
 workflow_wdl_path = "./workflows/call_cnvs/call_cnvs.wdl"
 method_config_json_path = "./workflows/call_cnvs/call_cnvs.json"
-
-[terra.call_absolute_copy_numbers]
-method_namespace = "cds-pipelines"
-method_name = "call_absolute_copy_numbers"
-method_config_namespace = "cds-pipelines"
-method_config_name = "call_absolute_copy_numbers"
-method_synopsis = "Call absolute copy numbers"
-workflow_wdl_path = "./workflows/call_absolute_copy_numbers/call_absolute_copy_numbers.wdl"
-method_config_json_path = "./workflows/call_absolute_copy_numbers/call_absolute_copy_numbers.json"
 
 [terra.call_mutations]
 method_namespace = "cds-pipelines"

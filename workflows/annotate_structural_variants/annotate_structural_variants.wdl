@@ -111,7 +111,7 @@ task filter_variants {
         Int mem_gb = 4
         Int cpu = 1
         Int preemptible = 2
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_disk_gb = 0
     }
 
@@ -156,7 +156,7 @@ task split_vcf_by_chrom {
         Int mem_gb = 2
         Int cpu = 1
         Int preemptible = 2
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_disk_gb = 0
     }
 
@@ -213,7 +213,7 @@ task ensembl_vep {
         Int mem_gb = 8
         Int cpu = 2
         Int preemptible = 2
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_disk_gb = 0
     }
 
@@ -296,7 +296,7 @@ task gather_vcfs {
         Int mem_gb = 16
         Int cpu = 2
         Int preemptible = 2
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_disk_gb = 0
     }
 
@@ -346,8 +346,8 @@ task convert_to_bedpe {
 
         Int mem_gb = 4
         Int cpu = 1
-        Int preemptible = 3
-        Int max_retries = 0
+        Int preemptible = 2
+        Int max_retries = 1
         Int additional_disk_gb = 0
     }
 
@@ -388,7 +388,7 @@ task reannotate_genes {
         Int mem_gb = 8
         Int cpu = 1
         Int preemptible = 2
-        Int max_retries = 0
+        Int max_retries = 1
         Int additional_disk_gb = 0
     }
 
@@ -511,8 +511,8 @@ task process_sv_bedpe {
 
         Int mem_gb = 8
         Int cpu = 1
-        Int preemptible = 3
-        Int max_retries = 0
+        Int preemptible = 2
+        Int max_retries = 1
         Int additional_disk_gb = 0
     }
 
