@@ -327,6 +327,10 @@ def onboard_aligned_bams(
         ]
     )
 
+    if len(seq_ids_no_cds) == 0:
+        logging.info("No new aligned BAM files to onboard")
+        return
+
     # subset to newly-aligned sequencings that need to be onboarded
     samples = samples.loc[samples["sample_id"].isin(list(seq_ids_no_cds))]
 

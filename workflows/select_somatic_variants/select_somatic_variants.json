@@ -6,8 +6,8 @@
     "select_somatic_variants.max_pop_af": "0.00001",
     "select_somatic_variants.min_af": "0.15",
     "select_somatic_variants.min_depth": "5",
-    "select_somatic_variants.postprocess.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/annotate-mutations-postprocess\"",
-    "select_somatic_variants.postprocess.docker_image_hash_or_tag": "\":production\"",
+    "select_somatic_variants.do_select_somatic_variants.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/select-somatic-variants\"",
+    "select_somatic_variants.do_select_somatic_variants.docker_image_hash_or_tag": "\":production\"",
     "select_somatic_variants.sample_id": "this.sample_id"
   },
   "methodConfigVersion": 1,
@@ -19,7 +19,6 @@
   "namespace": "cds-pipelines",
   "name": "select_somatic_variants",
   "outputs": {
-    "select_somatic_variants.mut_enriched_variants": "this.mut_enriched_variants",
     "select_somatic_variants.mut_somatic_variants": "this.mut_somatic_variants"
   },
   "rootEntityType": "sample"

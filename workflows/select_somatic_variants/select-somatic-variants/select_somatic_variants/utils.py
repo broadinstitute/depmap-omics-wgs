@@ -7,7 +7,7 @@ import duckdb
 import pandas as pd
 
 
-def get_somatic_variants(
+def do_select_somatic_variants(
     db_path: Path,
     parquet_dir_path: Path,
     somatic_variants_out_file_path: Path,

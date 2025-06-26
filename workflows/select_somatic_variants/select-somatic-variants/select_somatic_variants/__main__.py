@@ -6,7 +6,7 @@ from typing import Annotated
 import pandas as pd
 import typer
 
-import select_somatic_variants.utils as postprocess_utils
+from select_somatic_variants.utils import do_select_somatic_variants
 
 pd.set_option("display.max_columns", 30)
 pd.set_option("display.max_colwidth", 50)
@@ -58,13 +58,7 @@ def set_up_gcp_friendly_logging(level: int = logging.INFO) -> None:
     logger.addHandler(stderr_handler)
 
 
-@app.callback(result_callback=done)
-def main():
-    set_up_gcp_friendly_logging()
-
-
-@app.command()
-def get_somatic_variants(
+def main(
     sample_id: Annotated[str, typer.Option()],
     db: Annotated[Path, typer.Option()],
     parquet_dir: Annotated[Path, typer.Option()],
@@ -77,7 +71,9 @@ def get_somatic_variants(
     max_brca1_func_assay_score: Annotated[float, typer.Option()] = -1.328,
     batch_size: Annotated[int, typer.Option()] = 1000000,
 ) -> None:
-    postprocess_utils.get_somatic_variants(
+    set_up_gcp_friendly_logging()
+    
+    do_select_somatic_variants(
         db_path=db,
         parquet_dir_path=parquet_dir,
         variants_enriched_out_file_path=variants_enriched_out_file,
@@ -90,7 +86,9 @@ def get_somatic_variants(
         max_brca1_func_assay_score=max_brca1_func_assay_score,
         batch_size=batch_size,
     )
+    
+    done()
 
 
 if __name__ == "__main__":
-    app()
+    typer.run(main)

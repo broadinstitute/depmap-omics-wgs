@@ -10,7 +10,7 @@ workflow select_somatic_variants {
         Float max_brca1_func_assay_score = -1.328
     }
 
-    call postprocess {
+    call do_select_somatic_variants {
         input:
             sample_id = sample_id,
             duckdb = duckdb,
@@ -21,12 +21,12 @@ workflow select_somatic_variants {
     }
 
     output {
-        File mut_enriched_variants = postprocess.enriched_variants
-        File mut_somatic_variants = postprocess.somatic_variants
+        File mut_enriched_variants = do_select_somatic_variants.enriched_variants
+        File mut_somatic_variants = do_select_somatic_variants.somatic_variants
     }
 }
 
-task postprocess {
+task do_select_somatic_variants {
     input {
         String sample_id
         Array[File] duckdb
@@ -55,7 +55,7 @@ task postprocess {
 
         mkdir -p db_tmp
 
-        python -m annotate_mutations_postprocess get-somatic-variants \
+        python -m select_somatic_variants \
             --db="tmp.duckdb" \
             --parquet-dir="./parq" \
             --variants-enriched-out-file="~{sample_id}.enriched_variants.parquet" \
