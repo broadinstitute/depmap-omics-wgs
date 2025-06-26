@@ -564,7 +564,7 @@ requires-dist = [
     { name = "google-cloud-logging", specifier = ">=3.10.0,<4" },
     { name = "google-cloud-secret-manager", specifier = ">=2.22.1,<3" },
     { name = "google-cloud-storage", specifier = ">=3.1.0,<4" },
-    { name = "nebelung", specifier = ">=2.8.0,<3" },
+    { name = "nebelung", specifier = ">=2.8.1,<3" },
     { name = "pandas", specifier = ">=2.2.2,<3" },
     { name = "pandera", extras = ["strategies"], specifier = ">=0.20.4,<0.21" },
     { name = "pd-flatten", specifier = ">=0.1.1,<0.2" },
@@ -1717,7 +1717,7 @@ wheels = [
 
 [[package]]
 name = "nebelung"
-version = "2.8.0"
+version = "2.8.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "firecloud-api-cds" },
@@ -1727,9 +1727,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "pygithub" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3b/b8/40e424db0083891b9c02dba2aac437529786b58eb1ce87bd0f653b2a092e/nebelung-2.8.0.tar.gz", hash = "sha256:848a9824b749eb7a8307c5f6c7a5472601ed92271246b438cf50c2d19360bd00", size = 18908, upload-time = "2025-06-24T19:11:02.793Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ad/57/c15fb9814de0596a7328c38039bb62cca32d2b417d8fdb8f28d789924c4f/nebelung-2.8.1.tar.gz", hash = "sha256:3ae4d07c3c7a1e5602cbe37357bbd7a2ffe73dc5df36affb0e19e63e0ee14128", size = 19019, upload-time = "2025-06-26T18:17:22.462Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cd/24/65b271a88339ecf96bccabc5fc68a19c3c561a9b7c6ae2aa01f480459042/nebelung-2.8.0-py3-none-any.whl", hash = "sha256:8cebe176f7a39c420acf033c94ae29941ed3ee4f999bd6d1116da38dfb4d6db4", size = 18056, upload-time = "2025-06-24T19:11:01.927Z" },
+    { url = "https://files.pythonhosted.org/packages/4d/7e/215151d97e7e795bb9332ebf88e6a43d5efc5654410c4e35e9949521e401/nebelung-2.8.1-py3-none-any.whl", hash = "sha256:5b2316cbaf0cabb9d4782de6186eb927559b9198b9352b795fa529d05ddca035", size = 18147, upload-time = "2025-06-26T18:17:21.568Z" },
 ]
 
 [[package]]

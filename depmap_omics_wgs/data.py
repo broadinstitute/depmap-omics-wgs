@@ -91,6 +91,9 @@ def refresh_terra_samples(
     # set reference genome columns
     samples = set_ref_urls(samples, ref_urls)
 
+    # only newly loaded samples can be processed by automation
+    samples["automation_status"] = pd.NA
+
     # validate types
     samples = type_data_frame(samples, TerraSample)
 
@@ -102,6 +105,11 @@ def refresh_terra_samples(
             set(samples["sample_id"])
         ),
     )
+
+    # if the sample is new, set this indicator column for later use in delta job logic
+    samples.loc[
+        ~samples["sample_id"].isin(terra_samples["sample_id"]), "automation_status"
+    ] = "ready"
 
     sample_ids = samples.pop("sample_id")
     samples.insert(0, "entity:sample_id", sample_ids)

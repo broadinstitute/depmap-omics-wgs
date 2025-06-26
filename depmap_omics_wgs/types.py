@@ -1,4 +1,4 @@
-from typing import Any, Optional, TypeVar
+from typing import Optional, TypeVar
 
 import httpx
 import pandas as pd
@@ -71,6 +71,7 @@ class TerraSample(CoercedDataFrame):
     ref_fasta_index: Series[pd.StringDtype]
     ref_pac: Series[pd.StringDtype]
     ref_sa: Series[pd.StringDtype]
+    automation_status: Series[pd.StringDtype] = pa.Field(nullable=True)
 
 
 class GcsObject(CoercedDataFrame):
@@ -107,6 +108,23 @@ class NewSequencingAlignments(CoercedDataFrame):
     reference_genome: Series[pd.StringDtype]
     crc32c_hash: Series[pd.StringDtype] = pa.Field(unique=True)
     size: Series[pd.Int64Dtype] = pa.Field(unique=True)
+
+
+class DeltaJob(BaseModel):
+    workflow_name: str
+    entity_type: str
+    entity_set_type: str
+    entity_id_col: str
+    expression: str
+    input_cols: set[str] | None = None
+    output_cols: set[str] | None = None
+    resubmit_n_times: int = 0
+    force_retry: bool = False
+    use_callcache: bool = True
+    use_reference_disks: bool = False
+    memory_retry_multiplier: float = 1.5
+    max_n_entities: int | None = None
+    dry_run: bool = False
 
 
 PydanticBaseModel = TypeVar("PydanticBaseModel", bound=BaseModel)

@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from nebelung.terra_workspace import TerraWorkspace
 
 from depmap_omics_wgs.data import onboard_aligned_bams, refresh_terra_samples
-from depmap_omics_wgs.types import GumboClient
+from depmap_omics_wgs.types import DeltaJob, GumboClient
 from depmap_omics_wgs.utils import get_hasura_creds, make_workflow_from_config
 
 
@@ -70,16 +70,28 @@ def run(cloud_event: CloudEvent) -> None:
             dry_run=False,
         )
     elif ce_data["cmd"] == "submit-delta-job":
-        terra_workspace.submit_delta_job(
-            terra_workflow=make_workflow_from_config(
-                config, workflow_name=ce_data["workflow_name"]
-            ),
-            entity_type="sample",
-            entity_set_type="sample_set",
-            entity_id_col="sample_id",
-            expression="this.samples",
-            dry_run=False,
-        )
+        for x in ce_data["delta_jobs"]:
+            # iterate over workflow names and their delta job submission attrs
+            dj = DeltaJob.model_validate(x)
+
+            terra_workspace.submit_delta_job(
+                terra_workflow=make_workflow_from_config(
+                    config, workflow_name=dj.workflow_name
+                ),
+                entity_type=dj.entity_type,
+                entity_set_type=dj.entity_set_type,
+                entity_id_col=dj.entity_id_col,
+                expression=dj.expression,
+                input_cols=dj.input_cols,
+                output_cols=dj.output_cols,
+                resubmit_n_times=dj.resubmit_n_times,
+                force_retry=dj.force_retry,
+                use_callcache=dj.use_callcache,
+                use_reference_disks=dj.use_reference_disks,
+                memory_retry_multiplier=dj.memory_retry_multiplier,
+                max_n_entities=dj.max_n_entities,
+                dry_run=dj.dry_run,
+            )
     else:
         raise NotImplementedError(f"Invalid command: {ce_data['cmd']}")
 
