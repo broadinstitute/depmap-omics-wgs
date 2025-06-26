@@ -31,7 +31,7 @@ task msisensor2 {
         Int preemptible = 2
         Int max_retries = 1
         Int cpu = 1
-        Int mem_gb = 6
+        Int mem_gb = 8
         Int additional_disk_gb = 0
     }
 
@@ -41,18 +41,15 @@ task msisensor2 {
     command <<<
         set -euo pipefail
 
-        mv ~{bam} .
-        mv ~{bai} .
-
         msisensor2 msi \
             -M /msisensor2/models_hg38 \
-            -t ~{bam_path} \
-            -o ~{sample_id}.msisensor2.output
+            -t" ~{bam_path}" \
+            -o "~{sample_id}.msisensor2.output"
 
-        head -2 ~{sample_id}.msisensor2.output | \
+        head -2 "~{sample_id}.msisensor2.output" | \
             tail -1 | \
             cut -f3 > \
-            ~{sample_id}.msisensor2.score
+            "~{sample_id}.msisensor2.score"
     >>>
 
     output {
