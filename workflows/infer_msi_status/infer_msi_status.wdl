@@ -7,7 +7,7 @@ workflow infer_msi_status {
         File bai
     }
 
-    call msisensor2 {
+    call run_msisensor2 {
         input:
             sample_id=sample_id,
             bam=bam,
@@ -15,23 +15,25 @@ workflow infer_msi_status {
     }
 
     output {
-        Float msisensor2_score = msisensor2.msisensor2_score
-        File msisensor2_output = msisensor2.msisensor2_output
-        File msisensor2_output_dis = msisensor2.msisensor2_output_dis
-        File msisensor2_output_somatic = msisensor2.msisensor2_output_somatic
+        Float msisensor2_score = run_msisensor2.msisensor2_score
+        File msisensor2_output = run_msisensor2.msisensor2_output
+        File msisensor2_output_dis = run_msisensor2.msisensor2_output_dis
+        File msisensor2_output_somatic = run_msisensor2.msisensor2_output_somatic
     }
 }
 
-task msisensor2 {
+task run_msisensor2 {
     input {
         String sample_id
         File bam
         File bai
 
-        Int preemptible = 2
-        Int max_retries = 1
+        String docker_image
+        String docker_image_hash_or_tag
         Int cpu = 1
         Int mem_gb = 8
+        Int preemptible = 2
+        Int max_retries = 1
         Int additional_disk_gb = 0
     }
 
@@ -41,15 +43,18 @@ task msisensor2 {
     command <<<
         set -euo pipefail
 
+        mv ~{bam} .
+        mv ~{bai} .
+
         msisensor2 msi \
             -M /msisensor2/models_hg38 \
-            -t" ~{bam_path}" \
-            -o "~{sample_id}.msisensor2.output"
+            -t ~{bam_path} \
+            -o ~{sample_id}.msisensor2.output
 
-        head -2 "~{sample_id}.msisensor2.output" | \
+        head -2 ~{sample_id}.msisensor2.output | \
             tail -1 | \
             cut -f3 > \
-            "~{sample_id}.msisensor2.score"
+            ~{sample_id}.msisensor2.score
     >>>
 
     output {
@@ -60,11 +65,15 @@ task msisensor2 {
     }
 
     runtime {
-        docker: "us-docker.pkg.dev/depmap-omics/public/msisensor2:production"
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
         memory: "~{mem_gb} GiB"
         disks: "local-disk ~{disk_space} SSD"
         preemptible: preemptible
         maxRetries: max_retries
         cpu: cpu
+    }
+
+    meta {
+        allowNestedInputs: true
     }
 }
