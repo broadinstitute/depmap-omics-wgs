@@ -11,7 +11,7 @@ gcloud functions deploy depmap-omics-wgs \
   --region="us-central1" \
   --source=. \
   --run-service-account="omics-pipeline-runner@depmap-omics.iam.gserviceaccount.com" \
-  --entry-point=run \
+  --entry-point="run" \
   --trigger-topic="run-depmap-omics-wgs" \
   --timeout=540 \
   --memory="4GB" \

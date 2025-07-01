@@ -45,12 +45,13 @@ def refresh_terra_samples(
     # make wide, separating delivery and analysis-ready CRAM/BAMs
     samples = (
         wgs_sequencings.loc[wgs_sequencings["sequencing_alignment_source"].eq("GP")]
-        .drop(columns=["sequencing_alignment_source", "size"])
+        .drop(columns=["sequencing_alignment_source"])
         .rename(
             columns={
                 "omics_sequencing_id": "sample_id",
                 "sequencing_alignment_id": "delivery_sequencing_alignment_id",
                 "url": "delivery_cram_bam",
+                "size": "delivery_cram_bam_size",
                 "index_url": "delivery_crai_bai",
                 "reference_genome": "delivery_ref",
             }
@@ -62,7 +63,6 @@ def refresh_terra_samples(
             .drop(
                 columns=[
                     "sequencing_alignment_source",
-                    "size",
                     "model_id",
                     "model_condition_id",
                     "omics_profile_id",
@@ -75,6 +75,7 @@ def refresh_terra_samples(
                     "omics_sequencing_id": "sample_id",
                     "sequencing_alignment_id": "aligned_sequencing_alignment_id",
                     "url": "analysis_ready_bam",
+                    "size": "analysis_ready_bam_size",
                     "index_url": "analysis_ready_bai",
                     "reference_genome": "ref",
                 }
