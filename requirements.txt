@@ -119,7 +119,7 @@ httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via ariadne-codegen
-hypothesis==6.135.16
+hypothesis==6.135.20
     # via pandera
 idna==3.10
     # via
@@ -149,7 +149,7 @@ mypy-extensions==1.1.0
     # via
     #   black
     #   typing-inspect
-nebelung==2.8.1
+nebelung==2.9.0
     # via depmap-omics-wgs (pyproject.toml)
 numpy==2.3.1
     # via
