@@ -1,0 +1,48 @@
+name: Run static type checker
+
+on:
+  pull_request:
+    branches: [ develop ]
+  push:
+    branches: [ develop ]
+
+jobs:
+  run-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"  # For uv's underlying pip calls
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Set up virtual environment
+        run: |
+          uv venv .venv
+          echo "VIRTUAL_ENV=$(pwd)/.venv" >> $GITHUB_ENV
+          echo "$(pwd)/.venv/bin" >> $GITHUB_PATH
+
+      - name: Cache uv dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('**/pyproject.toml', '**/poetry.lock', '**/requirements.txt') }}
+
+      - name: Install dependencies
+        run: |
+          uv sync
+
+      - name: Debug environment
+        run: |
+          which python
+          which uv
+          uv pip list
+
+      - name: Run pyright
+        run: uv run pyright
