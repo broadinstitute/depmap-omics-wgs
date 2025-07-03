@@ -72,6 +72,8 @@ def run(cloud_event: CloudEvent) -> None:
         )
 
     elif ce_data["cmd"] == "submit-delta-job":
+        failed_submissions = []
+
         for x in ce_data["delta_jobs"]:
             # iterate over workflow names and their delta job submission attrs
             dj = DeltaJob.model_validate(x)
@@ -101,6 +103,13 @@ def run(cloud_event: CloudEvent) -> None:
                 )
             except Exception as e:
                 logging.error(f"Couldn't submit delta job: {e}")
+                failed_submissions.append(dj.workflow_name)
+
+        if len(failed_submissions) > 0:
+            raise Exception(
+                "Couldn't submit delta jobs for workflows: "
+                + ", ".join(failed_submissions)
+            )
 
     else:
         raise NotImplementedError(f"Invalid command: {ce_data['cmd']}")
