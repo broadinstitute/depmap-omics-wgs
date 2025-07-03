@@ -44,7 +44,7 @@ def get_objects_metadata(urls: Iterable[str]) -> TypedDataFrame[GcsObject]:
 
     # batching without raising exceptions makes all columns NA if a file was missing
     df = df.dropna()
-    df = df.astype({"size": "Int64", "gcs_obj_updated_at": "datetime64[ns, UTC]"})
+    df = df.astype({"gcs_obj_updated_at": "datetime64[ns, UTC]"})
 
     # drop time component
     df["gcs_obj_updated_at"] = df["gcs_obj_updated_at"].dt.date.astype("str")
