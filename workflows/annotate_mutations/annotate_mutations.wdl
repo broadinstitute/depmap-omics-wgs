@@ -551,7 +551,7 @@ task snpeff_snpsift {
 
         String docker_image
         String docker_image_hash_or_tag
-        Int mem_gb = 16
+        Int mem_gb = 24
         Int cpu = 1
         Int preemptible = 1
         Int max_retries = 1
@@ -572,8 +572,7 @@ task snpeff_snpsift {
                 "~{vcf}" \
                 > "snpeff_out.vcf"
 
-            bgzip "snpeff_out.vcf" -o "snpeff_out.vcf.gz"
-            rm "snpeff_out.vcf" && mv "snpeff_out.vcf.gz" "~{vcf}"
+            bcftools view "snpeff_out.vcf" -o "~{vcf}"
         fi
 
         if ~{annot_snpsift}; then
@@ -586,11 +585,17 @@ task snpeff_snpsift {
                 "~{vcf}" \
                 > "snpsift_out.vcf"
 
-            bgzip "snpsift_out.vcf" -o "snpsift_out.vcf.gz"
-            rm "snpsift_out.vcf" && mv "snpsift_out.vcf.gz" "~{vcf}"
+            bcftools view "snpsift_out.vcf" -o "~{vcf}"
         fi
 
-        mv "~{vcf}" "~{output_file_base_name}.vcf.gz"
+        # the ALLELEID field can actually have multiple values, so reheader the VCF
+        bcftools view -h "~{vcf}" \
+            | sed -e '/^##INFO=<ID=ALLELEID,/s/Number=1/Number=./' \
+            > "hdr.vcf"
+        bcftools reheader \
+            -h "hdr.vcf" \
+            "~{vcf}" \
+            -o "~{output_file_base_name}.vcf.gz"
     >>>
 
     output {
