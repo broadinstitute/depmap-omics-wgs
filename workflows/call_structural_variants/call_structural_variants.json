@@ -21,12 +21,12 @@
   "namespace": "cds-pipelines",
   "name": "call_structural_variants",
   "outputs": {
-    "call_structural_variants.candidate_sv_vcf": "this.candidate_sv_vcf",
-    "call_structural_variants.candidate_sv_vcf_index": "this.candidate_sv_vcf_index",
-    "call_structural_variants.candidate_indel_vcf": "this.candidate_indel_vcf",
-    "call_structural_variants.candidate_indel_vcf_index": "this.candidate_indel_vcf_index",
-    "call_structural_variants.somatic_sv_vcf": "this.somatic_sv_vcf",
-    "call_structural_variants.somatic_sv_vcf_index": "this.somatic_sv_vcf_index"
+    "call_structural_variants.candidate_sv_vcf": "this.sv_candidate_sv_vcf",
+    "call_structural_variants.candidate_sv_vcf_index": "this.sv_candidate_sv_vcf_index",
+    "call_structural_variants.candidate_indel_vcf": "this.sv_candidate_indel_vcf",
+    "call_structural_variants.candidate_indel_vcf_index": "this.sv_candidate_indel_vcf_index",
+    "call_structural_variants.somatic_sv_vcf": "this.sv_somatic_sv_vcf",
+    "call_structural_variants.somatic_sv_vcf_index": "this.sv_somatic_sv_vcf_index"
   },
   "rootEntityType": "sample"
 }
