@@ -42,6 +42,24 @@ method_synopsis = "Call structural variants"
 workflow_wdl_path = "./workflows/call_structural_variants/call_structural_variants.wdl"
 method_config_json_path = "./workflows/call_structural_variants/call_structural_variants.json"
 
+[terra.annotate_structural_variants]
+method_namespace = "cds-pipelines"
+method_name = "annotate_structural_variants"
+method_config_namespace = "cds-pipelines"
+method_config_name = "annotate_structural_variants"
+method_synopsis = "Annotate structural variants"
+workflow_wdl_path = "./workflows/annotate_structural_variants/annotate_structural_variants.wdl"
+method_config_json_path = "./workflows/annotate_structural_variants/annotate_structural_variants.json"
+
+[terra.select_structural_variants]
+method_namespace = "cds-pipelines"
+method_name = "select_structural_variants"
+method_config_namespace = "cds-pipelines"
+method_config_name = "select_structural_variants"
+method_synopsis = "Postprocess annotated structural variants to extract and rescue somatic variants"
+workflow_wdl_path = "./workflows/select_structural_variants/select_structural_variants.wdl"
+method_config_json_path = "./workflows/select_structural_variants/select_structural_variants.json"
+
 [terra.call_cnvs]
 method_namespace = "cds-pipelines"
 method_name = "call_cnvs"
