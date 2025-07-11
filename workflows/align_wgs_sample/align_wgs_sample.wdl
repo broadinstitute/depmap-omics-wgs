@@ -37,9 +37,6 @@ struct FastqSingleRecord {
 
 workflow align_wgs_sample {
     input {
-        String workflow_version = "1.0" # internal semver
-        String workflow_source_url = "" # populated automatically with URL of this script
-
         String sample_id
         String input_type # "CRAM" or "BAM"
         File input_cram_bam

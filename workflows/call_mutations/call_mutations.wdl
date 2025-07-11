@@ -224,13 +224,6 @@ workflow call_mutations {
         File filtered_vcf = select_first([FilterAlignmentArtifacts.filtered_vcf, Filter.filtered_vcf])
         File filtered_vcf_idx = select_first([FilterAlignmentArtifacts.filtered_vcf_idx, Filter.filtered_vcf_idx])
         File filtering_stats = Filter.filtering_stats
-        File mutect_stats = MergeStats.merged_stats
-        File? contamination_table = CalculateContamination.contamination_table
-
-        File? bamout = MergeBamOuts.merged_bam_out
-        File? bamout_index = MergeBamOuts.merged_bam_out_index
-        File? maf_segments = CalculateContamination.maf_segments
-        File? read_orientation_model_params = LearnReadOrientationModel.artifact_prior_table
     }
 }
 

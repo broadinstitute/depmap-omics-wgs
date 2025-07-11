@@ -45,12 +45,13 @@ def refresh_terra_samples(
     # make wide, separating delivery and analysis-ready CRAM/BAMs
     samples = (
         wgs_sequencings.loc[wgs_sequencings["sequencing_alignment_source"].eq("GP")]
-        .drop(columns=["sequencing_alignment_source", "size"])
+        .drop(columns=["sequencing_alignment_source"])
         .rename(
             columns={
                 "omics_sequencing_id": "sample_id",
                 "sequencing_alignment_id": "delivery_sequencing_alignment_id",
                 "url": "delivery_cram_bam",
+                "size": "delivery_cram_bam_size",
                 "index_url": "delivery_crai_bai",
                 "reference_genome": "delivery_ref",
             }
@@ -62,7 +63,6 @@ def refresh_terra_samples(
             .drop(
                 columns=[
                     "sequencing_alignment_source",
-                    "size",
                     "model_id",
                     "model_condition_id",
                     "omics_profile_id",
@@ -75,6 +75,7 @@ def refresh_terra_samples(
                     "omics_sequencing_id": "sample_id",
                     "sequencing_alignment_id": "aligned_sequencing_alignment_id",
                     "url": "analysis_ready_bam",
+                    "size": "analysis_ready_bam_size",
                     "index_url": "analysis_ready_bai",
                     "reference_genome": "ref",
                 }
@@ -91,6 +92,9 @@ def refresh_terra_samples(
     # set reference genome columns
     samples = set_ref_urls(samples, ref_urls)
 
+    # only newly loaded samples can be processed by automation
+    samples["automation_status"] = pd.NA
+
     # validate types
     samples = type_data_frame(samples, TerraSample)
 
@@ -102,6 +106,11 @@ def refresh_terra_samples(
             set(samples["sample_id"])
         ),
     )
+
+    # if the sample is new, set this indicator column for later use in delta job logic
+    samples.loc[
+        ~samples["sample_id"].isin(terra_samples["sample_id"]), "automation_status"
+    ] = "ready"
 
     sample_ids = samples.pop("sample_id")
     samples.insert(0, "entity:sample_id", sample_ids)
@@ -345,7 +354,7 @@ def onboard_aligned_bams(
     )
 
     # confirm again using file size that these BAMs don't already exist as Gumbo records
-    assert ~bool(samples["size"].isin(existing_alignments["size"]).any())
+    assert not bool(samples["size"].isin(existing_alignments["size"]).any())
 
     # copy BAMs and BAIs to our bucket
     sample_files = copy_to_cclebams(

@@ -1,4 +1,4 @@
-from typing import Any, Optional, TypeVar
+from typing import Literal, Optional, TypeVar
 
 import httpx
 import pandas as pd
@@ -49,6 +49,7 @@ class TerraSample(CoercedDataFrame):
     delivery_file_format: Series[pd.StringDtype] = pa.Field(
         isin={"CRAM", "BAM"}, nullable=True
     )
+    delivery_cram_bam_size: Series[pd.Int64Dtype] = pa.Field(unique=True)
     delivery_ref: Series[pd.StringDtype]
     delivery_ref_alt: Series[pd.StringDtype]
     delivery_ref_amb: Series[pd.StringDtype]
@@ -61,6 +62,7 @@ class TerraSample(CoercedDataFrame):
     delivery_ref_sa: Series[pd.StringDtype]
     analysis_ready_bam: Series[pd.StringDtype] = pa.Field(nullable=True)
     analysis_ready_bai: Series[pd.StringDtype] = pa.Field(nullable=True)
+    analysis_ready_bam_size: Series[pd.Int64Dtype] = pa.Field(nullable=True)
     ref: Series[pd.StringDtype]
     ref_alt: Series[pd.StringDtype]
     ref_amb: Series[pd.StringDtype]
@@ -71,6 +73,7 @@ class TerraSample(CoercedDataFrame):
     ref_fasta_index: Series[pd.StringDtype]
     ref_pac: Series[pd.StringDtype]
     ref_sa: Series[pd.StringDtype]
+    automation_status: Series[pd.StringDtype] = pa.Field(nullable=True)
 
 
 class GcsObject(CoercedDataFrame):
@@ -107,6 +110,27 @@ class NewSequencingAlignments(CoercedDataFrame):
     reference_genome: Series[pd.StringDtype]
     crc32c_hash: Series[pd.StringDtype] = pa.Field(unique=True)
     size: Series[pd.Int64Dtype] = pa.Field(unique=True)
+
+
+class DeltaJob(BaseModel):
+    workflow_name: str
+    entity_type: str
+    entity_set_type: str
+    entity_id_col: str
+    expression: str
+    input_cols: set[str] | None = None
+    output_cols: set[str] | None = None
+    resubmit_n_times: int = 0
+    force_retry: bool = False
+    use_callcache: bool = True
+    use_reference_disks: bool = False
+    delete_intermediate_output_files: bool = False
+    memory_retry_multiplier: float = 1.0
+    per_workflow_cost_cap: float | None = None
+    workflow_failure_mode: Literal["NoNewCalls", "ContinueWhilePossible"] = "NoNewCalls"
+    user_comment: str | None = None
+    max_n_entities: int | None = None
+    dry_run: bool = False
 
 
 PydanticBaseModel = TypeVar("PydanticBaseModel", bound=BaseModel)

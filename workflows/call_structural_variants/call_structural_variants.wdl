@@ -2,9 +2,6 @@ version 1.0
 
 workflow call_structural_variants {
     input {
-        String workflow_version = "1.1"
-        String workflow_source_url = "" # populated automatically with URL of this script
-
         String sample_id
         File tumor_bam
         File tumor_bai
@@ -77,14 +74,19 @@ task run_manta {
     command <<<
         set -euo pipefail
 
+        touch "~{tumor_bai}"
+
         # link localized files to working dir
         ln -vs "~{tumor_bam}" "~{basename(tumor_bam)}"
         ln -vs "~{tumor_bai}" "~{basename(tumor_bai)}"
 
         if [[ -f "~{normal_bam}" ]]; then
+            touch "~{normal_bai}"
             ln -vs "~{normal_bam}" "normal.bam"
             ln -vs "~{normal_bai}" "normal.bai"
             normal_command_line="--normalBam normal.bam"
+        else
+            normal_command_line=""
         fi
 
         ln -vs "~{ref_fasta}" "~{basename(ref_fasta)}"
@@ -95,6 +97,8 @@ task run_manta {
             ln -vs "~{major_contig_bed}" "~{basename(major_contig_bed)}"
             ln -vs "~{major_contig_bed_index}" "~{basename(major_contig_bed_index)}"
             major_contig_line="--callRegions ~{basename(major_contig_bed)}"
+        else
+            major_contig_line=""
         fi
 
         configManta.py \
