@@ -354,7 +354,7 @@ def onboard_aligned_bams(
     )
 
     # confirm again using file size that these BAMs don't already exist as Gumbo records
-    assert ~bool(samples["size"].isin(existing_alignments["size"]).any())
+    assert not bool(samples["size"].isin(existing_alignments["size"]).any())
 
     # copy BAMs and BAIs to our bucket
     sample_files = copy_to_cclebams(

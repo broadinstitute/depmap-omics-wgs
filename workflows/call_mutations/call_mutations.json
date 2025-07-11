@@ -28,15 +28,9 @@
   "namespace": "cds-pipelines",
   "name": "call_mutations",
   "outputs": {
-    "call_mutations.bamout": "this.mut_bamout",
-    "call_mutations.bamout_index": "this.mut_bamout_index",
-    "call_mutations.contamination_table": "this.mut_contamination_table",
     "call_mutations.filtered_vcf": "this.mut_filtered_vcf",
     "call_mutations.filtered_vcf_idx": "this.mut_filtered_vcf_idx",
-    "call_mutations.filtering_stats": "this.mut_filtering_stats",
-    "call_mutations.maf_segments": "this.mut_maf_segments",
-    "call_mutations.mutect_stats": "this.mut_mutect_stats",
-    "call_mutations.read_orientation_model_params": "this.read_orientation_model_params"
+    "call_mutations.filtering_stats": "this.mut_filtering_stats"
   },
   "rootEntityType": "sample"
 }
