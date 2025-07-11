@@ -2,9 +2,6 @@ version 1.0
 
 workflow annotate_structural_variants {
     input {
-        String workflow_version = "1.0"
-        String workflow_source_url # populated automatically with URL of this script
-
         String sample_id
         File vcf
 
@@ -22,9 +19,8 @@ workflow annotate_structural_variants {
         String vep_chrom_cache_url_prefix
         String vep_chrom_cache_url_suffix
 
-        # reannotation and final processing
+        # reannotation
         File gtf_bed
-        File cosmic_fusion_gene_pairs
     }
 
     call filter_variants as filter_variants_pre_annot {
@@ -76,27 +72,17 @@ workflow annotate_structural_variants {
 
     call reannotate_genes {
         input:
-            input_bedpe = convert_to_bedpe.output_bedpe,
             sample_id = sample_id,
+            input_bedpe = convert_to_bedpe.output_bedpe,
             gtf_bed = gtf_bed
-    }
-
-    call process_sv_bedpe {
-        input:
-            sample_id = sample_id,
-            input_bedpe = convert_to_bedpe.output_bedpe,
-            gene_annotation = reannotate_genes.output_reannotated_bedpe,
-            del_annotation = reannotate_genes.annotated_overlap_del,
-            dup_annotation = reannotate_genes.annotated_overlap_dup,
-            cosmic_fusion_gene_pairs = cosmic_fusion_gene_pairs
     }
 
     output {
         File sv_annot_vcf = ensembl_vep_gathered.output_vcf
         File sv_annot_bedpe = convert_to_bedpe.output_bedpe
         File sv_annot_reannotated_bedpe = reannotate_genes.output_reannotated_bedpe
-        File sv_annot_expanded_bedpe = process_sv_bedpe.expanded_bedpe
-        File sv_annot_expanded_filtered_sv_bedpe = process_sv_bedpe.expanded_filtered_bedpe
+        File sv_del_annotation = reannotate_genes.annotated_overlap_del
+        File sv_dup_annotation = reannotate_genes.annotated_overlap_dup
     }
 }
 
@@ -487,62 +473,9 @@ task reannotate_genes {
     }
 
     output {
-        File output_reannotated_bedpe = "~{sample_id}.SV.gene_overlaps.txt"
-        File annotated_overlap_del = "~{sample_id}.DEL.overlap.bed"
-        File annotated_overlap_dup = "~{sample_id}.DUP.overlap.bed"
-    }
-
-    meta {
-        allowNestedInputs: true
-    }
-}
-
-task process_sv_bedpe {
-    # see python module for details, but in short, it includes:
-    # expanding INFO annotation column, incorporating gene re-annotation generated above,
-    # gnomad filering, rescuing, keeping only columns of interest
-    input {
-        String sample_id
-        File input_bedpe
-        File gene_annotation
-        File del_annotation
-        File dup_annotation
-        File cosmic_fusion_gene_pairs
-
-        Int mem_gb = 8
-        Int cpu = 1
-        Int preemptible = 2
-        Int max_retries = 1
-        Int additional_disk_gb = 0
-    }
-
-    Int disk_space = ceil(
-        3 * size(input_bedpe, "GiB")
-        + size([gene_annotation, del_annotation, dup_annotation], "GiB")
-    ) + 10
-
-    command <<<
-        python -u /app/process_sv_bedpe.py \
-            "~{input_bedpe}" \
-            "~{gene_annotation}" \
-            "~{del_annotation}" \
-            "~{dup_annotation}" \
-            "~{cosmic_fusion_gene_pairs}" \
-            "~{sample_id}"
-    >>>
-
-    runtime {
-        docker: "~{docker_image}~{docker_image_hash_or_tag}"
-        memory: "~{mem_gb} GB"
-        disks: "local-disk ~{disk_space} SSD"
-        preemptible: preemptible
-        maxRetries: max_retries
-        cpu: cpu
-    }
-
-    output {
-        File expanded_bedpe = "~{sample_id}.svs.expanded.reannotated.bedpe"
-        File expanded_filtered_bedpe = "~{sample_id}.svs.expanded.reannotated.filtered.bedpe"
+        File output_reannotated_bedpe = "~{sample_id}.gene_overlaps.txt"
+        file annotated_overlap_del = "~{sample_id}.del_overlap.bed"
+        file annotated_overlap_dup = "~{sample_id}.dup_overlap.bed"
     }
 
     meta {
