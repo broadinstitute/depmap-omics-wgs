@@ -7,7 +7,7 @@ uv pip compile pyproject.toml -o requirements.txt --emit-index-url > requirement
 echo "Updating GCP Function"
 gcloud functions deploy depmap-omics-wgs \
   --gen2 \
-  --runtime="python313" \
+  --runtime="python312" \
   --region="us-central1" \
   --source=. \
   --run-service-account="omics-pipeline-runner@depmap-omics.iam.gserviceaccount.com" \

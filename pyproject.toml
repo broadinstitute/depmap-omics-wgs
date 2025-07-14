@@ -3,7 +3,7 @@ name = "depmap-omics-wgs"
 version = "0.1.0"
 description = ""
 authors = []
-requires-python = "~=3.13"
+requires-python = "~=3.12"
 readme = "README.md"
 dependencies = [
     "ariadne-codegen>=0.14.0,<0.15",
