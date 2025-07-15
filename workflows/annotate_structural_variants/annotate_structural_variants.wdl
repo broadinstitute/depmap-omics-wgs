@@ -232,9 +232,9 @@ task ensembl_vep {
             --offline \
             --output_file="~{output_file_base_name}.vcf" \
             --pick \
-            --plugin="StructuralVariantOverlap,file=/tmp/Plugins/~{gnomad},same_type=1,overlap_cutoff=80,reciprocal=0,same_type=1,fields=AC%AF" \
-            --plugin="pLI,pLI.tsv" \
+            --plugin="StructuralVariantOverlap,file=~{gnomad},same_type=1,overlap_cutoff=80,reciprocal=0,same_type=1,fields=AC%AF" \
             --protein \
+            --safe \
             --shift_hgvs=0 \
             --species="homo_sapiens" \
             --symbol \
