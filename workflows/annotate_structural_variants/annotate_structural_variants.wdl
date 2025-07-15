@@ -379,7 +379,7 @@ task reannotate_genes {
     command <<<
         set -euo pipefail
 
-        # annotate genes at breakpoint A
+        echo "annotating genes at breakpoint A"
         sed '/^#/d' "~{input_bedpe}" | \
             cut -f1-3,13,16 | \
             bedtools intersect -a stdin -b "~{gtf_bed}" -wao | \
@@ -396,7 +396,7 @@ task reannotate_genes {
             bedtools groupby -g 1,2,3,4,5 -c 7 -o distinct | sort -k5,5 \
             > gene_overlaps.a.bed # collapse all genes to one row
 
-        # annotate genes at breakpoint B
+        echo "annotating genes at breakpoint B"
         sed '/^#/d' "~{input_bedpe}" | \
             cut -f4,5,6,13,16 | \
             bedtools intersect -a stdin -b "~{gtf_bed}" -wao | \
@@ -413,17 +413,18 @@ task reannotate_genes {
             bedtools groupby -g 1,2,3,4,5 -c 7 -o distinct | sort -k5,5 \
             > gene_overlaps.b.bed # collapse all genes to one row
 
-        # join breakpoint A annotations and breakpoint B annotations
+        echo "joining breakpoint A and B annotations"
         join -1 5 -2 5 gene_overlaps.a.bed gene_overlaps.b.bed | \
             sed 's/ /\t/g' | \
             cut -f2- > "~{sample_id}.gene_overlaps.txt"
 
-        # subset DEL and DUP variants
+        echo "subsetting DEL and DUP variants"
         awk -F"\t" '{ if ($11 == "DEL") print }' "~{input_bedpe}" > "~{sample_id}.del.bedpe"
         awk -F"\t" '{ if ($11 == "DUP") print }' "~{input_bedpe}" > "~{sample_id}.dup.bedpe"
 
-        # for DEL, not just look at genes at the breakpoints, but also genes that lie between breakpoints
-        # so here intersect (start_a, end_b) with GTF
+        # for DEL, not just look at genes at the breakpoints, but also genes that lie
+        # between breakpoints
+        echo "intersecting (start_a, end_b) DEL with GTF"
         sed '/^#/d' "~{sample_id}.del.bedpe" | \
             cut -f1,2,6,13,16 | \
             bedtools intersect -a stdin -b "~{gtf_bed}" -wao | \
@@ -440,8 +441,9 @@ task reannotate_genes {
             bedtools groupby -g 1,2,3,4,5 -c 7 -o distinct | sort -k5,5 \
             > "~{sample_id}.del_overlap.bed"
 
-        # for DUP, not just look at genes at the breakpoints, but also genes that lie between breakpoints
-        # so here intersect (start_a, end_b) with GTF
+        # for DUP, not just look at genes at the breakpoints, but also genes that lie
+        # between breakpoints
+        echo "intersecting (start_a, end_b) DUP with GTF"
         sed '/^#/d'  "~{sample_id}.dup.bedpe" | \
             cut -f1,2,6,13,16 | \
             bedtools intersect -a stdin -b "~{gtf_bed}" -wao | \
