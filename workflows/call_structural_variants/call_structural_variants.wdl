@@ -10,10 +10,8 @@ workflow call_structural_variants {
         File ref_fasta
         File ref_fasta_index
         Boolean is_major_contigs_only = true
-
-        # from https://github.com/Illumina/manta/tree/master/docs/userGuide#extended-use-cases
-        File major_contig_bed = "gs://ccleparams/manta_major_contigs.bed.gz"
-        File major_contig_bed_index = "gs://ccleparams/manta_major_contigs.bed.gz.tbi"
+        File major_contig_bed
+        File major_contig_bed_index
     }
 
     call run_manta {
@@ -50,9 +48,9 @@ task run_manta {
         File? normal_bai
         File ref_fasta
         File ref_fasta_index
+        Boolean is_major_contigs_only
         File major_contig_bed
         File major_contig_bed_index
-        Boolean is_major_contigs_only
         String docker_image
         String docker_image_hash_or_tag
 
@@ -117,32 +115,32 @@ task run_manta {
             --quiet
 
         if [[ -f "~{normal_bam}" ]]; then
-           mv results/variants/diploidSV.vcf.gz "~{sample_id}.diploidSV.vcf.gz"
-           mv results/variants/diploidSV.vcf.gz.tbi "~{sample_id}.diploidSV.vcf.gz.tbi"
-           mv results/variants/somaticSV.vcf.gz "~{sample_id}.somaticSV.vcf.gz"
-           mv results/variants/somaticSV.vcf.gz.tbi "~{sample_id}.somaticSV.vcf.gz.tbi"
+           mv results/variants/diploidSV.vcf.gz "~{sample_id}.diploid_sv.vcf.gz"
+           mv results/variants/diploidSV.vcf.gz.tbi "~{sample_id}.diploid_sv.vcf.gz.tbi"
+           mv results/variants/somaticSV.vcf.gz "~{sample_id}.somatic_sv.vcf.gz"
+           mv results/variants/somaticSV.vcf.gz.tbi "~{sample_id}.somatic_sv.vcf.gz.tbi"
         else
-           touch "~{sample_id}.diploidSV.vcf.gz"
-           touch "~{sample_id}.diploidSV.vcf.gz.tbi"
-           mv results/variants/tumorSV.vcf.gz "~{sample_id}.somaticSV.vcf.gz"
-           mv results/variants/tumorSV.vcf.gz.tbi "~{sample_id}.somaticSV.vcf.gz.tbi"
+           touch "~{sample_id}.diploid_sv.vcf.gz"
+           touch "~{sample_id}.diploid_sv.vcf.gz.tbi"
+           mv results/variants/tumorSV.vcf.gz "~{sample_id}.somatic_sv.vcf.gz"
+           mv results/variants/tumorSV.vcf.gz.tbi "~{sample_id}.somatic_sv.vcf.gz.tbi"
         fi
 
-        mv results/variants/candidateSV.vcf.gz "~{sample_id}.candidateSV.vcf.gz"
-        mv results/variants/candidateSV.vcf.gz.tbi "~{sample_id}.candidateSV.vcf.gz.tbi"
-        mv results/variants/candidateSmallIndels.vcf.gz "~{sample_id}.candidateSmallIndels.vcf.gz"
-        mv results/variants/candidateSmallIndels.vcf.gz.tbi "~{sample_id}.candidateSmallIndels.vcf.gz.tbi"
+        mv results/variants/candidateSV.vcf.gz "~{sample_id}.candidate_sv.vcf.gz"
+        mv results/variants/candidateSV.vcf.gz.tbi "~{sample_id}.candidate_sv.vcf.gz.tbi"
+        mv results/variants/candidateSmallIndels.vcf.gz "~{sample_id}.candidate_small_indels.vcf.gz"
+        mv results/variants/candidateSmallIndels.vcf.gz.tbi "~{sample_id}.candidate_small_indels.vcf.gz.tbi"
     >>>
 
     output {
-        File? diploid_sv_vcf = "~{sample_id}.diploidSV.vcf.gz"
-        File? diploid_sv_vcf_index = "~{sample_id}.diploidSV.vcf.gz.tbi"
-        File somatic_sv_vcf = "~{sample_id}.somaticSV.vcf.gz"
-        File somatic_sv_vcf_index = "~{sample_id}.somaticSV.vcf.gz.tbi"
-        File candidate_sv_vcf = "~{sample_id}.candidateSV.vcf.gz"
-        File candidate_sv_vcf_index = "~{sample_id}.candidateSV.vcf.gz.tbi"
-        File candidate_indel_vcf = "~{sample_id}.candidateSmallIndels.vcf.gz"
-        File candidate_indel_vcf_index = "~{sample_id}.candidateSmallIndels.vcf.gz.tbi"
+        File? diploid_sv_vcf = "~{sample_id}.diploid_sv.vcf.gz"
+        File? diploid_sv_vcf_index = "~{sample_id}.diploid_sv.vcf.gz.tbi"
+        File somatic_sv_vcf = "~{sample_id}.somatic_sv.vcf.gz"
+        File somatic_sv_vcf_index = "~{sample_id}.somatic_sv.vcf.gz.tbi"
+        File candidate_sv_vcf = "~{sample_id}.candidate_sv.vcf.gz"
+        File candidate_sv_vcf_index = "~{sample_id}.candidate_sv.vcf.gz.tbi"
+        File candidate_indel_vcf = "~{sample_id}.candidate_small_indels.vcf.gz"
+        File candidate_indel_vcf_index = "~{sample_id}.candidate_small_indels.vcf.gz.tbi"
     }
 
     runtime {
