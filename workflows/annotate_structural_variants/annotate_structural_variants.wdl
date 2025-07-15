@@ -5,9 +5,8 @@ workflow annotate_structural_variants {
         String sample_id
         File vcf
 
-        # pre/post variant filtering
-        String include_string_pre_annot
-        String include_string_post_annot
+        # variant filtering
+        String include_string
 
         # scatter/gather VCF by chromosome
         File xy_intervals
@@ -23,16 +22,16 @@ workflow annotate_structural_variants {
         File gtf_bed
     }
 
-    call filter_variants as filter_variants_pre_annot {
+    call filter_variants {
         input:
             sample_id = sample_id,
             vcf = vcf,
-            include_string = include_string_pre_annot
+            include_string = include_string
     }
 
     call split_vcf_by_chrom {
         input:
-            vcf = filter_variants_pre_annot.vcf_filtered,
+            vcf = filter_variants.vcf_filtered,
             xy_intervals = xy_intervals
     }
 
@@ -57,17 +56,10 @@ workflow annotate_structural_variants {
             output_file_base_name = sample_id + "_ensembl_vep_annot",
     }
 
-    call filter_variants as filter_variants_post_annot {
-        input:
-            sample_id = sample_id,
-            vcf = ensembl_vep_gathered.output_vcf,
-            include_string = include_string_post_annot
-    }
-
     call convert_to_bedpe {
         input:
             sample_id = sample_id,
-            vcf = filter_variants_post_annot.vcf_filtered
+            vcf = ensembl_vep_gathered.output_vcf
     }
 
     call reannotate_genes {
@@ -115,7 +107,7 @@ task filter_variants {
     >>>
 
     output {
-        File vcf_filtered = "~{sample_id_filtered.vcf.gz"
+        File vcf_filtered = "~{sample_id}_filtered.vcf.gz"
     }
 
     runtime {
@@ -330,6 +322,8 @@ task convert_to_bedpe {
         String sample_id
         File vcf
 
+        String docker_image
+        String docker_image_hash_or_tag
         Int mem_gb = 4
         Int cpu = 1
         Int preemptible = 2
@@ -371,6 +365,8 @@ task reannotate_genes {
         File input_bedpe
         File gtf_bed
 
+        String docker_image
+        String docker_image_hash_or_tag
         Int mem_gb = 8
         Int cpu = 1
         Int preemptible = 2
@@ -474,8 +470,8 @@ task reannotate_genes {
 
     output {
         File output_reannotated_bedpe = "~{sample_id}.gene_overlaps.txt"
-        file annotated_overlap_del = "~{sample_id}.del_overlap.bed"
-        file annotated_overlap_dup = "~{sample_id}.dup_overlap.bed"
+        File annotated_overlap_del = "~{sample_id}.del_overlap.bed"
+        File annotated_overlap_dup = "~{sample_id}.dup_overlap.bed"
     }
 
     meta {
