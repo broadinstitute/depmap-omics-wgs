@@ -1,6 +1,6 @@
 import itertools
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Set, Tuple, Union
+from typing import Iterable
 
 import pandas as pd
 
@@ -143,8 +143,8 @@ def bedpe_to_df(input_bedpe_path: Path) -> pd.DataFrame:
 
 
 def read_comments(
-    f: Iterable[Union[str, bytes]], vep_csq_desc: str
-) -> Tuple[Dict[str, str], List[str], int]:
+    f: Iterable[str | bytes], vep_csq_desc: str
+) -> tuple[dict[str, str], list[str], int]:
     """
     Read and parse header comments from a BEDPE file.
 
@@ -334,8 +334,8 @@ def split_multi(s: str) -> str:
     """
     Split multi-gene annotations into separate symbol and ID components.
 
-    Converts comma-separated gene annotations in format "SYMBOL1@ID1,SYMBOL2@ID2"
-    into semicolon-separated format "SYMBOL1, SYMBOL2;ID1, ID2".
+    Converts comma-separated gene annotations in format "SYMBOL1@ID1,SYMBOL2@ID2" into
+    semicolon-separated format "SYMBOL1, SYMBOL2;ID1, ID2".
 
     :param s: String containing gene annotations or NaN/missing value
     :returns: Formatted string with symbols and IDs separated by semicolon
@@ -406,7 +406,9 @@ def filter_svs(
     # rescue gene pairs in cosmic
     df["pair_in_cosmic"] = df.apply(
         lambda row: list_all_pairs(
-            row["SYMBOL_A"], row["SYMBOL_B"], cosmic_pairs_sorted
+            row["SYMBOL_A"],
+            row["SYMBOL_B"],
+            cosmic_pairs_sorted,  # noinspection
         ),
         axis=1,
     )
@@ -468,7 +470,7 @@ def filter_svs(
     return df
 
 
-def onco_ts_overlap(s: str, oncogenes_and_ts: Set[str]) -> bool:
+def onco_ts_overlap(s: str, oncogenes_and_ts: set[str]) -> bool:
     """
     Check if any genes in a comma-separated list overlap with oncogenes/TSGs.
 
@@ -481,12 +483,12 @@ def onco_ts_overlap(s: str, oncogenes_and_ts: Set[str]) -> bool:
     return len(set(l) & oncogenes_and_ts) > 0
 
 
-def list_all_pairs(a: str, b: str, cosmic_pairs_sorted: Set[Tuple[str, str]]) -> bool:
+def list_all_pairs(a: str, b: str, cosmic_pairs_sorted: set[tuple[str, str]]) -> bool:
     """
     Check if any gene pairs from two lists match known COSMIC fusion pairs.
 
-    Creates all possible pairs from genes in lists a and b, then checks if any
-    match the provided set of COSMIC fusion gene pairs.
+    Creates all possible pairs from genes in lists a and b, then checks if any match the
+    provided set of COSMIC fusion gene pairs.
 
     :param a: Comma-separated string of gene symbols from breakpoint A
     :param b: Comma-separated string of gene symbols from breakpoint B
