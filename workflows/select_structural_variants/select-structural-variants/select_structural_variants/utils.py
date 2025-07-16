@@ -73,7 +73,7 @@ def bedpe_to_df(input_bedpe_path: Path) -> pd.DataFrame:
         ("_A", "INFO_A", fields_a, vep_fields_a),
         ("_B", "INFO_B", fields_b, vep_fields_b),
     ]:
-        for j, info in enumerate(df[side].str.split(";").values.tolist()):
+        for j, info in enumerate(df[side].fillna("").str.split(";").values.tolist()):
             res = {}
 
             for annot in info:
@@ -121,7 +121,7 @@ def bedpe_to_df(input_bedpe_path: Path) -> pd.DataFrame:
     sorting = df["FORMAT"][0].split(":")
 
     for sample in samples:
-        res = df[sample].str.split(":").values.tolist()
+        res = df[sample].fillna("").str.split(":").values.tolist()
         maxcols = max([len(v) for v in res])
 
         if maxcols - len(sorting) > 0:
@@ -341,7 +341,7 @@ def split_multi(s: str) -> str:
     :returns: Formatted string with symbols and IDs separated by semicolon
     """
 
-    if pd.isna(s) or s == ".":
+    if pd.isna(s) or s == "." or s == "":
         return ".;."
     else:
         arr = s.split(",")
@@ -401,14 +401,14 @@ def filter_svs(
     df["onco_ts_overlap_B"] = df["SYMBOL_B"].apply(
         onco_ts_overlap, oncogenes_and_ts=oncogenes_and_ts
     )
-    df.loc[df["onco_ts_overlap_A"] | df["onco_ts_overlap_A"], "Rescue"] = True
+    df.loc[df["onco_ts_overlap_A"] | df["onco_ts_overlap_B"], "Rescue"] = True
 
     # rescue gene pairs in cosmic
     df["pair_in_cosmic"] = df.apply(
         lambda row: list_all_pairs(
             row["SYMBOL_A"],
             row["SYMBOL_B"],
-            cosmic_pairs_sorted,  # noinspection
+            cosmic_pairs_sorted,
         ),
         axis=1,
     )
@@ -479,8 +479,7 @@ def onco_ts_overlap(s: str, oncogenes_and_ts: set[str]) -> bool:
     :returns: True if any genes overlap with the oncogene/TSG set
     """
 
-    l = s.split(", ")
-    return len(set(l) & oncogenes_and_ts) > 0
+    return not oncogenes_and_ts.isdisjoint(set(s.split(", ")))
 
 
 def list_all_pairs(a: str, b: str, cosmic_pairs_sorted: set[tuple[str, str]]) -> bool:
@@ -503,4 +502,4 @@ def list_all_pairs(a: str, b: str, cosmic_pairs_sorted: set[tuple[str, str]]) ->
     all_pairs = list(itertools.product(alist, blist))
     all_pairs = set([tuple(sorted(elem)) for elem in all_pairs])
 
-    return len(all_pairs & cosmic_pairs_sorted) > 0
+    return not cosmic_pairs_sorted.isdisjoint(all_pairs)
