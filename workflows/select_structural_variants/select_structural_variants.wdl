@@ -8,6 +8,7 @@ workflow select_structural_variants {
         File del_annotation
         File dup_annotation
         File cosmic_fusion_gene_pairs
+        File onco_tsg
     }
 
     call do_select_structural_variants {
@@ -17,12 +18,12 @@ workflow select_structural_variants {
             gene_annotation = gene_annotation,
             del_annotation = del_annotation,
             dup_annotation = dup_annotation,
-            cosmic_fusion_gene_pairs = cosmic_fusion_gene_pairs
+            cosmic_fusion_gene_pairs = cosmic_fusion_gene_pairs,
+            onco_tsg = onco_tsg
     }
 
     output {
-        File expanded_bedpe = do_select_structural_variants.expanded_bedpe
-        File expanded_filtered_bedpe = do_select_structural_variants.expanded_filtered_bedpe
+        File selected_somatic_sv = do_select_structural_variants.selected_somatic_sv
     }
 }
 
@@ -34,6 +35,7 @@ task do_select_structural_variants {
         File del_annotation
         File dup_annotation
         File cosmic_fusion_gene_pairs
+        File onco_tsg
 
         String docker_image
         String docker_image_hash_or_tag
@@ -58,12 +60,12 @@ task do_select_structural_variants {
             --del-annotation="~{del_annotation}" \
             --dup-annotation="~{dup_annotation}" \
             --cosmic-fusion-gene-pairs="~{cosmic_fusion_gene_pairs}" \
-            --out="~{sample_id}.somatic_structural_variants.parquet"
+            --onco-tsg="~{onco_tsg}" \
+            --out="~{sample_id}.selected_somatic_sv.parquet"
     >>>
 
     output {
-        File expanded_bedpe = "~{sample_id}.expanded_reannotated.bedpe"
-        File expanded_filtered_bedpe = "~{sample_id}_expanded_reannotated_filtered.bedpe"
+        File selected_somatic_sv = "~{sample_id}.selected_somatic_sv.parquet"
     }
 
     runtime {

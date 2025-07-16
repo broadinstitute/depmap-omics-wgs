@@ -21,11 +21,6 @@ pd.set_option("mode.chained_assignment", "warn")
 app = typer.Typer()
 
 
-# noinspection PyUnusedLocal
-def done(*args, **kwargs):
-    logging.info("Done.")
-
-
 def set_up_gcp_friendly_logging(level: int = logging.INFO) -> None:
     """
     Configure logging so that logs are routed to stdout/stderr based on severity,
@@ -59,13 +54,27 @@ def set_up_gcp_friendly_logging(level: int = logging.INFO) -> None:
 
 
 def main(
-    sample_id: Annotated[str, typer.Option()]
+    input_bedpe: Annotated[Path, typer.Option(exists=True)],
+    gene_annotation: Annotated[Path, typer.Option(exists=True)],
+    del_annotation: Annotated[Path, typer.Option(exists=True)],
+    dup_annotation: Annotated[Path, typer.Option(exists=True)],
+    cosmic_fusion_gene_pairs: Annotated[Path, typer.Option(exists=True)],
+    onco_tsg: Annotated[Path, typer.Option(exists=True)],
+    out: Annotated[Path, typer.Option()],
 ) -> None:
     set_up_gcp_friendly_logging()
-    
-    do_select_structural_variants()
-    
-    done()
+
+    do_select_structural_variants(
+        input_bedpe_path=input_bedpe,
+        gene_annotation_path=gene_annotation,
+        del_annotation_path=del_annotation,
+        dup_annotation_path=dup_annotation,
+        cosmic_fusion_gene_pairs_path=cosmic_fusion_gene_pairs,
+        onco_tsg_path=onco_tsg,
+        out_path=out,
+    )
+
+    logging.info("Done.")
 
 
 if __name__ == "__main__":

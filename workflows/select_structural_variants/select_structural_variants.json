@@ -3,7 +3,7 @@
   "inputs": {
     "select_structural_variants.cosmic_fusion_gene_pairs": "\"gs://ccleparams/sv/cosmic_fusion_gene_pairs_2025-06-03.csv\"",
     "select_structural_variants.del_annotation": "this.sv_del_annotation",
-    "select_structural_variants.do_select_structural_variants.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/select-structural-variants\"",
+    "select_structural_variants.do_select_structural_variants.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/select-structural-variants\"",
     "select_structural_variants.do_select_structural_variants.docker_image_hash_or_tag": "\":production\"",
     "select_structural_variants.dup_annotation": "this.sv_dup_annotation",
     "select_structural_variants.gene_annotation": "this.sv_annot_reannotated_bedpe",
@@ -19,8 +19,7 @@
   "namespace": "cds-pipelines",
   "name": "select_structural_variants",
   "outputs": {
-    "select_structural_variants.expanded_bedpe": "this.sv_expanded_bedpe",
-    "select_structural_variants.expanded_filtered_bedpe": "this.sv_expanded_filtered_bedpe"
+    "select_structural_variants.selected_somatic_sv": "this.sv_selected_somatic_sv"
   },
   "rootEntityType": "sample"
 }
