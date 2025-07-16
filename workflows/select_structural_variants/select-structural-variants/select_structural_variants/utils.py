@@ -1,6 +1,6 @@
 import itertools
 from pathlib import Path
-from typing import IO
+from typing import Iterable
 
 import pandas as pd
 
@@ -14,16 +14,14 @@ def do_select_structural_variants(
     onco_tsg_path: Path,
     out_path: Path,
 ) -> None:
-    bedpe_df = bedpe_to_df(input_bedpe_path)
+    df = bedpe_to_df(input_bedpe_path)
 
-    bedpe_reannotated = reannotate_genes(
-        bedpe_df, gene_annotation_path, del_annotation_path, dup_annotation_path
+    df = reannotate_genes(
+        df, gene_annotation_path, del_annotation_path, dup_annotation_path
     )
 
-    df_filtered = filter_svs(
-        bedpe_reannotated, cosmic_fusion_gene_pairs_path, onco_tsg_path
-    )
-    df_filtered.to_parquet(out_path, index=False)
+    df = filter_svs(df, cosmic_fusion_gene_pairs_path, onco_tsg_path)
+    df.to_parquet(out_path, index=False)
 
 
 def bedpe_to_df(input_bedpe_path):
@@ -48,14 +46,15 @@ def bedpe_to_df(input_bedpe_path):
         description, colnames, nrows_toskip = read_comments(f, vep_csq_desc)
 
     colnames = [i for i in colnames]
-    csvkwargs = {
-        "sep": "\t",
-        "index_col": False,
-        "header": None,
-        "names": colnames,
-        "skiprows": nrows_toskip,
-    }
-    data = pd.read_csv(input_bedpe_path, **csvkwargs)
+
+    df = pd.read_csv(
+        input_bedpe_path,
+        sep="\t",
+        index_col=False,
+        header=None,
+        names=colnames,
+        skiprows=nrows_toskip,
+    )
 
     vep_fields_a = [k + "_A" for k, v in description.items() if vep_csq_desc in v]
     vep_fields_b = [k + "_B" for k, v in description.items() if vep_csq_desc in v]
@@ -67,7 +66,7 @@ def bedpe_to_df(input_bedpe_path):
         ("_A", "INFO_A", fields_a, vep_fields_a),
         ("_B", "INFO_B", fields_b, vep_fields_b),
     ]:
-        for j, info in enumerate(data[side].str.split(";").values.tolist()):
+        for j, info in enumerate(df[side].str.split(";").values.tolist()):
             res = {}
 
             for annot in info:
@@ -103,19 +102,19 @@ def bedpe_to_df(input_bedpe_path):
 
         fields_combined.update(fields)
 
-    data = pd.concat(
+    df = pd.concat(
         [
-            data.drop(columns=["INFO_A", "INFO_B"]),
-            pd.DataFrame(data=fields_combined, index=data.index),
+            df.drop(columns=["INFO_A", "INFO_B"]),
+            pd.DataFrame(data=fields_combined, index=df.index),
         ],
         axis=1,
     )
 
     samples = [i for i in colnames[21:]]
-    sorting = data["FORMAT"][0].split(":")
+    sorting = df["FORMAT"][0].split(":")
 
     for sample in samples:
-        res = data[sample].str.split(":").values.tolist()
+        res = df[sample].str.split(":").values.tolist()
         maxcols = max([len(v) for v in res])
 
         if maxcols - len(sorting) > 0:
@@ -125,24 +124,24 @@ def bedpe_to_df(input_bedpe_path):
         if len(samples) > 1:
             sorting = [sample + "_" + v for v in sorting]
 
-        data = pd.concat(
+        df = pd.concat(
             [
-                data.drop(columns=sample),
-                pd.DataFrame(data=res, columns=sorting, index=data.index),
+                df.drop(columns=sample),
+                pd.DataFrame(data=res, columns=sorting, index=df.index),
             ],
             axis=1,
         )
 
-    return data
+    return df
 
 
-def read_comments(f: IO[str] | IO[bytes], vep_csq_desc: str):
+def read_comments(f: Iterable[str | bytes], vep_csq_desc: str):
     description = {}
     colnames = []
     rows = 0
 
     for l in f:
-        l = l.decode("utf-8") if type(l) is not str else l
+        l = l.decode("utf-8") if isinstance(l, bytes) else l
 
         if l.startswith("##"):
             rows += 1
@@ -170,7 +169,7 @@ def read_comments(f: IO[str] | IO[bytes], vep_csq_desc: str):
 
 
 def reannotate_genes(
-    bedpe_df: pd.DataFrame,
+    df: pd.DataFrame,
     gene_annotation_path: Path,
     del_annotation_path: Path,
     dup_annotation_path: Path,
@@ -178,7 +177,7 @@ def reannotate_genes(
     """since VEP can't reliably give the correct gene symbol annotation, redo it here
 
     Args:
-        bedpe_df (df.DataFrame): SVs in bedpe format
+        df (df.DataFrame): SVs in bedpe format
         gene_annotation_path (Path): path to the gene reannotation file for breakpoints
         del_annotation_path (Path): path to gene reannotation file for DELs only, considering the entire deleted intervals
         dup_annotation_path (Path): path to gene reannotation file for DUPs only, considering the entire duplicated intervals
@@ -250,7 +249,7 @@ def reannotate_genes(
 
     # merge annotations to the SV table one by one
     merged = pd.merge(
-        bedpe_df,
+        df,
         gene_annotation[
             [
                 "CHROM_A",
@@ -341,10 +340,10 @@ def filter_svs(
     df["SVLEN_A"] = df["SVLEN_A"].astype("Int64")
 
     # drop variants shorter than 50
-    df = df.loc[df["SVLEN_A"].isna() | df["SVLEN_A"].abs().ge(50)]
+    df = df.loc[df["SVLEN_A"].isna() | df["SVLEN_A"].abs().ge(50)].copy()
 
     onco_tsg_df = pd.read_csv(
-        onco_tsg_path, sep="\t", dtype="string", usecols="hugo_symbol"
+        onco_tsg_path, sep="\t", dtype="string", usecols=["hugo_symbol"]
     )
     oncogenes_and_ts = set(onco_tsg_df["hugo_symbol"])
 
@@ -384,10 +383,8 @@ def filter_svs(
     )
 
     # filter while keeping rescues
-    df = df[df["Rescue"] | df["max_af"].lt(sv_gnomad_cutoff)]
-
     df = df.loc[
-        :,
+        df["Rescue"] | df["max_af"].lt(sv_gnomad_cutoff),
         [
             "CHROM_A",
             "START_A",
