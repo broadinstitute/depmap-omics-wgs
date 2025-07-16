@@ -1063,7 +1063,7 @@ task BaseRecalibrator {
     }
 
     runtime {
-        docker: "us-docker.pkg.dev/depmap-omics/public/gatk:4.6.1.0"
+        docker: "us-central1-docker.pkg.dev/depmap-omics/terra-images/gatk:4.6.1.0"
         memory: mem + " MiB"
         disks: "local-disk " + disk_space + " SSD"
         preemptible: preemptible
@@ -1100,7 +1100,7 @@ task GatherBqsrReports {
     }
 
     runtime {
-        docker: "us-docker.pkg.dev/depmap-omics/public/gatk:4.6.1.0"
+        docker: "us-central1-docker.pkg.dev/depmap-omics/terra-images/gatk:4.6.1.0"
         memory: "~{mem_gb} GB"
         disks: "local-disk ~{disk_space} SSD"
         preemptible: preemptible
@@ -1157,7 +1157,7 @@ task ApplyBQSR {
     }
 
     runtime {
-        docker: "us-docker.pkg.dev/depmap-omics/public/gatk:4.6.1.0"
+        docker: "us-central1-docker.pkg.dev/depmap-omics/terra-images/gatk:4.6.1.0"
         memory: mem + " MiB"
         disks: "local-disk " + disk_space + " SSD"
         preemptible: preemptible

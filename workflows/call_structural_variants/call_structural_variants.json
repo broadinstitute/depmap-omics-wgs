@@ -6,7 +6,7 @@
     "call_structural_variants.major_contig_bed_index": "\"gs://ccleparams/sv/manta_major_contigs.bed.gz.tbi\"",
     "call_structural_variants.ref_fasta": "this.ref_fasta",
     "call_structural_variants.ref_fasta_index": "this.ref_fasta_index",
-    "call_structural_variants.run_manta.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/manta\"",
+    "call_structural_variants.run_manta.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/manta\"",
     "call_structural_variants.run_manta.docker_image_hash_or_tag": "\":production\"",
     "call_structural_variants.sample_id": "this.sample_id",
     "call_structural_variants.tumor_bai": "this.analysis_ready_bai",

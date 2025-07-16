@@ -6,7 +6,7 @@
           {
             "displayName": "update-open-cravat",
             "container": {
-              "imageUri": "us-docker.pkg.dev/depmap-omics/public/open_cravat:production",
+              "imageUri": "us-central1-docker.pkg.dev/depmap-omics/terra-images/open_cravat:production",
               "entrypoint": "/bin/bash",
               "commands": [
                 "/mnt/disks/ccleparams/scripts/update_open_cravat_data.sh"

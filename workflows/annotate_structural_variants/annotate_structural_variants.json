@@ -5,7 +5,7 @@
     "annotate_structural_variants.convert_to_bedpe.docker_image_hash_or_tag": "\":production\"",
     "annotate_structural_variants.ensembl_vep.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/ensembl-vep\"",
     "annotate_structural_variants.ensembl_vep.docker_image_hash_or_tag": "\":v113\"",
-    "annotate_structural_variants.ensembl_vep_gathered.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/gatk\"",
+    "annotate_structural_variants.ensembl_vep_gathered.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/gatk\"",
     "annotate_structural_variants.ensembl_vep_gathered.docker_image_hash_or_tag": "\":4.6.1.0\"",
     "annotate_structural_variants.filter_variants.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools\"",
     "annotate_structural_variants.filter_variants.docker_image_hash_or_tag": "\":production\"",

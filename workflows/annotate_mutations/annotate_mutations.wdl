@@ -766,6 +766,7 @@ task ensembl_vep {
             --plugin="AlphaMissense,file=~{alpha_missense}" \
             --plugin="LoFtool,~{loftool_scores}" \
             --plugin="pLI,pLI.tsv" \
+            --safe \
             --species="homo_sapiens" \
             --vcf
 

@@ -6,7 +6,7 @@
           {
             "displayName": "bwa-mem2-index-ref",
             "container": {
-              "imageUri": "us-docker.pkg.dev/depmap-omics/public/bwa_mem2:production",
+              "imageUri": "us-central1-docker.pkg.dev/depmap-omics/terra-images/bwa_mem2:production",
               "entrypoint": "/bin/bash",
               "commands": [
                 "/mnt/disks/cds-pipelines/scripts/bwa_mem2_index_ref.sh"

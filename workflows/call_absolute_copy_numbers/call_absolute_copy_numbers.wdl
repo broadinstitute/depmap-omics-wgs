@@ -135,7 +135,7 @@ task run_purecn {
     }
 
     runtime {
-        docker: "us-docker.pkg.dev/depmap-omics/public/purecn:production"
+        docker: "us-central1-docker.pkg.dev/depmap-omics/terra-images/purecn:production"
         memory: "~{mem_gb} GiB"
         disks: "local-disk ~{disk_space} SSD"
         preemptible: preemptible

@@ -2,9 +2,9 @@
   "deleted": false,
   "inputs": {
     "call_cnvs.bam": "this.analysis_ready_bam",
-    "call_cnvs.calc_bin_coverage.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/samtools_extra\"",
+    "call_cnvs.calc_bin_coverage.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/samtools_extra\"",
     "call_cnvs.calc_bin_coverage.docker_image_hash_or_tag": "\":production\"",
-    "call_cnvs.call_segments.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/call_segments\"",
+    "call_cnvs.call_segments.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/call_segments\"",
     "call_cnvs.call_segments.docker_image_hash_or_tag": "\":production\"",
     "call_cnvs.chrom_sizes": "\"gs://ccleparams/wgs_cnv/hg38.chrom.sizes\"",
     "call_cnvs.gc_wig": "\"gs://ccleparams/wgs_cnv/hg38.1000.gc.bedgraph\"",

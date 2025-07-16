@@ -1,14 +1,14 @@
 {
   "deleted": false,
   "inputs": {
-    "annotate_mutations_merge.index_vcf.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/bcftools\"",
+    "annotate_mutations_merge.index_vcf.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools\"",
     "annotate_mutations_merge.index_vcf.docker_image_hash_or_tag": "\":production\"",
     "annotate_mutations_merge.input_vcfs": "[this.mut_annot_bcftools_vcf, this.mut_annot_snpeff_snpsift_vcf, this.mut_annot_open_cravat_vcf, this.mut_annot_vep_vcf]",
-    "annotate_mutations_merge.merge_info.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/vcf-info-merger\"",
+    "annotate_mutations_merge.merge_info.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/vcf-info-merger\"",
     "annotate_mutations_merge.merge_info.docker_image_hash_or_tag": "\":production\"",
     "annotate_mutations_merge.sample_id": "this.sample_id",
     "annotate_mutations_merge.vcf_to_duckdb.batch_size": "100000",
-    "annotate_mutations_merge.vcf_to_duckdb.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/vcf-to-duckdb\"",
+    "annotate_mutations_merge.vcf_to_duckdb.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/vcf-to-duckdb\"",
     "annotate_mutations_merge.vcf_to_duckdb.docker_image_hash_or_tag": "\":production\""
   },
   "methodConfigVersion": 1,
