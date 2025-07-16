@@ -12,6 +12,9 @@ def do_select_structural_variants(
     dup_annotation_path: Path,
     cosmic_fusion_gene_pairs_path: Path,
     onco_tsg_path: Path,
+    min_depth: int,
+    sv_gnomad_cutoff: float,
+    large_sv_size: float,
     out_path: Path,
 ) -> None:
     """
@@ -24,6 +27,11 @@ def do_select_structural_variants(
     :param cosmic_fusion_gene_pairs_path: Path to COSMIC fusion gene pairs file
     :param onco_tsg_path: Path to oncogene and tumor suppressor gene file
     :param out_path: Path where filtered results will be saved as parquet
+    :param min_depth: Minimum read depth (PR+SR) of variant
+    :param sv_gnomad_cutoff: Maximum gnomAD allele frequency for an SV to be considered
+        somatic
+    :param large_sv_size: Size threshold beyond which SVs are considered large and need
+        to be rescued
     """
 
     df = bedpe_to_df(input_bedpe_path)
@@ -32,7 +40,14 @@ def do_select_structural_variants(
         df, gene_annotation_path, del_annotation_path, dup_annotation_path
     )
 
-    df = filter_svs(df, cosmic_fusion_gene_pairs_path, onco_tsg_path)
+    df = filter_svs(
+        df,
+        cosmic_fusion_gene_pairs_path,
+        onco_tsg_path,
+        min_depth,
+        sv_gnomad_cutoff,
+        large_sv_size,
+    )
     df.to_parquet(out_path, index=False)
 
 
@@ -354,8 +369,9 @@ def filter_svs(
     df: pd.DataFrame,
     cosmic_fusion_gene_pairs_path: Path,
     onco_tsg_path: Path,
-    sv_gnomad_cutoff: float = 0.001,
-    large_sv_size: float = 1e9,
+    min_depth: int,
+    sv_gnomad_cutoff: float,
+    large_sv_size: float,
 ) -> pd.DataFrame:
     """
     Filter structural variants while rescuing clinically important ones.
@@ -364,18 +380,25 @@ def filter_svs(
     oncogenes/tumor suppressors, and variants creating known COSMIC fusion pairs.
 
     :param df: SVs in BEDPE format
-    :param cosmic_fusion_gene_pairs_path: Path to file containing COSMIC fusion
-        gene pairs
-    :param onco_tsg_path: Path to file containing oncogene and tumor suppressor
-        gene symbols
-    :param sv_gnomad_cutoff: Maximum gnomAD allele frequency for an SV to be
-        considered somatic
-    :param large_sv_size: Size threshold beyond which SVs are considered large
-        and need to be rescued
+    :param cosmic_fusion_gene_pairs_path: Path to file containing COSMIC fusion gene
+        pairs
+    :param onco_tsg_path: Path to file containing oncogene and tumor suppressor gene
+        symbols
+    :param min_depth: Minimum read depth (PR+SR) of variant
+    :param sv_gnomad_cutoff: Maximum gnomAD allele frequency for an SV to be considered
+        somatic
+    :param large_sv_size: Size threshold beyond which SVs are considered large and need
+        to be rescued
     :returns: Filtered SVs in BEDPE format
     """
 
     df["SVLEN_A"] = df["SVLEN_A"].astype("Int64")
+
+    # drop variants below minimum read depth
+    df["dp"] = df["PR"].str.split(",", expand=True).astype("Int64").sum(axis=1) + df[
+        "SR"
+    ].str.split(",", expand=True).astype("Int64").sum(axis=1)
+    df = df.loc[df["dp"].ge(min_depth)]
 
     # drop variants shorter than 50
     df = df.loc[df["SVLEN_A"].isna() | df["SVLEN_A"].abs().ge(50)].copy()
@@ -408,7 +431,7 @@ def filter_svs(
         lambda row: list_all_pairs(
             row["SYMBOL_A"],
             row["SYMBOL_B"],
-            cosmic_pairs_sorted,
+            cosmic_pairs_sorted,  # noinspection
         ),
         axis=1,
     )

@@ -61,6 +61,9 @@ def main(
     cosmic_fusion_gene_pairs: Annotated[Path, typer.Option(exists=True)],
     onco_tsg: Annotated[Path, typer.Option(exists=True)],
     out: Annotated[Path, typer.Option()],
+    min_depth: Annotated[int, typer.Option()] = 5,
+    sv_gnomad_cutoff: Annotated[float, typer.Option()] = 0.001,
+    large_sv_size: Annotated[float, typer.Option()] = 1e9,
 ) -> None:
     set_up_gcp_friendly_logging()
 
@@ -71,6 +74,9 @@ def main(
         dup_annotation_path=dup_annotation,
         cosmic_fusion_gene_pairs_path=cosmic_fusion_gene_pairs,
         onco_tsg_path=onco_tsg,
+        min_depth=min_depth,
+        sv_gnomad_cutoff=sv_gnomad_cutoff,
+        large_sv_size=large_sv_size,
         out_path=out,
     )
 
