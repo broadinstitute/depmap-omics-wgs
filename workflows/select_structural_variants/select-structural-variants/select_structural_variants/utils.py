@@ -14,6 +14,18 @@ def do_select_structural_variants(
     onco_tsg_path: Path,
     out_path: Path,
 ) -> None:
+    """
+    Select and filter structural variants from a BEDPE file with gene annotations.
+
+    :param input_bedpe_path: Path to input BEDPE file containing structural variants
+    :param gene_annotation_path: Path to gene annotation file for breakpoints
+    :param del_annotation_path: Path to gene annotation file for deletions
+    :param dup_annotation_path: Path to gene annotation file for duplications
+    :param cosmic_fusion_gene_pairs_path: Path to COSMIC fusion gene pairs file
+    :param onco_tsg_path: Path to oncogene and tumor suppressor gene file
+    :param out_path: Path where filtered results will be saved as parquet
+    """
+
     df = bedpe_to_df(input_bedpe_path)
 
     df = reannotate_genes(
@@ -26,16 +38,11 @@ def do_select_structural_variants(
 
 def bedpe_to_df(input_bedpe_path):
     """
-    transforms a bedpe file into a dataframe file as best as it can
-    largely borrowed from vcf_to_df in the same repo
+    Transform a BEDPE file into a DataFrame. Parses the BEDPE format including INFO
+    fields and sample-specific FORMAT fields.
 
-    Args:
-    -----
-        path: str filepath to the vcf file
-
-    Returns:
-    --------
-      a dataframe for the bedpe
+    :param input_bedpe_path: Filepath to the BEDPE file
+    :returns: DataFrame representation of the BEDPE file
     """
 
     uniqueargs = ["IMPRECISE"]
@@ -136,6 +143,17 @@ def bedpe_to_df(input_bedpe_path):
 
 
 def read_comments(f: Iterable[str | bytes], vep_csq_desc: str):
+    """
+    Read and parse header comments from a BEDPE file.
+
+    Extracts metadata including INFO field descriptions and column names from the file
+    header comments.
+
+    :param f: File handle or iterable of lines from the BEDPE file
+    :param vep_csq_desc: Description string for VEP CSQ annotations
+    :returns: Tuple of (description dict, column names list, rows to skip)
+    """
+
     description = {}
     colnames = []
     rows = 0
@@ -174,18 +192,22 @@ def reannotate_genes(
     del_annotation_path: Path,
     dup_annotation_path: Path,
 ):
-    """since VEP can't reliably give the correct gene symbol annotation, redo it here
-
-    Args:
-        df (df.DataFrame): SVs in bedpe format
-        gene_annotation_path (Path): path to the gene reannotation file for breakpoints
-        del_annotation_path (Path): path to gene reannotation file for DELs only, considering the entire deleted intervals
-        dup_annotation_path (Path): path to gene reannotation file for DUPs only, considering the entire duplicated intervals
-
-    Returns:
-        merged (pd.DataFrame): SVs in bedpe format, with corrected gene annotation
-
     """
+    Re-annotate genes for structural variants since VEP annotations are unreliable.
+
+    Merges gene annotations for breakpoints, deletions, and duplications with the
+    structural variant DataFrame. Splits multi-gene annotations into separate
+    symbol and gene ID columns.
+
+    :param df: SVs in BEDPE format
+    :param gene_annotation_path: Path to gene re-annotation file for breakpoints
+    :param del_annotation_path: Path to gene re-annotation file for DELs only,
+        considering the entire deleted intervals
+    :param dup_annotation_path: Path to gene re-annotation file for DUPs only,
+        considering the entire duplicated intervals
+    :returns: SVs in BEDPE format with corrected gene annotations
+    """
+
     # read in annotation files for all breakpoints, DELs, and DUPs separately
     gene_annotation = pd.read_csv(
         gene_annotation_path,
@@ -307,6 +329,16 @@ def reannotate_genes(
 
 
 def split_multi(s):
+    """
+    Split multi-gene annotations into separate symbol and ID components.
+
+    Converts comma-separated gene annotations in format "SYMBOL1@ID1,SYMBOL2@ID2"
+    into semicolon-separated format "SYMBOL1, SYMBOL2;ID1, ID2".
+
+    :param s: String containing gene annotations or NaN/missing value
+    :returns: Formatted string with symbols and IDs separated by semicolon
+    """
+
     if pd.isna(s) or s == ".":
         return ".;."
     else:
@@ -323,18 +355,22 @@ def filter_svs(
     sv_gnomad_cutoff=0.001,
     large_sv_size=1e9,
 ):
-    """filter SVs in bedpe while rescuing important ones
+    """
+    Filter structural variants while rescuing clinically important ones.
 
-    Args:
-        df (pd.DataFrame): SVs in bedpe format
-        cosmic_fusion_gene_pairs_path (Path): path to file containing cosmic fusion gene pairs
-        onco_tsg_path (Path): path to file containing oncogene and tumor suppressor gene symbols
-        sv_gnomad_cutoff (float): max gnomad allele frequency for an SV to be considered somatic
-        large_sv_size (int): size of SVs beyond which is considered large and needs to be rescued
+    Applies size and frequency filters but rescues large SVs, variants affecting
+    oncogenes/tumor suppressors, and variants creating known COSMIC fusion pairs.
 
-    Returns:
-        df (pd.DataFrame): filtered SVs in bedpe format
-
+    :param df: SVs in BEDPE format
+    :param cosmic_fusion_gene_pairs_path: Path to file containing COSMIC fusion
+        gene pairs
+    :param onco_tsg_path: Path to file containing oncogene and tumor suppressor
+        gene symbols
+    :param sv_gnomad_cutoff: Maximum gnomAD allele frequency for an SV to be
+        considered somatic
+    :param large_sv_size: Size threshold beyond which SVs are considered large
+        and need to be rescued
+    :returns: Filtered SVs in BEDPE format
     """
 
     df["SVLEN_A"] = df["SVLEN_A"].astype("Int64")
@@ -431,11 +467,32 @@ def filter_svs(
 
 
 def onco_ts_overlap(s, oncogenes_and_ts):
+    """
+    Check if any genes in a comma-separated list overlap with oncogenes/TSGs.
+
+    :param s: Comma-separated string of gene symbols
+    :param oncogenes_and_ts: Set of oncogene and tumor suppressor gene symbols
+    :returns: True if any genes overlap with the oncogene/TSG set
+    """
+
     l = s.split(", ")
     return len(set(l) & oncogenes_and_ts) > 0
 
 
 def list_all_pairs(a, b, cosmic_pairs_sorted):
+    """
+    Check if any gene pairs from two lists match known COSMIC fusion pairs.
+
+    Creates all possible pairs from genes in lists a and b, then checks if any
+    match the provided set of COSMIC fusion gene pairs.
+
+    :param a: Comma-separated string of gene symbols from breakpoint A
+    :param b: Comma-separated string of gene symbols from breakpoint B
+    :param cosmic_pairs_sorted: Set of sorted tuples representing known COSMIC fusion
+        gene pairs
+    :returns: True if any gene pair matches a COSMIC fusion pair
+    """
+
     alist = a.split(", ")
     blist = b.split(", ")
 
