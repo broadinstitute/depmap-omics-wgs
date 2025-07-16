@@ -6,7 +6,7 @@
     "select_somatic_variants.max_pop_af": "0.00001",
     "select_somatic_variants.min_af": "0.15",
     "select_somatic_variants.min_depth": "5",
-    "select_somatic_variants.do_select_somatic_variants.docker_image": "\"us-docker.pkg.dev/depmap-omics/public/select-somatic-variants\"",
+    "select_somatic_variants.do_select_somatic_variants.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/select-somatic-variants\"",
     "select_somatic_variants.do_select_somatic_variants.docker_image_hash_or_tag": "\":production\"",
     "select_somatic_variants.sample_id": "this.sample_id"
   },

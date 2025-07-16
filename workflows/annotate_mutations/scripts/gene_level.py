@@ -100,6 +100,11 @@ onco_tsg = pd.concat(
     ignore_index=True,
 )
 
+# for sv annotation
+onco_tsg.rename(columns={"hugoSymbol": "hugo_symbol"}).loc[
+    :, ["hugo_symbol", "oncogene", "tsg"]
+].to_csv("./data/onco_tsg.tsv", sep="\t", index=False)
+
 onco_tsg_bed = gencode_df.merge(
     onco_tsg,
     how="inner",
