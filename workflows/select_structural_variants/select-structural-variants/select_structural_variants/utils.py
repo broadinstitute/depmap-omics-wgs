@@ -1,6 +1,6 @@
 import itertools
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Dict, Iterable, List, Set, Tuple, Union
 
 import pandas as pd
 
@@ -36,7 +36,7 @@ def do_select_structural_variants(
     df.to_parquet(out_path, index=False)
 
 
-def bedpe_to_df(input_bedpe_path):
+def bedpe_to_df(input_bedpe_path: Path) -> pd.DataFrame:
     """
     Transform a BEDPE file into a DataFrame. Parses the BEDPE format including INFO
     fields and sample-specific FORMAT fields.
@@ -142,7 +142,9 @@ def bedpe_to_df(input_bedpe_path):
     return df
 
 
-def read_comments(f: Iterable[str | bytes], vep_csq_desc: str):
+def read_comments(
+    f: Iterable[Union[str, bytes]], vep_csq_desc: str
+) -> Tuple[Dict[str, str], List[str], int]:
     """
     Read and parse header comments from a BEDPE file.
 
@@ -191,7 +193,7 @@ def reannotate_genes(
     gene_annotation_path: Path,
     del_annotation_path: Path,
     dup_annotation_path: Path,
-):
+) -> pd.DataFrame:
     """
     Re-annotate genes for structural variants since VEP annotations are unreliable.
 
@@ -328,7 +330,7 @@ def reannotate_genes(
     return merged
 
 
-def split_multi(s):
+def split_multi(s: str) -> str:
     """
     Split multi-gene annotations into separate symbol and ID components.
 
@@ -342,9 +344,9 @@ def split_multi(s):
     if pd.isna(s) or s == ".":
         return ".;."
     else:
-        s = s.split(",")
-        symbols = ", ".join([elem.split("@")[0] for elem in s])
-        ids = ", ".join([elem.split("@")[1] for elem in s])
+        arr = s.split(",")
+        symbols = ", ".join([elem.split("@")[0] for elem in arr])
+        ids = ", ".join([elem.split("@")[1] for elem in arr])
         return symbols + ";" + ids
 
 
@@ -352,9 +354,9 @@ def filter_svs(
     df: pd.DataFrame,
     cosmic_fusion_gene_pairs_path: Path,
     onco_tsg_path: Path,
-    sv_gnomad_cutoff=0.001,
-    large_sv_size=1e9,
-):
+    sv_gnomad_cutoff: float = 0.001,
+    large_sv_size: float = 1e9,
+) -> pd.DataFrame:
     """
     Filter structural variants while rescuing clinically important ones.
 
@@ -466,7 +468,7 @@ def filter_svs(
     return df
 
 
-def onco_ts_overlap(s, oncogenes_and_ts):
+def onco_ts_overlap(s: str, oncogenes_and_ts: Set[str]) -> bool:
     """
     Check if any genes in a comma-separated list overlap with oncogenes/TSGs.
 
@@ -479,7 +481,7 @@ def onco_ts_overlap(s, oncogenes_and_ts):
     return len(set(l) & oncogenes_and_ts) > 0
 
 
-def list_all_pairs(a, b, cosmic_pairs_sorted):
+def list_all_pairs(a: str, b: str, cosmic_pairs_sorted: Set[Tuple[str, str]]) -> bool:
     """
     Check if any gene pairs from two lists match known COSMIC fusion pairs.
 
