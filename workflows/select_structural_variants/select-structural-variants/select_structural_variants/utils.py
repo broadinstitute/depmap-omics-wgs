@@ -14,7 +14,7 @@ def do_select_structural_variants(
     onco_tsg_path: Path,
     min_depth: int,
     sv_gnomad_cutoff: float,
-    large_sv_size: float,
+    large_sv_size: int,
     out_path: Path,
 ) -> None:
     """
@@ -371,7 +371,7 @@ def filter_svs(
     onco_tsg_path: Path,
     min_depth: int,
     sv_gnomad_cutoff: float,
-    large_sv_size: float,
+    large_sv_size: int,
 ) -> pd.DataFrame:
     """
     Filter structural variants while rescuing clinically important ones.

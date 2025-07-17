@@ -36,6 +36,9 @@ task do_select_structural_variants {
         File dup_annotation
         File cosmic_fusion_gene_pairs
         File onco_tsg
+        Int min_depth = 5
+        Float sv_gnomad_cutoff = 0.001
+        Int large_sv_size = 1000000000
 
         String docker_image
         String docker_image_hash_or_tag
@@ -61,6 +64,9 @@ task do_select_structural_variants {
             --dup-annotation="~{dup_annotation}" \
             --cosmic-fusion-gene-pairs="~{cosmic_fusion_gene_pairs}" \
             --onco-tsg="~{onco_tsg}" \
+            --min_depth=~{min_depth} \
+            --sv_gnomad_cutoff=~{sv_gnomad_cutoff} \
+            --large-sv-size=~{large_sv_size} \
             --out="~{sample_id}.selected_somatic_sv.parquet"
     >>>
 
