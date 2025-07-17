@@ -64,6 +64,7 @@ def main(
     parquet_dir: Annotated[Path, typer.Option()],
     somatic_variants_out_file: Annotated[Path, typer.Option()],
     variants_enriched_out_file: Annotated[Path | None, typer.Option()] = None,
+    mut_sig_out_file: Annotated[Path | None, typer.Option()] = None,
     db_tmp_dir_path: Annotated[Path, typer.Option()] = Path("/tmp/duckdb"),
     min_af: Annotated[float, typer.Option()] = 0.15,
     min_depth: Annotated[int, typer.Option()] = 5,
@@ -72,12 +73,13 @@ def main(
     batch_size: Annotated[int, typer.Option()] = 1000000,
 ) -> None:
     set_up_gcp_friendly_logging()
-    
+
     do_select_somatic_variants(
         db_path=db,
         parquet_dir_path=parquet_dir,
-        variants_enriched_out_file_path=variants_enriched_out_file,
         somatic_variants_out_file_path=somatic_variants_out_file,
+        variants_enriched_out_file_path=variants_enriched_out_file,
+        mut_sig_out_file_path=mut_sig_out_file,
         db_tmp_dir_path=db_tmp_dir_path,
         sample_id=sample_id,
         min_af=min_af,
@@ -86,7 +88,7 @@ def main(
         max_brca1_func_assay_score=max_brca1_func_assay_score,
         batch_size=batch_size,
     )
-    
+
     done()
 
 

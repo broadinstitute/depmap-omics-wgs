@@ -12,6 +12,7 @@ def do_select_somatic_variants(
     parquet_dir_path: Path,
     somatic_variants_out_file_path: Path,
     variants_enriched_out_file_path: Path | None,
+    mut_sig_out_file_path: Path | None,
     db_tmp_dir_path: Path,
     sample_id: str,
     min_af: float = 0.15,
@@ -30,10 +31,12 @@ def do_select_somatic_variants(
 
     :param db_path: Path to the DuckDB database file
     :param parquet_dir_path: Directory containing Parquet files to import
-    :param variants_enriched_out_file_path: Output file path for a wide file of all
-    variants (in Parquet format)
     :param somatic_variants_out_file_path: Output file path for the somatic variants
     file (in Parquet format)
+    :param variants_enriched_out_file_path: Output file path for a wide file of all
+    variants (in Parquet format)
+    :param mut_sig_out_file_path: Output file path for a narrower version of
+    variants_enriched, e.g. for mutational signatures (in Parquet format)
     :param db_tmp_dir_path: path to a temporary directory to use for DuckDB offloading
     :param sample_id: the sample ID
     :param min_af: Minimum allele frequency threshold for variant filtering
@@ -80,6 +83,27 @@ def do_select_somatic_variants(
                     variants_enriched
                 TO
                     '{variants_enriched_out_file_path}'
+                (
+                    OVERWRITE,
+                    FORMAT parquet,
+                    COMPRESSION zstd,
+                    COMPRESSION_LEVEL 22
+                )
+            """)
+
+        if mut_sig_out_file_path is not None:
+            # write narrower version of variants for mutational signatures to parquet
+            r = db.table("mut_sig").count("*").fetchone()
+            n_somatic_variants = r[0]  # pyright: ignore
+            logging.info(
+                f"Writing {n_somatic_variants}"
+                f" mutational signature variants to {mut_sig_out_file_path}"
+            )
+            db.sql(f"""
+                COPY
+                    mut_sig
+                TO
+                    '{mut_sig_out_file_path}'
                 (
                     OVERWRITE,
                     FORMAT parquet,
@@ -156,7 +180,8 @@ def make_views_and_tables(
         # append batch to variants_enriched
         make_variants_enriched(db, sample_id, max_pop_af)
 
-    # populate somatic_variants from entire variants_enriched table
+    # populate mut_sig and somatic_variants from entire variants_enriched table
+    make_mut_sig(db)
     make_somatic_variants(db)
 
 
@@ -237,6 +262,8 @@ def make_batch_views(
     Create views that separate the vals_info table into 'vals' and 'info' views.
 
     :param db: DuckDB database connection
+    :param limit: limit for select statement
+    :param offset: offset for select statement
     """
 
     logging.info("Making vals and info views")
@@ -292,6 +319,12 @@ def make_batch_views(
 
 
 def make_supporting_tables(db: duckdb.DuckDBPyConnection) -> None:
+    """
+    Create empty physical tables to be populated later.
+
+    :param db: DuckDB database connection
+    """
+
     db.sql("""
         DROP TABLE IF EXISTS vep;
         
@@ -1306,6 +1339,40 @@ def make_variants_enriched(
                 )
             FROM
                 summarized
+        )
+    """)
+
+
+def make_mut_sig(db: duckdb.DuckDBPyConnection) -> None:
+    """
+    Create a minimal view of enriched_variants for use in mutational signature analysis.
+
+    :param db: DuckDB database connection
+    """
+
+    logging.info("Creating mut_sig")
+
+    db.sql(f"""
+        CREATE OR REPLACE VIEW mut_sig AS (
+            SELECT
+                sample_id,
+                chrom,
+                pos,
+                ref,
+                alt,
+                ref_count,
+                alt_count,
+                af,
+                dp,
+                rs,
+                vep_gnom_ade_af,
+                vep_gnom_adg_af
+            FROM
+                variants_enriched
+            ORDER BY
+                replace(replace(chrom[4:], 'X', '23'), 'Y', '24')::INTEGER,
+                pos,
+                alt
         )
     """)
 
