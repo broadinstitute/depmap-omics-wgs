@@ -409,7 +409,12 @@ def filter_svs(
     oncogenes_and_ts = set(onco_tsg_df["hugo_symbol"])
 
     cosmic = pd.read_csv(cosmic_fusion_gene_pairs_path, dtype="string")
-    cosmic_pairs = list(zip(cosmic["Gene_A"], cosmic["Gene_B"]))
+    cosmic_pairs = list(
+        zip(
+            list(cosmic["five_prime_gene_symbol"]),
+            list(cosmic["three_prime_gene_symbol"]),
+        )
+    )
     cosmic_pairs_sorted = set([tuple(sorted(elem)) for elem in cosmic_pairs])
 
     df["Rescue"] = False
@@ -431,7 +436,7 @@ def filter_svs(
         lambda row: list_all_pairs(
             row["SYMBOL_A"],
             row["SYMBOL_B"],
-            cosmic_pairs_sorted,  # noinspection
+            cosmic_pairs_sorted,
         ),
         axis=1,
     )

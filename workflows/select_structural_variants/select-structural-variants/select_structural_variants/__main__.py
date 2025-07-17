@@ -63,7 +63,7 @@ def main(
     out: Annotated[Path, typer.Option()],
     min_depth: Annotated[int, typer.Option()] = 5,
     sv_gnomad_cutoff: Annotated[float, typer.Option()] = 0.001,
-    large_sv_size: Annotated[int, typer.Option()] = 1e9,
+    large_sv_size: Annotated[int, typer.Option()] = 1000000000,
 ) -> None:
     set_up_gcp_friendly_logging()
 

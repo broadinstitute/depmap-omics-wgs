@@ -7,7 +7,8 @@
     "select_structural_variants.do_select_structural_variants.docker_image_hash_or_tag": "\":production\"",
     "select_structural_variants.dup_annotation": "this.sv_dup_annotation",
     "select_structural_variants.gene_annotation": "this.sv_annot_reannotated_bedpe",
-    "select_structural_variants.input_bedpe": "this.sv_input_bedpe",
+    "select_structural_variants.input_bedpe": "this.sv_annot_bedpe",
+    "select_structural_variants.onco_tsg": "\"gs://ccleparams/sv/onco_tsg.tsv\"",
     "select_structural_variants.sample_id": "this.sample_id"
   },
   "methodConfigVersion": 1,

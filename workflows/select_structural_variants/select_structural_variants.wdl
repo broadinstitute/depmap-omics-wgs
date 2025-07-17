@@ -42,7 +42,7 @@ task do_select_structural_variants {
 
         String docker_image
         String docker_image_hash_or_tag
-        Int mem_gb = 8
+        Int mem_gb = 4
         Int cpu = 1
         Int preemptible = 2
         Int max_retries = 0
@@ -64,8 +64,8 @@ task do_select_structural_variants {
             --dup-annotation="~{dup_annotation}" \
             --cosmic-fusion-gene-pairs="~{cosmic_fusion_gene_pairs}" \
             --onco-tsg="~{onco_tsg}" \
-            --min_depth=~{min_depth} \
-            --sv_gnomad_cutoff=~{sv_gnomad_cutoff} \
+            --min-depth=~{min_depth} \
+            --sv-gnomad-cutoff=~{sv_gnomad_cutoff} \
             --large-sv-size=~{large_sv_size} \
             --out="~{sample_id}.selected_somatic_sv.parquet"
     >>>
