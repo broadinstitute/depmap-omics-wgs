@@ -35,6 +35,8 @@ dev = [
     "google-cloud-bigquery>=3.33.0,<4",
     "pandas-stubs>=2.2.3.250527,<3",
     "pyarrow>=20.0.0",
+    "fsspec>=2025.7.0",
+    "gcsfs>=2025.7.0",
 ]
 
 [[tool.uv.index]]
