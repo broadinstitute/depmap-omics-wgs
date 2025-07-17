@@ -19,7 +19,7 @@
     "annotate_structural_variants.sample_id": "this.sample_id",
     "annotate_structural_variants.split_vcf_by_chrom.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools\"",
     "annotate_structural_variants.split_vcf_by_chrom.docker_image_hash_or_tag": "\":production\"",
-    "annotate_structural_variants.vcf": "this.sv_somatic_vcf",
+    "annotate_structural_variants.vcf": "this.sv_somatic_sv_vcf",
     "annotate_structural_variants.vep_chrom_cache_url_prefix": "\"gs://ccleparams/wgs/mutation/annotation/vep/v113/\"",
     "annotate_structural_variants.vep_chrom_cache_url_suffix": "\".gz\"",
     "annotate_structural_variants.xy_intervals": "\"gs://ccleparams/references/references_wgs_xy.intervals\""
