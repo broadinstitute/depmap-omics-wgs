@@ -130,6 +130,7 @@ def delta_job(
         dry_run=config["dry_run"],
         input_cols=input_cols_set,
         output_cols=output_cols_set,
+        max_n_entities=1,
     )
 
 

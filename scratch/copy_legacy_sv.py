@@ -87,6 +87,18 @@ workspace = TerraWorkspace(
     owners=[],
 )
 
+bedpe = pd.read_csv("~/Desktop/bedpe.txt")
+
+bedpe["sample_id"] = bedpe["url"].str.extract(r"(CDS-.{6})")
+
+src_samples = (
+    bedpe.sort_values("ts", ascending=False)
+    .groupby("sample_id")
+    .nth(0)
+    .drop(columns="ts")
+    .rename(columns={"url": "sv_selected_somatic_sv"})
+)
+
 src_samples = legacy_workspace.get_entities("sample")[
     [
         "sample_id",
