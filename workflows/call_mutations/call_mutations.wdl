@@ -12,6 +12,7 @@ version 1.0
 workflow call_mutations {
     input {
         # basic inputs
+        String sample_id
         File? intervals
         File ref_fasta
         File ref_fai
@@ -186,6 +187,7 @@ workflow call_mutations {
 
     call Filter {
         input:
+            sample_id = sample_id,
             ref_fasta = ref_fasta,
             ref_fai = ref_fai,
             ref_dict = ref_dict,
@@ -205,6 +207,7 @@ workflow call_mutations {
     if (defined(realignment_index_bundle)) {
         call FilterAlignmentArtifacts {
             input:
+                sample_id = sample_id,
                 ref_fasta = ref_fasta,
                 ref_fai = ref_fai,
                 ref_dict = ref_dict,
@@ -632,6 +635,7 @@ task CalculateContamination {
 
 task Filter {
     input {
+        String sample_id
         File? intervals
         File ref_fasta
         File ref_fai
@@ -649,7 +653,7 @@ task Filter {
         Int? disk_space
     }
 
-    String output_vcf = if compress_vcfs then "filtered.vcf.gz" else "filtered.vcf"
+    String output_vcf = if compress_vcfs then "~{sample_id}.filtered.vcf.gz" else "~{sample_id}.filtered.vcf"
     String output_vcf_idx = output_vcf + if compress_vcfs then ".tbi" else ".idx"
 
     parameter_meta{
@@ -670,7 +674,7 @@ task Filter {
             ~{"--tumor-segmentation " + maf_segments} \
             ~{"--ob-priors " + artifact_priors_tar_gz} \
             ~{"-stats " + mutect_stats} \
-            --filtering-stats filtering.stats \
+            --filtering-stats "~{sample_id}.filtering.stats" \
             ~{m2_extra_filtering_args}
     >>>
 
@@ -686,27 +690,28 @@ task Filter {
     output {
         File filtered_vcf = "~{output_vcf}"
         File filtered_vcf_idx = "~{output_vcf_idx}"
-        File filtering_stats = "filtering.stats"
+        File filtering_stats = "~{sample_id}.filtering.stats"
     }
 }
 
 task FilterAlignmentArtifacts {
     input {
-      File ref_fasta
-      File ref_fai
-      File ref_dict
-      File input_vcf
-      File input_vcf_idx
-      File reads
-      File reads_index
-      Boolean compress_vcfs
-      File realignment_index_bundle
-      String? realignment_extra_args
-      Runtime runtime_params
-      Int mem
+        String sample_id
+        File ref_fasta
+        File ref_fai
+        File ref_dict
+        File input_vcf
+        File input_vcf_idx
+        File reads
+        File reads_index
+        Boolean compress_vcfs
+        File realignment_index_bundle
+        String? realignment_extra_args
+        Runtime runtime_params
+        Int mem
     }
 
-    String output_vcf = if compress_vcfs then "filtered.vcf.gz" else "filtered.vcf"
+    String output_vcf = if compress_vcfs then "~{sample_id}.filtered.vcf.gz" else "~{sample_id}.filtered.vcf"
     String output_vcf_idx = output_vcf +  if compress_vcfs then ".tbi" else ".idx"
 
     Int machine_mem = mem
