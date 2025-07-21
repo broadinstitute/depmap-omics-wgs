@@ -197,6 +197,10 @@ task split_vcf_by_chrom {
                 --regions="${chr}" \
                 --output="${split_out}" \
                 --no-version
+
+            if [[ $(bcftools view -H "${split_out}" | wc -l) -eq 0 ]]; then
+                rm "${split_out}"
+            fi
         done
     >>>
 
