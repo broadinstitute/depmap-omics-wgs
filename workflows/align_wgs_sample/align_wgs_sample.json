@@ -36,10 +36,7 @@
   "outputs": {
     "align_wgs_sample.analysis_ready_bam": "this.analysis_ready_bam",
     "align_wgs_sample.analysis_ready_bai": "this.analysis_ready_bai",
-    "align_wgs_sample.md_metrics": "this.preprocess_md_metrics",
-    "align_wgs_sample.insert_size_metrics": "this.preprocess_insert_size_metrics",
-    "align_wgs_sample.insert_size_histogram_pdf": "this.preprocess_insert_size_histogram_pdf",
-    "align_wgs_sample.contamination": "this.preprocess_contamination"
+    "align_wgs_sample.md_metrics": "this.preprocess_md_metrics"
   },
   "rootEntityType": "sample"
 }
