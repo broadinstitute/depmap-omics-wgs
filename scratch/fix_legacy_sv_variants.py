@@ -2,7 +2,6 @@ import itertools
 import tomllib
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Iterable
 
 import pandas as pd
 from firecloud_api_cds import api as firecloud_api
