@@ -8,6 +8,7 @@ workflow select_somatic_variants {
         Int min_depth = 5
         Float max_pop_af = 0.00001
         Float max_brca1_func_assay_score = -1.328
+        Boolean save_enriched_variants = false
     }
 
     call do_select_somatic_variants {
@@ -17,12 +18,14 @@ workflow select_somatic_variants {
             min_af = min_af,
             min_depth = min_depth,
             max_pop_af = max_pop_af,
-            max_brca1_func_assay_score = max_brca1_func_assay_score
+            max_brca1_func_assay_score = max_brca1_func_assay_score,
+            save_enriched_variants = save_enriched_variants
     }
 
     output {
-        File mut_enriched_variants = do_select_somatic_variants.enriched_variants
         File mut_somatic_variants = do_select_somatic_variants.somatic_variants
+        File? mut_enriched_variants = do_select_somatic_variants.enriched_variants
+        File mut_sig_variants = do_select_somatic_variants.mut_sig_variants
     }
 }
 
@@ -34,6 +37,7 @@ task do_select_somatic_variants {
         Int min_depth
         Float max_pop_af
         Float max_brca1_func_assay_score
+        Boolean save_enriched_variants
         Int batch_size = 500000
 
         String docker_image
@@ -55,11 +59,19 @@ task do_select_somatic_variants {
 
         mkdir -p db_tmp
 
+        if [ "~{save_enriched_variants}" = "true" ]
+        then
+            variants_enriched_line="--variants-enriched-out-file=\"~{sample_id}.enriched_variants.parquet\""
+        else
+            variants_enriched_line=""
+        fi
+
         python -m select_somatic_variants \
             --db="tmp.duckdb" \
             --parquet-dir="./parq" \
-            --variants-enriched-out-file="~{sample_id}.enriched_variants.parquet" \
             --somatic-variants-out-file="~{sample_id}.somatic_variants.parquet" \
+            $variants_enriched_line \
+            --mut-sig-out-file="~{sample_id}.mut_sig_variants.parquet" \
             --db-tmp-dir-path="./db_tmp/" \
             --sample-id="~{sample_id}" \
             --min-af=~{min_af} \
@@ -70,8 +82,9 @@ task do_select_somatic_variants {
     >>>
 
     output {
-        File enriched_variants = "~{sample_id}.enriched_variants.parquet"
         File somatic_variants = "~{sample_id}.somatic_variants.parquet"
+        File? enriched_variants = "~{sample_id}.enriched_variants.parquet"
+        File mut_sig_variants = "~{sample_id}.mut_sig_variants.parquet"
     }
 
     runtime {

@@ -8,7 +8,8 @@
     "select_somatic_variants.min_depth": "5",
     "select_somatic_variants.do_select_somatic_variants.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/select-somatic-variants\"",
     "select_somatic_variants.do_select_somatic_variants.docker_image_hash_or_tag": "\":production\"",
-    "select_somatic_variants.sample_id": "this.sample_id"
+    "select_somatic_variants.sample_id": "this.sample_id",
+    "select_somatic_variants.save_enriched_variants": "false"
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
@@ -19,6 +20,7 @@
   "namespace": "cds-pipelines",
   "name": "select_somatic_variants",
   "outputs": {
+    "select_somatic_variants.mut_sig_variants": "this.mut_sig_variants",
     "select_somatic_variants.mut_somatic_variants": "this.mut_somatic_variants"
   },
   "rootEntityType": "sample"
