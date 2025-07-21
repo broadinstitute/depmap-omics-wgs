@@ -1358,6 +1358,7 @@ def make_mut_sig(db: duckdb.DuckDBPyConnection) -> None:
                 sample_id,
                 chrom,
                 pos,
+                id,
                 ref,
                 alt,
                 ref_count,
@@ -1365,8 +1366,18 @@ def make_mut_sig(db: duckdb.DuckDBPyConnection) -> None:
                 af,
                 dp,
                 rs,
+                segdup,
+                repeat_masker,
+                pon,
+                cosmic_tier,
+                oncokb_oncogenic,
+                protein_changed,
+                rs,
+                vep_biotype,
+                vep_consequence,
                 vep_gnom_ade_af,
-                vep_gnom_adg_af
+                vep_gnom_adg_af,
+                vep_variant_class
             FROM
                 variants_enriched
             ORDER BY
