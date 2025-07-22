@@ -113,6 +113,15 @@ method_synopsis = "Postprocess annotated mutations to extract and rescue somatic
 workflow_wdl_path = "./workflows/select_somatic_variants/select_somatic_variants.wdl"
 method_config_json_path = "./workflows/select_somatic_variants/select_somatic_variants.json"
 
+[terra.make_guide_mutation_beds]
+method_namespace = "cds-pipelines"
+method_name = "make_guide_mutation_beds"
+method_config_namespace = "cds-pipelines"
+method_config_name = "make_guide_mutation_beds"
+method_synopsis = "Make guide mutation BED files"
+workflow_wdl_path = "./workflows/make_guide_mutation_beds/make_guide_mutation_beds.wdl"
+method_config_json_path = "./workflows/make_guide_mutation_beds/make_guide_mutation_beds.json"
+
 [ref.hg19]
 ref_alt = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.alt"
 ref_amb = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.amb"

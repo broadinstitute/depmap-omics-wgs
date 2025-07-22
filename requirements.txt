@@ -119,7 +119,7 @@ httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via ariadne-codegen
-hypothesis==6.135.32
+hypothesis==6.136.2
     # via pandera
 idna==3.10
     # via

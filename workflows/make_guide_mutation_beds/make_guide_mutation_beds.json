@@ -1,0 +1,33 @@
+{
+  "deleted": false,
+  "inputs": {
+    "make_guide_mutation_beds.bed_avana": "\"gs://ccleparams/avana_guides.bed\"",
+    "make_guide_mutation_beds.bed_brunello": "\"gs://ccleparams/brunello_25Q3.bed\"",
+    "make_guide_mutation_beds.bed_humagne": "\"gs://ccleparams/humagne_guides.bed\"",
+    "make_guide_mutation_beds.bed_ky": "\"gs://ccleparams/ky_score_guides.bed\"",
+    "make_guide_mutation_beds.bed_tkov": "\"gs://ccleparams/tkov_25Q3.bed\"",
+    "make_guide_mutation_beds.filter_vcfs_by_bed.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools\"",
+    "make_guide_mutation_beds.filter_vcfs_by_bed.docker_image_hash_or_tag": "\":production\"",
+    "make_guide_mutation_beds.intersect_beds.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/bedtools2\"",
+    "make_guide_mutation_beds.intersect_beds.docker_image_hash_or_tag": "\":production\"",
+    "make_guide_mutation_beds.sample_id": "this.sample_id",
+    "make_guide_mutation_beds.vcf": "this.mut_filtered_vcf",
+    "make_guide_mutation_beds.vcf_idx": "this.mut_filtered_vcf_idx"
+  },
+  "methodConfigVersion": 1,
+  "methodRepoMethod": {
+    "methodNamespace": "cds-pipelines",
+    "methodName": "make_guide_mutation_beds",
+    "methodVersion": 1
+  },
+  "namespace": "cds-pipelines",
+  "name": "make_guide_mutation_beds",
+  "outputs": {
+    "make_guide_mutation_beds.guide_bed_avana": "this.guide_bed_avana",
+    "make_guide_mutation_beds.guide_bed_brunello": "this.guide_bed_brunello",
+    "make_guide_mutation_beds.guide_bed_humagne": "this.guide_bed_humagne",
+    "make_guide_mutation_beds.guide_bed_ky": "this.guide_bed_ky",
+    "make_guide_mutation_beds.guide_bed_tkov": "this.guide_bed_tkov"
+  },
+  "rootEntityType": "sample"
+}
