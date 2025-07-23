@@ -23,7 +23,7 @@ workflow select_structural_variants {
     }
 
     output {
-        File selected_somatic_sv = do_select_structural_variants.selected_somatic_sv
+        File sv_selected_somatic = do_select_structural_variants.selected_somatic
     }
 }
 
@@ -71,7 +71,7 @@ task do_select_structural_variants {
     >>>
 
     output {
-        File selected_somatic_sv = "~{sample_id}.selected_somatic_sv.parquet"
+        File selected_somatic = "~{sample_id}.selected_somatic_sv.parquet"
     }
 
     runtime {

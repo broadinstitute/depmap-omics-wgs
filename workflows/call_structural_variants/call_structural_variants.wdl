@@ -28,12 +28,12 @@ workflow call_structural_variants {
     }
 
     output {
-        File? sv_diploid_vcf = run_manta.diploid_sv_vcf
-        File? sv_diploid_vcf_index = run_manta.diploid_sv_vcf_index
-        File sv_somatic_vcf = run_manta.somatic_sv_vcf
-        File sv_somatic_vcf_index = run_manta.somatic_sv_vcf_index
-        File sv_candidate_vcf = run_manta.candidate_sv_vcf
-        File sv_candidate_vcf_index = run_manta.candidate_sv_vcf_index
+        File? sv_diploid_vcf = run_manta.diploid_vcf
+        File? sv_diploid_vcf_index = run_manta.diploid_vcf_index
+        File sv_somatic_vcf = run_manta.somatic_vcf
+        File sv_somatic_vcf_index = run_manta.somatic_vcf_index
+        File sv_candidate_vcf = run_manta.candidate_vcf
+        File sv_candidate_vcf_index = run_manta.candidate_vcf_index
         File sv_candidate_indel_vcf = run_manta.candidate_indel_vcf
         File sv_candidate_indel_vcf_index = run_manta.candidate_indel_vcf_index
     }
@@ -133,12 +133,12 @@ task run_manta {
     >>>
 
     output {
-        File? diploid_sv_vcf = "~{sample_id}.diploid_sv.vcf.gz"
-        File? diploid_sv_vcf_index = "~{sample_id}.diploid_sv.vcf.gz.tbi"
-        File somatic_sv_vcf = "~{sample_id}.somatic_sv.vcf.gz"
-        File somatic_sv_vcf_index = "~{sample_id}.somatic_sv.vcf.gz.tbi"
-        File candidate_sv_vcf = "~{sample_id}.candidate_sv.vcf.gz"
-        File candidate_sv_vcf_index = "~{sample_id}.candidate_sv.vcf.gz.tbi"
+        File? diploid_vcf = "~{sample_id}.diploid_sv.vcf.gz"
+        File? diploid_vcf_index = "~{sample_id}.diploid_sv.vcf.gz.tbi"
+        File somatic_vcf = "~{sample_id}.somatic_sv.vcf.gz"
+        File somatic_vcf_index = "~{sample_id}.somatic_sv.vcf.gz.tbi"
+        File candidate_vcf = "~{sample_id}.candidate_sv.vcf.gz"
+        File candidate_vcf_index = "~{sample_id}.candidate_sv.vcf.gz.tbi"
         File candidate_indel_vcf = "~{sample_id}.candidate_small_indels.vcf.gz"
         File candidate_indel_vcf_index = "~{sample_id}.candidate_small_indels.vcf.gz.tbi"
     }

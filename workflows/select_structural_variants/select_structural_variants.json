@@ -20,7 +20,7 @@
   "namespace": "cds-pipelines",
   "name": "select_structural_variants",
   "outputs": {
-    "select_structural_variants.selected_somatic_sv": "this.sv_selected_somatic_sv"
+    "select_structural_variants.sv_selected_somatic": "this.sv_selected_somatic"
   },
   "rootEntityType": "sample"
 }
