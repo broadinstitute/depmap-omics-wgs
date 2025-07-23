@@ -127,6 +127,7 @@ def delta_job(
         entity_set_type=entity_set_type,
         entity_id_col=entity_id_col,
         expression=expression,
+        entities=ctx.obj["terra_workspace"].get_entities(entity_type),
         dry_run=config["dry_run"],
         input_cols=input_cols_set,
         output_cols=output_cols_set,
