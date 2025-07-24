@@ -49,11 +49,11 @@ workflow call_mutations {
         String gatk_docker
         File? gatk_override
         Int scatter_count
-        Int preemptible = 2
+        Int preemptible = 1
         Int max_retries = 1
-        Int small_task_cpu = 2
+        Int small_task_cpu = 1
         Int small_task_mem = 4
-        Int small_task_disk = 100
+        Int small_task_disk = 15
         Int learn_read_orientation_mem = 8000
         Int filter_alignment_artifacts_mem = 9000
 
@@ -79,7 +79,7 @@ workflow call_mutations {
     Int normal_reads_size = if defined(normal_reads) then ceil(size(normal_reads, "GB") + size(normal_reads_index, "GB")) else 0
 
     Int m2_output_size = tumor_reads_size / scatter_count
-    Int m2_per_scatter_size = (tumor_reads_size + normal_reads_size) + ref_size + gnomad_vcf_size + m2_output_size + disk_pad
+    Int m2_per_scatter_size = ref_size + gnomad_vcf_size + m2_output_size + disk_pad
 
     call SplitIntervals {
         input:
@@ -107,7 +107,8 @@ workflow call_mutations {
                 pon_idx = pon_idx,
                 gnomad = gnomad,
                 gnomad_idx = gnomad_idx,
-                preemptible = preemptible,
+                mem = small_task_mem,
+                preemptible = 2,
                 max_retries = max_retries,
                 m2_extra_args = m2_extra_args,
                 getpileupsummaries_extra_args = getpileupsummaries_extra_args,
