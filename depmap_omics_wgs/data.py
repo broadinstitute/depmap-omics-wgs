@@ -149,7 +149,6 @@ def refresh_legacy_terra_samples(
     terra_workspace: TerraWorkspace,
     legacy_terra_workspace: TerraWorkspace,
     sample_set_id: str,
-    gumbo_client: GumboClient,
 ) -> None:
     """
     Update the sample data table in the legacy production Terra workspace.
@@ -159,100 +158,57 @@ def refresh_legacy_terra_samples(
     need to be synced to
     :param sample_set_id: the ID for a sample set to create or update for unprocessed
     samples
-    :param gumbo_client: a `GumboClient` instance
     """
 
-    # identify samples in legacy workspace that have new analysis-ready BAMs
-    samples = terra_workspace.get_entities("sample")
-    legacy_samples = legacy_terra_workspace.get_entities("sample")
+    sample_sets = terra_workspace.get_entities("sample_set")
+    sample_set = sample_sets.loc[
+        sample_sets["sample_set_id"].eq(sample_set_id), "samples"
+    ].values[0]
+    q_sample_ids = [x["entityName"] for x in sample_set["items"]]
 
-    src_samples = (
-        samples.loc[
+    src_samples = terra_workspace.get_entities("sample")
+
+    dest_samples = (
+        src_samples.loc[
             :,
             [
                 "sample_id",
-                "analysis_ready_bam",
-                "analysis_ready_bai",
                 "cnv_cn_by_gene_weighted_mean",
                 "cnv_segments",
+                "mut_somatic_variants",
+                "sv_selected_somatic",
+                "msisensor2_output_dis",
+                "guide_bed_avana",
+                "guide_bed_brunello",
+                "guide_bed_humagne",
+                "guide_bed_ky",
+                "guide_bed_tkov",
             ],
         ]
         .rename(
             columns={
-                "analysis_ready_bam": "internal_bam_filepath",
-                "analysis_ready_bai": "internal_bai_filepath",
+                "cnv_cn_by_gene_weighted_mean": "cnv_cn_by_gene_weighted_mean",
+                "cnv_segments": "cnv_segments",
+                "mut_somatic_variants": "depmap_maf_25q2",
+                "sv_selected_somatic": "expanded_filtered_sv_bedpe",
+                "msisensor2_output_dis": "msisensor2_output_dis",
+                "guide_bed_avana": "avana_binary_mut",
+                "guide_bed_brunello": "brunello_binary_mut",
+                "guide_bed_humagne": "humagne_binary_mut",
+                "guide_bed_ky": "ky_binary_mut",
+                "guide_bed_tkov": "tkov3_binary_mut",
             }
         )
+        .astype("string")
         .replace({"": pd.NA})
     )
 
-    if "internal_bam_filepath" not in legacy_samples.columns:
-        legacy_samples["internal_bam_filepath"] = pd.NA
-
-    if "internal_bai_filepath" not in legacy_samples.columns:
-        legacy_samples["internal_bai_filepath"] = pd.NA
-
-    if "cnv_cn_by_gene_weighted_mean" not in legacy_samples.columns:
-        legacy_samples["cnv_cn_by_gene_weighted_mean"] = pd.NA
-
-    if "cnv_segments" not in legacy_samples.columns:
-        legacy_samples["cnv_segments"] = pd.NA
-
-    dest_samples = legacy_samples.loc[
-        :,
-        [
-            "sample_id",
-            "internal_bam_filepath",
-            "internal_bai_filepath",
-            "cnv_cn_by_gene_weighted_mean",
-            "cnv_segments",
-        ],
-    ].replace({"": pd.NA})
-
-    diff = src_samples.merge(
-        dest_samples, on="sample_id", how="left", suffixes=("_src", "_dest")
-    )
-
-    to_upsert = diff.loc[
-        (
-            diff["internal_bam_filepath_src"].notna()
-            & diff["internal_bam_filepath_dest"].isna()
-        )
-        | (
-            diff["internal_bai_filepath_src"].notna()
-            & diff["internal_bai_filepath_dest"].isna()
-        )
-        | (
-            diff["cnv_cn_by_gene_weighted_mean_src"].notna()
-            & diff["cnv_cn_by_gene_weighted_mean_dest"].isna()
-        )
-        | (diff["cnv_segments_src"].notna() & diff["cnv_segments_dest"].isna()),
-        [
-            "sample_id",
-            "internal_bam_filepath_src",
-            "internal_bai_filepath_src",
-            "cnv_cn_by_gene_weighted_mean_src",
-            "cnv_segments_src",
-        ],
-    ].rename(
-        columns={
-            "internal_bam_filepath_src": "internal_bam_filepath",
-            "internal_bai_filepath_src": "internal_bai_filepath",
-            "cnv_cn_by_gene_weighted_mean_src": "cnv_cn_by_gene_weighted_mean",
-            "cnv_segments_src": "cnv_segments",
-        }
-    )
-
-    if len(to_upsert) > 0:
-        legacy_terra_workspace.upload_entities(to_upsert)
-        legacy_samples = legacy_terra_workspace.get_entities("sample")
-
-    # get list of unprocessesd sample/sequencing IDs and create/update a sample set
-    res = gumbo_client.unprocessed_sequencings(timeout=30.0)
-
-    unprocessed_sample_ids = [
-        x.id for x in res.records if x.id in legacy_samples["sample_id"].values
+    dest_samples = dest_samples.loc[
+        dest_samples.drop(columns="sample_id").notna().any(axis=1)
     ]
+
+    if len(dest_samples) > 0:
+        legacy_terra_workspace.upload_entities(dest_samples)
 
     try:
         # update existing sample set
@@ -265,7 +221,7 @@ def refresh_legacy_terra_samples(
         )
 
         sample_set["attributes"]["samples"]["items"] = [
-            {"entityType": "sample", "entityName": x} for x in unprocessed_sample_ids
+            {"entityType": "sample", "entityName": x} for x in q_sample_ids
         ]
 
         _ = call_firecloud_api(
@@ -289,9 +245,7 @@ def refresh_legacy_terra_samples(
 
         # create new sample set
         legacy_terra_workspace.create_entity_set(
-            entity_type="sample",
-            entity_ids=unprocessed_sample_ids,
-            entity_set_id=sample_set_id,
+            entity_type="sample", entity_ids=q_sample_ids, entity_set_id=sample_set_id
         )
 
 
