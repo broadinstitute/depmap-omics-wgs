@@ -1,11 +1,22 @@
 version: 1.2
 workflows:
   - subclass: WDL
-    name: call_cnvs
-    readMePath: /workflows/call_cnvs/README.md
-    primaryDescriptorPath: /workflows/call_cnvs/call_cnvs.wdl
+    name: make_guide_mutation_beds
+    readMePath: /workflows/make_guide_mutation_beds/README.md
+    primaryDescriptorPath: /workflows/make_guide_mutation_beds/make_guide_mutation_beds.wdl
     testParameterFiles:
-      - /workflows/call_cnvs/call_cnvs.json
+      - /workflows/make_guide_mutation_beds/make_guide_mutation_beds.json
+    filters:
+      branches:
+        - main
+        - dev
+    publish: True
+  - subclass: WDL
+    name: make_guide_mutation_beds
+    readMePath: /workflows/make_guide_mutation_beds/README.md
+    primaryDescriptorPath: /workflows/make_guide_mutation_beds/make_guide_mutation_beds.wdl
+    testParameterFiles:
+      - /workflows/make_guide_mutation_beds/make_guide_mutation_beds.json
     filters:
       branches:
         - main
