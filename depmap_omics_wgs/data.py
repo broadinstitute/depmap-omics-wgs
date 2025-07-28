@@ -208,7 +208,7 @@ def refresh_legacy_terra_samples(
     ]
 
     if len(dest_samples) > 0:
-        legacy_terra_workspace.upload_entities(dest_samples)
+        legacy_terra_workspace.upload_entities(dest_samples, delete_empty=False)
 
     try:
         # update existing sample set
@@ -246,6 +246,46 @@ def refresh_legacy_terra_samples(
         # create new sample set
         legacy_terra_workspace.create_entity_set(
             entity_type="sample", entity_ids=q_sample_ids, entity_set_id=sample_set_id
+        )
+
+    try:
+        # update existing sample set
+        sample_set = call_firecloud_api(
+            firecloud_api.get_entity,
+            namespace=legacy_terra_workspace.workspace_namespace,
+            workspace=legacy_terra_workspace.workspace_name,
+            etype="sample_set",
+            ename="all_25q3",
+        )
+
+        sample_set["attributes"]["samples"]["items"] = [
+            {"entityType": "sample", "entityName": x} for x in dest_samples["sample_id"]
+        ]
+
+        _ = call_firecloud_api(
+            firecloud_api.update_entity,
+            namespace=legacy_terra_workspace.workspace_namespace,
+            workspace=legacy_terra_workspace.workspace_name,
+            etype="sample_set",
+            ename=sample_set_id,
+            updates=[
+                {
+                    "op": "AddUpdateAttribute",
+                    "attributeName": "samples",
+                    "addUpdateAttribute": sample_set["attributes"]["samples"],
+                }
+            ],
+        )
+
+    except requests.exceptions.RequestException as e:
+        if "404" not in str(e):
+            raise e
+
+        # create new sample set
+        legacy_terra_workspace.create_entity_set(
+            entity_type="sample",
+            entity_ids=list(dest_samples["sample_id"]),
+            entity_set_id="all_25q3",
         )
 
 

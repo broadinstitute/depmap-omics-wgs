@@ -147,7 +147,6 @@ def refresh_legacy_terra_samples(
             workspace_name=config["terra"]["legacy_workspace_name"],
         ),
         sample_set_id=sample_set_id,
-        gumbo_client=ctx.obj["get_gumbo_client"](),
     )
 
 
