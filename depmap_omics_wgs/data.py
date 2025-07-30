@@ -178,6 +178,7 @@ def refresh_legacy_terra_samples(
                 "mut_somatic_variants",
                 "sv_selected_somatic",
                 "msisensor2_output_dis",
+                "msisensor2_score",
                 "guide_bed_avana",
                 "guide_bed_brunello",
                 "guide_bed_humagne",
@@ -187,11 +188,8 @@ def refresh_legacy_terra_samples(
         ]
         .rename(
             columns={
-                "cnv_cn_by_gene_weighted_mean": "cnv_cn_by_gene_weighted_mean",
-                "cnv_segments": "cnv_segments",
                 "mut_somatic_variants": "depmap_maf_25q2",
                 "sv_selected_somatic": "expanded_filtered_sv_bedpe",
-                "msisensor2_output_dis": "msisensor2_output_dis",
                 "guide_bed_avana": "avana_binary_mut",
                 "guide_bed_brunello": "brunello_binary_mut",
                 "guide_bed_humagne": "humagne_binary_mut",
