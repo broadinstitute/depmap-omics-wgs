@@ -184,6 +184,7 @@ def refresh_legacy_terra_samples(
                 "guide_bed_humagne",
                 "guide_bed_ky",
                 "guide_bed_tkov",
+                "mut_annot_bcftools_fixed_vcf",
             ],
         ]
         .rename(
@@ -195,6 +196,7 @@ def refresh_legacy_terra_samples(
                 "guide_bed_humagne": "humagne_binary_mut",
                 "guide_bed_ky": "ky_binary_mut",
                 "guide_bed_tkov": "tkov3_binary_mut",
+                "mut_annot_bcftools_fixed_vcf": "mutect2_fixed_vcf",
             }
         )
         .astype("string")
