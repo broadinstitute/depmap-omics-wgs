@@ -33,7 +33,7 @@ FROM amazoncorretto:22.0.1-alpine3.19
 WORKDIR /tmp
 
 RUN apk update && apk add --no-cache libcurl xz-dev bzip2-dev bash wget unzip && \
-    wget https://snpeff.blob.core.windows.net/versions/snpEff_latest_core.zip -O snpEff_latest_core.zip && \
+    wget https://snpeff.odsp.astrazeneca.com/versions/snpEff_latest_core.zip -O snpEff_latest_core.zip && \
     unzip snpEff_latest_core.zip && \
     mkdir -p /app && \
     cp snpEff/snpEff.jar /app/ && \

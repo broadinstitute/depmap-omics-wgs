@@ -51,6 +51,7 @@
     "annotate_mutations.sample_id": "this.sample_id",
     "annotate_mutations.segdup_bed": "\"gs://ccleparams/wgs/mutation/annotation/segdup/segdup-2025-05-05.bed.gz\"",
     "annotate_mutations.segdup_bed_index": "\"gs://ccleparams/wgs/mutation/annotation/segdup/segdup-2025-05-05.bed.gz.tbi\"",
+    "annotate_mutations.snpeff_db": "\" gs://ccleparams/snpeff/snpEff_v5_2_GRCh38.mane.1.2.ensembl.zip\"",
     "annotate_mutations.snpeff_snpsift.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/snpeff_snpsift\"",
     "annotate_mutations.snpeff_snpsift.docker_image_hash_or_tag": "\":production\"",
     "annotate_mutations.split_vcf_by_chrom.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools\"",

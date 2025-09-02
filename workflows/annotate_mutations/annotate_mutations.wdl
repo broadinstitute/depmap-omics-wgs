@@ -49,6 +49,7 @@ workflow annotate_mutations {
         # snpEff and SnpSift annotation
         Boolean annot_snpeff = true
         Boolean annot_snpsift = true
+        File? snpeff_db
         File? clinvar_vcf
         File? clinvar_vcf_index
 
@@ -112,6 +113,7 @@ workflow annotate_mutations {
                 annot_snpeff = annot_snpeff,
                 annot_snpsift = annot_snpsift,
                 output_file_base_name = sample_id + "_snpeff_snpsift_annot",
+                snpeff_db = snpeff_db,
                 clinvar_vcf = clinvar_vcf,
                 clinvar_vcf_index = clinvar_vcf_index
         }
@@ -550,6 +552,7 @@ task snpeff_snpsift {
         Boolean annot_snpeff
         Boolean annot_snpsift
         String output_file_base_name
+        File? snpeff_db
         File? clinvar_vcf
         File? clinvar_vcf_index
 
@@ -562,16 +565,25 @@ task snpeff_snpsift {
         Int additional_disk_gb = 0
     }
 
-    Int disk_space = ceil(2 * 10 * size(vcf, "GiB")) + 10 + additional_disk_gb
+    Int disk_space = ceil(
+        3 * size(snpeff_db, "GiB") +
+        2 * 10 * size(vcf, "GiB")
+    ) + 10 + additional_disk_gb
 
     command <<<
         set -euo pipefail
 
         if ~{annot_snpeff}; then
+            echo "Extracting snpEff database"
+            extract_db_dir=$(dirname "~{snpeff_db}")
+            unzip "~{snpeff_db}" -d $extract_db_dir
+
             echo "Annotating with snpEff"
             java -Xmx14g -jar /app/snpEff.jar \
                 ann \
                 -noStats \
+                -noDownload \
+                -dataDir $extract_db_dir/data \
                 GRCh38.mane.1.2.ensembl \
                 "~{vcf}" \
                 > "snpeff_out.vcf"
