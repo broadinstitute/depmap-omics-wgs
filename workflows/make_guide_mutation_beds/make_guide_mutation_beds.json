@@ -11,8 +11,8 @@
     "make_guide_mutation_beds.intersect_beds.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/bedtools2\"",
     "make_guide_mutation_beds.intersect_beds.docker_image_hash_or_tag": "\":production\"",
     "make_guide_mutation_beds.sample_id": "this.sample_id",
-    "make_guide_mutation_beds.vcf": "this.mut_filtered_vcf",
-    "make_guide_mutation_beds.vcf_idx": "this.mut_filtered_vcf_idx"
+    "make_guide_mutation_beds.vcf": "this.mut_vcf",
+    "make_guide_mutation_beds.vcf_idx": "this.mut_vcf_idx"
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {

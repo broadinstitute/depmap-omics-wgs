@@ -29,8 +29,8 @@
   "namespace": "cds-pipelines",
   "name": "call_mutations",
   "outputs": {
-    "call_mutations.filtered_vcf": "this.mut_filtered_vcf",
-    "call_mutations.filtered_vcf_idx": "this.mut_filtered_vcf_idx",
+    "call_mutations.filtered_vcf": "this.mut_vcf",
+    "call_mutations.filtered_vcf_idx": "this.mut_vcf_idx",
     "call_mutations.filtering_stats": "this.mut_filtering_stats"
   },
   "rootEntityType": "sample"

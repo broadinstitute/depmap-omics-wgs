@@ -8,7 +8,7 @@
     "prep_annotations.fix_ploidy": "true",
     "prep_annotations.fix_with_bcftools.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools\"",
     "prep_annotations.fix_with_bcftools.docker_image_hash_or_tag": "\":production\"",
-    "prep_annotations.input_vcf": "this.mut_filtered_vcf",
+    "prep_annotations.input_vcf": "this.mut_vcf",
     "prep_annotations.normalize_indels": "true",
     "prep_annotations.ref_dict": "this.ref_dict",
     "prep_annotations.ref_fasta": "this.ref_fasta",
@@ -24,7 +24,7 @@
   "namespace": "cds-pipelines",
   "name": "prep_annotations",
   "outputs": {
-    "prep_annotations.mut_annot_bcftools_fixed_vcf": "this.mut_annot_bcftools_fixed_vcf"
+    "prep_annotations.mut_annot_bcftools_fixed_vcf": "this.`mut_annot_bcftools_fixed_vcf`"
   },
   "rootEntityType": "sample"
 }
