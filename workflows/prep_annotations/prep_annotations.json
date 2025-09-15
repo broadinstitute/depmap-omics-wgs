@@ -24,7 +24,7 @@
   "namespace": "cds-pipelines",
   "name": "prep_annotations",
   "outputs": {
-    "prep_annotations.mut_annot_bcftools_fixed_vcf": "this.`mut_annot_bcftools_fixed_vcf`"
+    "prep_annotations.mut_annot_bcftools_fixed_vcf": "this.mut_annot_bcftools_fixed_vcf"
   },
   "rootEntityType": "sample"
 }
