@@ -51,9 +51,9 @@ task run_manta {
         Boolean is_major_contigs_only
         File major_contig_bed
         File major_contig_bed_index
-        String docker_image
-        String docker_image_hash_or_tag
 
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/manta"
+        String docker_image_hash_or_tag = ":production"
         Int preemptible = 1
         Int max_retries = 0
         Int cpu = 8

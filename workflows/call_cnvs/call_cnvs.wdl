@@ -52,8 +52,8 @@ task calc_bin_coverage {
         File chrom_sizes
         File ref_fasta
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/samtools_extra"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 16
         Int cpu = 4
         Int preemptible = 1
@@ -122,8 +122,8 @@ task call_segments {
         File protein_coding_genes_bed
         File ref_fasta
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/call_segments"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 4
         Int cpu = 1
         Int preemptible = 2

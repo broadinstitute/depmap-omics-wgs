@@ -35,8 +35,8 @@ task index_vcf {
         File vcf
         String index_format = "CSI"
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 4
         Int cpu = 1
         Int preemptible = 2
@@ -82,8 +82,8 @@ task merge_info {
         Array[File] vcfs
         String output_file_base_name
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/vcf-info-merger"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 16
         Int cpu = 4
         Int preemptible = 1
@@ -123,8 +123,8 @@ task vcf_to_duckdb {
         File vcf_index
         Int batch_size = 100000
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/vcf-to-duckdb"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 32
         Int cpu = 8
         Int preemptible = 1

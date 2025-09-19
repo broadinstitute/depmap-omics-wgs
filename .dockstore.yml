@@ -1,15 +1,125 @@
 version: 1.2
 workflows:
   - subclass: WDL
-    name: make_guide_mutation_beds
-    readMePath: /workflows/make_guide_mutation_beds/README.md
-    primaryDescriptorPath: /workflows/make_guide_mutation_beds/make_guide_mutation_beds.wdl
+    name: align_wgs_sample
+    readMePath: /workflows/align_wgs_sample/README.md
+    primaryDescriptorPath: /workflows/align_wgs_sample/align_wgs_sample.wdl
     testParameterFiles:
-      - /workflows/make_guide_mutation_beds/make_guide_mutation_beds.json
+      - /workflows/align_wgs_sample/align_wgs_sample.json
     filters:
       branches:
         - main
-        - dev
+        - develop
+    publish: True
+  - subclass: WDL
+    name: infer_msi_status
+    readMePath: /workflows/infer_msi_status/README.md
+    primaryDescriptorPath: /workflows/infer_msi_status/infer_msi_status.wdl
+    testParameterFiles:
+      - /workflows/infer_msi_status/infer_msi_status.json
+    filters:
+      branches:
+        - main
+        - develop
+    publish: True
+  - subclass: WDL
+    name: call_structural_variants
+    readMePath: /workflows/call_structural_variants/README.md
+    primaryDescriptorPath: /workflows/call_structural_variants/call_structural_variants.wdl
+    testParameterFiles:
+      - /workflows/call_structural_variants/call_structural_variants.json
+    filters:
+      branches:
+        - main
+        - develop
+    publish: True
+  - subclass: WDL
+    name: annotate_structural_variants
+    readMePath: /workflows/annotate_structural_variants/README.md
+    primaryDescriptorPath: /workflows/annotate_structural_variants/annotate_structural_variants.wdl
+    testParameterFiles:
+      - /workflows/annotate_structural_variants/annotate_structural_variants.json
+    filters:
+      branches:
+        - main
+        - develop
+    publish: True
+  - subclass: WDL
+    name: select_structural_variants
+    readMePath: /workflows/select_structural_variants/README.md
+    primaryDescriptorPath: /workflows/select_structural_variants/select_structural_variants.wdl
+    testParameterFiles:
+      - /workflows/select_structural_variants/select_structural_variants.json
+    filters:
+      branches:
+        - main
+        - develop
+    publish: True
+  - subclass: WDL
+    name: call_cnvs
+    readMePath: /workflows/call_cnvs/README.md
+    primaryDescriptorPath: /workflows/call_cnvs/call_cnvs.wdl
+    testParameterFiles:
+      - /workflows/call_cnvs/call_cnvs.json
+    filters:
+      branches:
+        - main
+        - develop
+    publish: True
+  - subclass: WDL
+    name: call_mutations
+    readMePath: /workflows/call_mutations/README.md
+    primaryDescriptorPath: /workflows/call_mutations/call_mutations.wdl
+    testParameterFiles:
+      - /workflows/call_mutations/call_mutations.json
+    filters:
+      branches:
+        - main
+        - develop
+    publish: True
+  - subclass: WDL
+    name: prep_annotations
+    readMePath: /workflows/prep_annotations/README.md
+    primaryDescriptorPath: /workflows/prep_annotations/prep_annotations.wdl
+    testParameterFiles:
+      - /workflows/prep_annotations/prep_annotations.json
+    filters:
+      branches:
+        - main
+        - develop
+    publish: True
+  - subclass: WDL
+    name: annotate_mutations
+    readMePath: /workflows/annotate_mutations/README.md
+    primaryDescriptorPath: /workflows/annotate_mutations/annotate_mutations.wdl
+    testParameterFiles:
+      - /workflows/annotate_mutations/annotate_mutations.json
+    filters:
+      branches:
+        - main
+        - develop
+    publish: True
+  - subclass: WDL
+    name: annotate_mutations_merge
+    readMePath: /workflows/annotate_mutations_merge/README.md
+    primaryDescriptorPath: /workflows/annotate_mutations_merge/annotate_mutations_merge.wdl
+    testParameterFiles:
+      - /workflows/annotate_mutations_merge/annotate_mutations_merge.json
+    filters:
+      branches:
+        - main
+        - develop
+    publish: True
+  - subclass: WDL
+    name: select_somatic_variants
+    readMePath: /workflows/select_somatic_variants/README.md
+    primaryDescriptorPath: /workflows/select_somatic_variants/select_somatic_variants.wdl
+    testParameterFiles:
+      - /workflows/select_somatic_variants/select_somatic_variants.json
+    filters:
+      branches:
+        - main
+        - develop
     publish: True
   - subclass: WDL
     name: make_guide_mutation_beds
@@ -20,5 +130,5 @@ workflows:
     filters:
       branches:
         - main
-        - dev
+        - develop
     publish: True

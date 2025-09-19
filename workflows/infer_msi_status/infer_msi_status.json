@@ -3,8 +3,6 @@
   "inputs": {
     "infer_msi_status.bai": "this.analysis_ready_bai",
     "infer_msi_status.bam": "this.analysis_ready_bam",
-    "infer_msi_status.run_msisensor2.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/msisensor2\"",
-    "infer_msi_status.run_msisensor2.docker_image_hash_or_tag": "\":production\"",
     "infer_msi_status.sample_id": "this.sample_id"
   },
   "methodConfigVersion": 1,

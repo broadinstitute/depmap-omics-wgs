@@ -40,8 +40,8 @@ task do_select_somatic_variants {
         Boolean save_enriched_variants
         Int batch_size = 500000
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/select-somatic-variants"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 32
         Int cpu = 8
         Int preemptible = 1

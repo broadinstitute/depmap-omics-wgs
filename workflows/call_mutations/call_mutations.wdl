@@ -46,7 +46,7 @@ workflow call_mutations {
         File? gga_vcf_idx
 
         # runtime
-        String gatk_docker
+        String gatk_docker = "us-central1-docker.pkg.dev/depmap-omics/terra-images/gatk:4.6.1.0"
         File? gatk_override
         Int scatter_count
         Int preemptible = 1

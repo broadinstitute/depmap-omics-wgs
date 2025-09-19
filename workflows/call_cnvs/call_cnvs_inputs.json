@@ -1,0 +1,7 @@
+{
+  "call_cnvs.chrom_sizes": "\"gs://ccleparams/wgs_cnv/hg38.chrom.sizes\"",
+  "call_cnvs.gc_wig": "\"gs://ccleparams/wgs_cnv/hg38.1000.gc.bedgraph\"",
+  "call_cnvs.map_wig": "\"gs://ccleparams/wgs_cnv/hg38.1000.with_mean_mapscore.bed\"",
+  "call_cnvs.protein_coding_genes_bed": "\"gs://ccleparams/wgs_cnv/gencode.v38.primary_assembly.annotation.protein_coding_genes.bed\"",
+  "call_cnvs.wgs_bins_bed": "\"gs://ccleparams/wgs_cnv/hg38.1000.sorted.bed\""
+}

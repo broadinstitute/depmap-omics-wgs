@@ -1,0 +1,13 @@
+{
+  "call_mutations.compress_vcfs": "true",
+  "call_mutations.gnomad": "\"gs://gatk-best-practices/somatic-hg38/af-only-gnomad.hg38.vcf.gz\"",
+  "call_mutations.gnomad_idx": "\"gs://gatk-best-practices/somatic-hg38/af-only-gnomad.hg38.vcf.gz.tbi\"",
+  "call_mutations.intervals": "\"gs://ccleparams/references/references_wgs_xy.intervals\"",
+  "call_mutations.m2_extra_args": "\"--genotype-germline-sites true --genotype-pon-sites true\"",
+  "call_mutations.pon": "\"gs://gatk-best-practices/somatic-hg38/1000g_pon.hg38.vcf.gz\"",
+  "call_mutations.pon_idx": "\"gs://gatk-best-practices/somatic-hg38/1000g_pon.hg38.vcf.gz.tbi\"",
+  "call_mutations.run_orientation_bias_mixture_model_filter": "true",
+  "call_mutations.scatter_count": "100",
+  "call_mutations.small_task_cpu": "1",
+  "call_mutations.small_task_disk": "15"
+}

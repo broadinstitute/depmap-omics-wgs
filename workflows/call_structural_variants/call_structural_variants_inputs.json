@@ -1,0 +1,5 @@
+{
+  "call_structural_variants.is_major_contigs_only": "true",
+  "call_structural_variants.major_contig_bed": "\"gs://ccleparams/sv/manta_major_contigs.bed.gz\"",
+  "call_structural_variants.major_contig_bed_index": "\"gs://ccleparams/sv/manta_major_contigs.bed.gz.tbi\""
+}

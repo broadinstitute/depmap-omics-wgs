@@ -28,8 +28,8 @@ task run_msisensor2 {
         File bam
         File bai
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/msisensor2"
+        String docker_image_hash_or_tag = ":production"
         Int cpu = 1
         Int mem_gb = 8
         Int preemptible = 2

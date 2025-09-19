@@ -173,8 +173,8 @@ task split_vcf_by_chrom {
         File vcf
         File xy_intervals
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 2
         Int cpu = 1
         Int preemptible = 2
@@ -229,8 +229,8 @@ task gather_vcfs {
         Array[File] vcfs
         String output_file_base_name
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/gatk"
+        String docker_image_hash_or_tag = ":4.6.1.0"
         Int mem_gb = 24
         Int cpu = 2
         Int preemptible = 2
@@ -309,8 +309,8 @@ task annot_with_bcftools {
         File? ref_fasta
         File? ref_fasta_index
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 4
         Int cpu = 1
         Int preemptible = 2
@@ -556,8 +556,8 @@ task snpeff_snpsift {
         File? clinvar_vcf
         File? clinvar_vcf_index
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/snpeff_snpsift"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 24
         Int cpu = 1
         Int preemptible = 1
@@ -650,8 +650,8 @@ task open_cravat {
         String genome = "hg38"
         String modules_options = "vcfreporter.type=separate"
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/open_cravat"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 16
         Int cpu = 4
         Int preemptible = 1
@@ -733,8 +733,8 @@ task ensembl_vep {
         File alpha_missense
         File alpha_missense_index
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/ensembl-vep"
+        String docker_image_hash_or_tag = ":v113"
         Int mem_gb = 8
         Int cpu = 2
         Int preemptible = 2

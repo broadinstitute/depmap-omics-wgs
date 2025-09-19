@@ -1,0 +1,10 @@
+{
+  "annotate_structural_variants.gnomad": "\"gs://ccleparams/sv/gnomad.v4.1.sv.sites.pass.vcf.gz\"",
+  "annotate_structural_variants.gnomad_idx": "\"gs://ccleparams/sv/gnomad.v4.1.sv.sites.pass.vcf.gz.tbi\"",
+  "annotate_structural_variants.gtf_bed": "\"gs://ccleparams/gencode.v38.primary_assembly.CORRECTED_MISSING_IDs.annotation.GENES_ONLY.bed\"",
+  "annotate_structural_variants.include_string": "\"(FILTER=\\\"PASS\\\"|FILTER=\\\"MaxDepth\\\") && (SUM(FORMAT/PR[0:1]+FORMAT/SR[0:1]) >= 5) && (CHROM!=\\\"chrM\\\") && (ALT!~\\\"chrM\\\")\"",
+  "annotate_structural_variants.ref_fasta_bgz": "\"gs://ccleparams/references/Homo_sapiens.GRCh38.dna.primary_assembly.fa.bgz\"",
+  "annotate_structural_variants.vep_chrom_cache_url_prefix": "\"gs://ccleparams/wgs/mutation/annotation/vep/v113/\"",
+  "annotate_structural_variants.vep_chrom_cache_url_suffix": "\".gz\"",
+  "annotate_structural_variants.xy_intervals": "\"gs://ccleparams/references/references_wgs_xy.intervals\""
+}

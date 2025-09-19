@@ -40,8 +40,8 @@ task do_select_structural_variants {
         Float sv_gnomad_cutoff = 0.001
         Int large_sv_size = 1000000000
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/select-structural-variants"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 4
         Int cpu = 1
         Int preemptible = 2

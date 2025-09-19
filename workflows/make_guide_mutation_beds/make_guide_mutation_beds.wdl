@@ -59,8 +59,8 @@ task filter_vcfs_by_bed {
         File bed_ky
         File bed_tkov
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 4
         Int cpu = 1
         Int preemptible = 2
@@ -132,8 +132,8 @@ task intersect_beds {
         File bed_ky
         File bed_tkov
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/bedtools2"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 4
         Int cpu = 1
         Int preemptible = 2

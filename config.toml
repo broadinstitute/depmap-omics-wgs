@@ -8,8 +8,6 @@ dry_run = false
 [terra]
 repo_namespace = "cds-pipelines"
 workspace_namespace = "broad-firecloud-ccle"
-#workspace_name = "depmap-omics-wgs-mut-dev"
-#workspace_name = "depmap-omics-wgs-sv-dev"
 workspace_name = "depmap-omics-wgs"
 legacy_workspace_namespace = "broad-firecloud-ccle"
 legacy_workspace_name = "DepMap_WGS_CN"
@@ -22,6 +20,7 @@ method_config_name = "align_wgs_sample"
 method_synopsis = "Run WARP GDC single-sample preprocessing workflow"
 workflow_wdl_path = "./workflows/align_wgs_sample/align_wgs_sample.wdl"
 method_config_json_path = "./workflows/align_wgs_sample/align_wgs_sample.json"
+workflow_inputs_json_path = "./workflows/align_wgs_sample/align_wgs_sample_inputs.json"
 
 [terra.infer_msi_status]
 method_namespace = "cds-pipelines"
@@ -31,6 +30,7 @@ method_config_name = "infer_msi_status"
 method_synopsis = "Infer MSI status of WGS sample"
 workflow_wdl_path = "./workflows/infer_msi_status/infer_msi_status.wdl"
 method_config_json_path = "./workflows/infer_msi_status/infer_msi_status.json"
+workflow_inputs_json_path = "./workflows/infer_msi_status/infer_msi_status_inputs.json"
 
 [terra.call_structural_variants]
 method_namespace = "cds-pipelines"
@@ -40,6 +40,7 @@ method_config_name = "call_structural_variants"
 method_synopsis = "Call structural variants"
 workflow_wdl_path = "./workflows/call_structural_variants/call_structural_variants.wdl"
 method_config_json_path = "./workflows/call_structural_variants/call_structural_variants.json"
+workflow_inputs_json_path = "./workflows/call_structural_variants/call_structural_variants_inputs.json"
 
 [terra.annotate_structural_variants]
 method_namespace = "cds-pipelines"
@@ -49,6 +50,7 @@ method_config_name = "annotate_structural_variants"
 method_synopsis = "Annotate structural variants"
 workflow_wdl_path = "./workflows/annotate_structural_variants/annotate_structural_variants.wdl"
 method_config_json_path = "./workflows/annotate_structural_variants/annotate_structural_variants.json"
+workflow_inputs_json_path = "./workflows/annotate_structural_variants/annotate_structural_variants_inputs.json"
 
 [terra.select_structural_variants]
 method_namespace = "cds-pipelines"
@@ -58,6 +60,7 @@ method_config_name = "select_structural_variants"
 method_synopsis = "Postprocess annotated structural variants to extract and rescue somatic variants"
 workflow_wdl_path = "./workflows/select_structural_variants/select_structural_variants.wdl"
 method_config_json_path = "./workflows/select_structural_variants/select_structural_variants.json"
+workflow_inputs_json_path = "./workflows/select_structural_variants/select_structural_variants_inputs.json"
 
 [terra.call_cnvs]
 method_namespace = "cds-pipelines"
@@ -67,6 +70,7 @@ method_config_name = "call_cnvs"
 method_synopsis = "Call CNVs"
 workflow_wdl_path = "./workflows/call_cnvs/call_cnvs.wdl"
 method_config_json_path = "./workflows/call_cnvs/call_cnvs.json"
+workflow_inputs_json_path = "./workflows/call_cnvs/call_cnvs_inputs.json"
 
 [terra.call_mutations]
 method_namespace = "cds-pipelines"
@@ -76,6 +80,7 @@ method_config_name = "call_mutations"
 method_synopsis = "Call mutations"
 workflow_wdl_path = "./workflows/call_mutations/call_mutations.wdl"
 method_config_json_path = "./workflows/call_mutations/call_mutations.json"
+workflow_inputs_json_path = "./workflows/call_mutations/call_mutations_inputs.json"
 
 [terra.prep_annotations]
 method_namespace = "cds-pipelines"
@@ -85,6 +90,7 @@ method_config_name = "prep_annotations"
 method_synopsis = "Prep called mutations for annotation"
 workflow_wdl_path = "./workflows/prep_annotations/prep_annotations.wdl"
 method_config_json_path = "./workflows/prep_annotations/prep_annotations.json"
+workflow_inputs_json_path = "./workflows/prep_annotations/prep_annotations_inputs.json"
 
 [terra.annotate_mutations]
 method_namespace = "cds-pipelines"
@@ -94,6 +100,7 @@ method_config_name = "annotate_mutations"
 method_synopsis = "Annotate mutations"
 workflow_wdl_path = "./workflows/annotate_mutations/annotate_mutations.wdl"
 method_config_json_path = "./workflows/annotate_mutations/annotate_mutations.json"
+workflow_inputs_json_path = "./workflows/annotate_mutations/annotate_mutations_inputs.json"
 
 [terra.annotate_mutations_merge]
 method_namespace = "cds-pipelines"
@@ -103,6 +110,7 @@ method_config_name = "annotate_mutations_merge"
 method_synopsis = "Merge info fields in annotation mutations VCF files"
 workflow_wdl_path = "./workflows/annotate_mutations_merge/annotate_mutations_merge.wdl"
 method_config_json_path = "./workflows/annotate_mutations_merge/annotate_mutations_merge.json"
+workflow_inputs_json_path = "./workflows/annotate_mutations_merge/annotate_mutations_merge_inputs.json"
 
 [terra.select_somatic_variants]
 method_namespace = "cds-pipelines"
@@ -112,6 +120,7 @@ method_config_name = "select_somatic_variants"
 method_synopsis = "Postprocess annotated mutations to extract and rescue somatic variants"
 workflow_wdl_path = "./workflows/select_somatic_variants/select_somatic_variants.wdl"
 method_config_json_path = "./workflows/select_somatic_variants/select_somatic_variants.json"
+workflow_inputs_json_path = "./workflows/select_somatic_variants/select_somatic_variants_inputs.json"
 
 [terra.make_guide_mutation_beds]
 method_namespace = "cds-pipelines"
@@ -121,6 +130,7 @@ method_config_name = "make_guide_mutation_beds"
 method_synopsis = "Make guide mutation BED files"
 workflow_wdl_path = "./workflows/make_guide_mutation_beds/make_guide_mutation_beds.wdl"
 method_config_json_path = "./workflows/make_guide_mutation_beds/make_guide_mutation_beds.json"
+workflow_inputs_json_path = "./workflows/make_guide_mutation_beds/make_guide_mutation_beds_inputs.json"
 
 [ref.hg19]
 ref_alt = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.alt"

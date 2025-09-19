@@ -84,8 +84,8 @@ task filter_variants {
         File vcf
         String include_string
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 4
         Int cpu = 1
         Int preemptible = 2
@@ -129,8 +129,8 @@ task split_vcf_by_chrom {
         File vcf
         File xy_intervals
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 2
         Int cpu = 1
         Int preemptible = 2
@@ -190,8 +190,8 @@ task ensembl_vep {
         File gnomad_idx
         Int max_sv_size = 50000000
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/ensembl-vep"
+        String docker_image_hash_or_tag = ":v113"
         Int mem_gb = 8
         Int cpu = 2
         Int preemptible = 2
@@ -273,8 +273,8 @@ task gather_vcfs {
         Array[File] vcfs
         String output_file_base_name
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/gatk"
+        String docker_image_hash_or_tag = ":4.6.1.0"
         Int mem_gb = 16
         Int cpu = 2
         Int preemptible = 2
@@ -326,8 +326,8 @@ task convert_to_bedpe {
         String sample_id
         File vcf
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/ngs-bits"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 4
         Int cpu = 1
         Int preemptible = 2
@@ -369,8 +369,8 @@ task reannotate_genes {
         File input_bedpe
         File gtf_bed
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/bedtools2"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 8
         Int cpu = 1
         Int preemptible = 2

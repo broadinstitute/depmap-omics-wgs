@@ -843,8 +843,8 @@ task check_bqsr_and_oq_tags {
         File bai
         File ref_fasta
 
-        String docker_image
-        String docker_image_hash_or_tag
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/samtools"
+        String docker_image_hash_or_tag = ":production"
         Int mem_gb = 2
         Int cpu = 1
         Int preemptible = 3
