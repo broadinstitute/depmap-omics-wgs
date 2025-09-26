@@ -652,7 +652,7 @@ task open_cravat {
 
         String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/open_cravat"
         String docker_image_hash_or_tag = ":production"
-        Int mem_gb = 16
+        Int mem_gb = 24
         Int cpu = 4
         Int preemptible = 1
         Int max_retries = 1
