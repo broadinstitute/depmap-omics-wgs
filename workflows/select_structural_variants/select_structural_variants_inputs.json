@@ -1,4 +1,4 @@
 {
-  "select_structural_variants.cosmic_fusion_gene_pairs": "\"gs://ccleparams/sv/cosmic_fusion_gene_pairs_2025-06-03.csv\"",
-  "select_structural_variants.onco_tsg": "\"gs://ccleparams/sv/onco_tsg.tsv\""
+  "select_structural_variants.cosmic_fusion_gene_pairs": "gs://ccleparams/sv/cosmic_fusion_gene_pairs_2025-06-03.csv",
+  "select_structural_variants.onco_tsg": "gs://ccleparams/sv/onco_tsg.tsv"
 }

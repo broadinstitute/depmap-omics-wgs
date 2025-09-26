@@ -1,7 +1,7 @@
 {
-  "select_somatic_variants.max_brca1_func_assay_score": "-1.328",
-  "select_somatic_variants.max_pop_af": "0.00001",
-  "select_somatic_variants.min_af": "0.15",
-  "select_somatic_variants.min_depth": "5",
-  "select_somatic_variants.save_enriched_variants": "false"
+  "select_somatic_variants.max_brca1_func_assay_score": -1.328,
+  "select_somatic_variants.max_pop_af": 0.00001,
+  "select_somatic_variants.min_af": 0.15,
+  "select_somatic_variants.min_depth": 5,
+  "select_somatic_variants.save_enriched_variants": false
 }

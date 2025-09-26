@@ -1,8 +1,8 @@
 {
-  "align_wgs_sample.dbsnp_vcf": "\"gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf\"",
-  "align_wgs_sample.dbsnp_vcf_index": "\"gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf\"",
-  "align_wgs_sample.do_check_contamination": "false",
-  "align_wgs_sample.do_collect_insert_size_metrics": "false",
-  "align_wgs_sample.rerun_bqsr": "true",
-  "align_wgs_sample.run_bqsr": "true"
+  "align_wgs_sample.dbsnp_vcf": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf",
+  "align_wgs_sample.dbsnp_vcf_index": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf",
+  "align_wgs_sample.do_check_contamination": false,
+  "align_wgs_sample.do_collect_insert_size_metrics": false,
+  "align_wgs_sample.rerun_bqsr": true,
+  "align_wgs_sample.run_bqsr": true
 }
