@@ -1369,6 +1369,7 @@ def make_mut_sig(db: duckdb.DuckDBPyConnection) -> None:
                 segdup,
                 repeat_masker,
                 pon,
+                in_clustered_event,
                 cosmic_tier,
                 oncokb_oncogenic,
                 protein_changed,
