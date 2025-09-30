@@ -1,7 +1,6 @@
 FROM bitnami/minideb:bullseye
 
 ENV DEBIAN_FRONTEND noninteractive
-ENV SAMTOOLS_VERSION="1.20"
 
 RUN apt-get -y dist-upgrade \
     && apt-get -y update \
@@ -17,18 +16,24 @@ RUN apt-get -y dist-upgrade \
     && apt-get -y update \
     && apt-get -y install --no-install-recommends --no-install-suggests \
         autoconf \
+        build-essential \
         gcc \
         google-cloud-cli \
         lbzip2 \
         libbz2-dev \
         libcurl4-gnutls-dev \
+        libdeflate-dev \
+        liblz4-dev \
         liblzma-dev \
         libncurses5-dev \
         libz-dev \
         make \
+        xz-utils \
     && apt-get -y autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+ENV SAMTOOLS_VERSION="1.22.1"
 
 RUN curl -SL https://github.com/samtools/samtools/releases/download/${SAMTOOLS_VERSION}/samtools-${SAMTOOLS_VERSION}.tar.bz2 \
     -o /tmp/samtools.tar.bz2 \
@@ -37,6 +42,6 @@ RUN curl -SL https://github.com/samtools/samtools/releases/download/${SAMTOOLS_V
     && cd /usr/local/src/samtools \
     && autoheader \
     && autoconf -Wno-syntax \
-    && ./configure \
+    && ./configure --with-htslib \
     && make \
     && make install

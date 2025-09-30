@@ -155,7 +155,7 @@ task CramToBam {
         Int memory_in_MiB = 7000
     }
 
-    Int index_threads = cpu - 1
+    Int index_threads = cpu
 
     command <<<
         set -euo pipefail

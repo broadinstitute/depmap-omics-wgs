@@ -719,7 +719,7 @@ task sort_and_index_markdup_bam {
     Int mem = if computed_mem < 48000 then computed_mem else 48000
     Int disk_space = ceil(size(input_bam, "GiB") * 3) + 10 + additional_disk_gb
     Int mem_per_thread = floor(mem / cpu * 0.85)
-    Int index_threads = cpu - 1
+    Int index_threads = cpu
     String output_bam = output_bam_basename + ".bam"
     String output_bai = output_bam_basename + ".bai"
 

@@ -132,3 +132,25 @@ workflows:
         - main
         - develop
     publish: True
+  - subclass: WDL
+    name: cram_to_bam
+    readMePath: /workflows/cram_to_bam/README.md
+    primaryDescriptorPath: /workflows/cram_to_bam/cram_to_bam.wdl
+    testParameterFiles:
+      - /workflows/cram_to_bam/cram_to_bam.json
+    filters:
+      branches:
+        - main
+        - develop
+    publish: True
+  - subclass: WDL
+    name: bam_to_cram
+    readMePath: /workflows/bam_to_cram/README.md
+    primaryDescriptorPath: /workflows/bam_to_cram/bam_to_cram.wdl
+    testParameterFiles:
+      - /workflows/bam_to_cram/bam_to_cram.json
+    filters:
+      branches:
+        - main
+        - develop
+    publish: True

@@ -132,6 +132,26 @@ workflow_wdl_path = "./workflows/make_guide_mutation_beds/make_guide_mutation_be
 method_config_json_path = "./workflows/make_guide_mutation_beds/make_guide_mutation_beds.json"
 workflow_inputs_json_path = "./workflows/make_guide_mutation_beds/make_guide_mutation_beds_inputs.json"
 
+[terra.bam_to_cram]
+method_namespace = "cds-pipelines"
+method_name = "bam_to_cram"
+method_config_namespace = "cds-pipelines"
+method_config_name = "bam_to_cram"
+method_synopsis = "Convert BAM to CRAM"
+workflow_wdl_path = "./workflows/bam_to_cram/bam_to_cram.wdl"
+method_config_json_path = "./workflows/bam_to_cram/bam_to_cram.json"
+workflow_inputs_json_path = "./workflows/bam_to_cram/bam_to_cram_inputs.json"
+
+[terra.cram_to_bam]
+method_namespace = "cds-pipelines"
+method_name = "cram_to_bam"
+method_config_namespace = "cds-pipelines"
+method_config_name = "cram_to_bam"
+method_synopsis = "Convert CRAM to BAM"
+workflow_wdl_path = "./workflows/cram_to_bam/cram_to_bam.wdl"
+method_config_json_path = "./workflows/cram_to_bam/cram_to_bam.json"
+workflow_inputs_json_path = "./workflows/cram_to_bam/cram_to_bam_inputs.json"
+
 [ref.hg19]
 ref_alt = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.alt"
 ref_amb = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.amb"

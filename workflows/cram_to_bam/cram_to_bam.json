@@ -1,0 +1,23 @@
+{
+  "deleted": false,
+  "inputs": {
+    "cram_to_bam.sample_id": "this.sample_id",
+    "cram_to_bam.crai": "this.analysis_ready_crai",
+    "cram_to_bam.cram": "this.analysis_ready_cram",
+    "cram_to_bam.ref_fasta": "this.ref_fasta",
+    "cram_to_bam.ref_fasta_index": "this.ref_fasta_index"
+  },
+  "methodConfigVersion": 1,
+  "methodRepoMethod": {
+    "methodNamespace": "cds-pipelines",
+    "methodName": "cram_to_bam",
+    "methodVersion": 1
+  },
+  "namespace": "cds-pipelines",
+  "name": "cram_to_bam",
+  "outputs": {
+    "cram_to_bam.bam": "this.analysis_ready_bam_from_cram",
+    "cram_to_bam.bai": "this.analysis_ready_bai_from_cram"
+  },
+  "rootEntityType": "sample"
+}
