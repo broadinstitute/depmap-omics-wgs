@@ -42,7 +42,7 @@ task convert_bam_to_cram {
     }
 
     Int disk_space = (
-        ceil(1.5 * size(bam, "GiB") + size(ref_fasta, "GiB")) + 10 + additional_disk_gb
+        ceil(2 * size(bam, "GiB") + size(ref_fasta, "GiB")) + 10 + additional_disk_gb
     )
 
     Int n_threads = cpu
