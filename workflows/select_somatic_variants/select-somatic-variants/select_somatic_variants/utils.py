@@ -73,9 +73,9 @@ def do_select_somatic_variants(
         if variants_enriched_out_file_path is not None:
             # write wide version of all quality variants to parquet
             r = db.table("variants_enriched").count("*").fetchone()
-            n_somatic_variants = r[0]  # pyright: ignore
+            n_variants = r[0]  # pyright: ignore
             logging.info(
-                f"Writing {n_somatic_variants}"
+                f"Writing {n_variants}"
                 f" enriched variants to {variants_enriched_out_file_path}"
             )
             db.sql(f"""
@@ -94,9 +94,9 @@ def do_select_somatic_variants(
         if mut_sig_out_file_path is not None:
             # write narrower version of variants for mutational signatures to parquet
             r = db.table("mut_sig").count("*").fetchone()
-            n_somatic_variants = r[0]  # pyright: ignore
+            n_variants = r[0]  # pyright: ignore
             logging.info(
-                f"Writing {n_somatic_variants}"
+                f"Writing {n_variants}"
                 f" mutational signature variants to {mut_sig_out_file_path}"
             )
             db.sql(f"""
@@ -198,61 +198,61 @@ def delete_low_quality_variants(
 
     logging.info("Deleting low quality variants")
 
-    db.sql(rf"""
-        CREATE OR REPLACE VIEW low_quality_vids AS (
-            SELECT DISTINCT
+    low_quality_vids = db.sql(f"""
+        SELECT DISTINCT
+            vid
+        FROM
+            vals_info
+        WHERE (
+            kind = 'val'
+            AND k = 'af'
+            AND v_float < {min_af}
+        )
+        OR (
+            kind = 'val'
+            AND k = 'dp'
+            AND v_integer < {min_depth}
+        )
+        OR vid IN (
+            SELECT
                 vid
-            FROM
-                vals_info
-            WHERE (
-                kind = 'val'
-                AND k = 'af'
-                AND v_float < {min_af}
-            )
-            OR (
-                kind = 'val'
-                AND k = 'dp'
-                AND v_integer < {min_depth}
-            )
-            OR vid IN (
+            FROM (
                 SELECT
-                    vid
-                FROM (
-                    SELECT
-                        vid,
-                        unnest(
-                            str_split_regex(lower(v_varchar), '\s*\|\s*')
-                        ) AS filter_val
-                    FROM
-                        vals_info
-                    WHERE
-                        kind = 'info'
-                        AND k = 'as_filter_status'
-                    UNION
-                    SELECT
-                        vid,
-                        lower(unnest(filters)) AS filter_val
-                    FROM
-                        variants
-                )
-                WHERE filter_val IN (
-                    'multiallelic',
-                    'map_qual',
-                    'slippage',
-                    'strand_bias',
-                    'weak_evidence', 
-                    'base_qual'
-                )
+                    vid,
+                    unnest(
+                        str_split_regex(lower(v_varchar), '\s*\|\s*')
+                    ) AS filter_val
+                FROM
+                    vals_info
+                WHERE
+                    kind = 'info'
+                    AND k = 'as_filter_status'
+                UNION
+                SELECT
+                    vid,
+                    lower(unnest(filters)) AS filter_val
+                FROM
+                    variants
+            )
+            WHERE filter_val IN (
+                'multiallelic',
+                'map_qual',
+                'slippage',
+                'strand_bias',
+                'weak_evidence', 
+                'base_qual'
             )
         )
-    """)
+    """).fetchdf()
+
+    db.register("low_quality_vids", low_quality_vids)
 
     db.sql("""
         DELETE FROM vals_info WHERE vid in (SELECT vid FROM low_quality_vids);
         DELETE FROM variants WHERE vid in (SELECT vid FROM low_quality_vids);
     """)
 
-    db.sql("DROP VIEW IF EXISTS low_quality_vids")
+    db.unregister("low_quality_vids")
 
 
 def make_batch_views(
