@@ -4,6 +4,7 @@ from .base_client import BaseClient
 from .get_task_results import GetTaskResults
 from .input_types import (
     sequencing_alignment_insert_input,
+    sequencing_alignment_set_input,
     task_entity_insert_input,
     task_result_bool_exp,
     task_result_insert_input,
@@ -15,6 +16,7 @@ from .insert_terra_sync import InsertTerraSync
 from .sequencing_ids import SequencingIds
 from .sequencing_task_entities import SequencingTaskEntities
 from .unprocessed_sequencings import UnprocessedSequencings
+from .update_sequencing_alignment import UpdateSequencingAlignment
 from .wgs_sequencing_alignments import WgsSequencingAlignments
 
 
@@ -126,6 +128,39 @@ class GumboClient(BaseClient):
         )
         data = self.get_data(response)
         return InsertSequencingAlignments.model_validate(data)
+
+    def update_sequencing_alignment(
+        self,
+        username: str,
+        id: int,
+        object: sequencing_alignment_set_input,
+        **kwargs: Any
+    ) -> UpdateSequencingAlignment:
+        query = gql(
+            """
+            mutation UpdateSequencingAlignment($_username: String!, $id: bigint!, $object: sequencing_alignment_set_input!) {
+              set_username(args: {_username: $_username}) {
+                username
+              }
+              update_sequencing_alignment_by_pk(pk_columns: {id: $id}, _set: $object) {
+                id
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {
+            "_username": username,
+            "id": id,
+            "object": object,
+        }
+        response = self.execute(
+            query=query,
+            operation_name="UpdateSequencingAlignment",
+            variables=variables,
+            **kwargs
+        )
+        data = self.get_data(response)
+        return UpdateSequencingAlignment.model_validate(data)
 
     def sequencing_task_entities(self, **kwargs: Any) -> SequencingTaskEntities:
         query = gql(

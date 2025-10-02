@@ -62,7 +62,9 @@ class TerraSample(CoercedDataFrame):
     delivery_ref_sa: Series[pd.StringDtype]
     analysis_ready_bam: Series[pd.StringDtype] = pa.Field(nullable=True)
     analysis_ready_bai: Series[pd.StringDtype] = pa.Field(nullable=True)
-    analysis_ready_bam_size: Series[pd.Int64Dtype] = pa.Field(nullable=True)
+    analysis_ready_cram: Series[pd.StringDtype] = pa.Field(nullable=True)
+    analysis_ready_crai: Series[pd.StringDtype] = pa.Field(nullable=True)
+    analysis_ready_cram_size: Series[pd.Int64Dtype] = pa.Field(nullable=True)
     ref: Series[pd.StringDtype]
     ref_alt: Series[pd.StringDtype]
     ref_amb: Series[pd.StringDtype]
@@ -84,25 +86,25 @@ class GcsObject(CoercedDataFrame):
 
 
 class CopiedSampleFiles(CoercedDataFrame):
-    sample_id: Series[pd.StringDtype]
+    omics_sequencing_id: Series[pd.StringDtype]
     url_kind: Series[pd.StringDtype]
     new_url: Series[pd.StringDtype]
     url: Series[pd.StringDtype]
     copied: Series[pd.BooleanDtype]
 
 
-class AlignedSamples(CoercedDataFrame):
-    sample_id: Series[pd.StringDtype] = pa.Field(unique=True)
-    analysis_ready_bam: Series[pd.StringDtype] = pa.Field(unique=True)
-    analysis_ready_bai: Series[pd.StringDtype] = pa.Field(unique=True)
-
-
-class AlignedSamplesWithObjectMetadata(AlignedSamples):
+class AlignedSamplesWithObjectMetadata(CoercedDataFrame):
+    omics_sequencing_id: Series[pd.StringDtype] = pa.Field(unique=True)
+    sequencing_alignment_id: Series[pd.Int64Dtype] = pa.Field(nullable=True)
+    url: Series[pd.StringDtype] = pa.Field(nullable=True)
+    index_url: Series[pd.StringDtype] = pa.Field(nullable=True)
+    analysis_ready_cram: Series[pd.StringDtype] = pa.Field(unique=True)
+    analysis_ready_crai: Series[pd.StringDtype] = pa.Field(unique=True)
     crc32c: Series[pd.StringDtype] = pa.Field(unique=True)
     size: Series[pd.Int64Dtype] = pa.Field(unique=True)
 
 
-class NewSequencingAlignments(CoercedDataFrame):
+class NewSequencingAlignment(CoercedDataFrame):
     omics_sequencing_id: Series[pd.StringDtype] = pa.Field(unique=True)
     url: Series[pd.StringDtype] = pa.Field(unique=True)
     index_url: Series[pd.StringDtype] = pa.Field(unique=True)
@@ -110,6 +112,10 @@ class NewSequencingAlignments(CoercedDataFrame):
     reference_genome: Series[pd.StringDtype]
     crc32c_hash: Series[pd.StringDtype] = pa.Field(unique=True)
     size: Series[pd.Int64Dtype] = pa.Field(unique=True)
+
+
+class UpdatedSequencingAlignment(NewSequencingAlignment):
+    sequencing_alignment_id: Series[pd.Int64Dtype] = pa.Field(unique=True)
 
 
 class DeltaJob(BaseModel):

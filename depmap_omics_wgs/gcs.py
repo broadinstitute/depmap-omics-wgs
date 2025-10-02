@@ -5,14 +5,14 @@ from urllib.parse import urlunsplit
 
 import pandas as pd
 from google.cloud import storage
-from nebelung.utils import type_data_frame
-from pandera.typing import DataFrame as TypedDataFrame
+from nebelung.utils import batch_evenly, type_data_frame
 from tqdm.asyncio import tqdm
 
 from depmap_omics_wgs.types import (
     AlignedSamplesWithObjectMetadata,
     CopiedSampleFiles,
     GcsObject,
+    TypedDataFrame,
 )
 
 
@@ -24,16 +24,19 @@ def get_objects_metadata(urls: Iterable[str]) -> TypedDataFrame[GcsObject]:
     :return: data frame of metadata
     """
 
+    logging.info(f"Getting metadata about {len(list(urls))} GCS objects")
     storage_client = storage.Client()
-
     blobs = {}
 
-    with storage_client.batch(raise_exception=False):
-        for url in urls:
-            blob = storage.Blob.from_string(url, client=storage_client)
-            bucket = storage_client.bucket(blob.bucket.name)
-            blob = bucket.get_blob(blob.name)
-            blobs[url] = blob
+    # the GCS batch context below has a max batch size of 1000, so do this outer layer
+    # of batching, too)
+    for batch in batch_evenly(urls, max_batch_size=500):
+        with storage_client.batch(raise_exception=False):
+            for url in batch:
+                blob = storage.Blob.from_string(url, client=storage_client)
+                bucket = storage_client.bucket(blob.bucket.name)
+                blob = bucket.get_blob(blob.name)
+                blobs[url] = blob
 
     metadata = [
         {"url": k, "crc32c": v.crc32c, "size": v.size, "gcs_obj_updated_at": v.updated}
@@ -77,12 +80,16 @@ def copy_to_cclebams(
     storage_client = storage.Client(project=gcp_project_id)
 
     # collect all CRAM/BAM/CRAI/BAI files to copy
-    sample_files = samples.melt(
-        id_vars="sample_id",
-        value_vars=["analysis_ready_bai", "analysis_ready_bam"],
-        var_name="url_kind",
-        value_name="url",
-    ).dropna()
+    sample_files = (
+        samples[["omics_sequencing_id", "analysis_ready_crai", "analysis_ready_cram"]]
+        .melt(
+            id_vars="omics_sequencing_id",
+            value_vars=["analysis_ready_crai", "analysis_ready_cram"],
+            var_name="url_kind",
+            value_name="url",
+        )
+        .dropna()
+    )
 
     # all copied files will have same destination bucket and prefix
     dest_bucket = storage_client.bucket(
@@ -105,7 +112,9 @@ def copy_to_cclebams(
 
             # construct the destination blob (named by sample ID)
             dest_file_ext = pathlib.Path(str(src_blob.name)).suffix
-            dest_obj_key = "/".join([prefix, str(r.sample_id)]) + dest_file_ext
+            dest_obj_key = (
+                "/".join([prefix, str(r.omics_sequencing_id)]) + dest_file_ext
+            )
             dest_blob = storage.Blob(dest_obj_key, bucket=dest_bucket)
 
             # GCS rewrite operation is instantaneous if location and storage class match
@@ -168,3 +177,42 @@ def rewrite_blob(src_blob: storage.Blob, dest_blob: storage.Blob) -> None:
 
         if token is None:
             break
+
+
+def delete_blobs(
+    blobs_to_delete: Iterable[str], gcp_project_id: str, dry_run: bool = True
+) -> None:
+    """
+    Delete blobs from Google Cloud Storage.
+
+    :param blobs_to_delete: A list of GCS object URLs.
+    :param gcp_project_id: Google Cloud project ID.
+    :param dry_run: whether to skip updates to external data stores
+    """
+
+    if dry_run:
+        logging.info(f"(skipping) Deleting {len(list(blobs_to_delete))} blobs")
+        return
+
+    client = storage.Client(project=gcp_project_id)
+
+    # group URLs by bucket
+    buckets = {}
+
+    for url in blobs_to_delete:
+        if not url.startswith("gs://"):
+            raise ValueError(f"Invalid GCS URL: {url}")
+
+        _, path = url.split("gs://", 1)
+        bucket_name, blob_name = path.split("/", 1)
+        buckets.setdefault(bucket_name, []).append(blob_name)
+
+    results = []
+
+    for bucket_name, blob_names in buckets.items():
+        bucket = client.bucket(bucket_name)
+
+        with client.batch(raise_exception=False):
+            for blob_name in blob_names:
+                logging.info("Deleting: gs://%s/%s", bucket_name, blob_name)
+                results.append(bucket.blob(blob_name).delete())

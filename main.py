@@ -9,7 +9,7 @@ from cloudevents.http import CloudEvent
 from dotenv import load_dotenv
 from nebelung.terra_workspace import TerraWorkspace
 
-from depmap_omics_wgs.data import onboard_aligned_bams, refresh_terra_samples
+from depmap_omics_wgs.data import onboard_aligned_crams, refresh_terra_samples
 from depmap_omics_wgs.types import DeltaJob, GumboClient
 from depmap_omics_wgs.utils import get_hasura_creds, make_workflow_from_config
 
@@ -63,8 +63,8 @@ def run(cloud_event: CloudEvent) -> None:
             ref_urls=config["ref"],
         )
 
-    elif ce_data["cmd"] == "onboard-aligned-bams":
-        onboard_aligned_bams(
+    elif ce_data["cmd"] == "onboard-aligned-crams":
+        onboard_aligned_crams(
             terra_workspace=terra_workspace,
             gumbo_client=gumbo_client,
             gcp_project_id=config["gcp_project_id"],

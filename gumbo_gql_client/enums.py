@@ -172,7 +172,6 @@ class genomic_fingerprint_select_column(str, Enum):
     genotypes = "genotypes"
     id = "id"
     sequencing_alignment_id = "sequencing_alignment_id"
-    vcf_url = "vcf_url"
 
 
 class genomic_fingerprint_update_column(str, Enum):
@@ -180,7 +179,6 @@ class genomic_fingerprint_update_column(str, Enum):
     genotypes = "genotypes"
     id = "id"
     sequencing_alignment_id = "sequencing_alignment_id"
-    vcf_url = "vcf_url"
 
 
 class media_constraint(str, Enum):
@@ -320,6 +318,8 @@ class model_select_column(str, Enum):
     geo_loc = "geo_loc"
     growth_pattern = "growth_pattern"
     hcmi_id = "hcmi_id"
+    ic_date = "ic_date"
+    ic_name = "ic_name"
     id = "id"
     inferred_ethnicity = "inferred_ethnicity"
     media_id = "media_id"
@@ -402,6 +402,8 @@ class model_update_column(str, Enum):
     geo_loc = "geo_loc"
     growth_pattern = "growth_pattern"
     hcmi_id = "hcmi_id"
+    ic_date = "ic_date"
+    ic_name = "ic_name"
     id = "id"
     inferred_ethnicity = "inferred_ethnicity"
     media_id = "media_id"
@@ -497,7 +499,6 @@ class omics_profile_select_column(str, Enum):
     lcsets = "lcsets"
     line_received_by_gp = "line_received_by_gp"
     line_sent_to_gp = "line_sent_to_gp"
-    main_sequencing_id = "main_sequencing_id"
     model_condition_id = "model_condition_id"
     omics_order_date = "omics_order_date"
     omics_profile_flagship = "omics_profile_flagship"
@@ -592,7 +593,6 @@ class omics_profile_update_column(str, Enum):
     lcsets = "lcsets"
     line_received_by_gp = "line_received_by_gp"
     line_sent_to_gp = "line_sent_to_gp"
-    main_sequencing_id = "main_sequencing_id"
     model_condition_id = "model_condition_id"
     omics_order_date = "omics_order_date"
     omics_profile_flagship = "omics_profile_flagship"
@@ -641,6 +641,7 @@ class omics_sequencing_select_column(str, Enum):
     id = "id"
     issue = "issue"
     month_sequencing_billed = "month_sequencing_billed"
+    msi_score = "msi_score"
     omics_profile_id = "omics_profile_id"
     pdo_id = "pdo_id"
     prioritized = "prioritized"
@@ -649,7 +650,6 @@ class omics_sequencing_select_column(str, Enum):
     sequencing_date = "sequencing_date"
     sm_id = "sm_id"
     source = "source"
-    str_profile_id = "str_profile_id"
     stranded = "stranded"
     update_time = "update_time"
     updated_at = "updated_at"
@@ -684,6 +684,7 @@ class omics_sequencing_update_column(str, Enum):
     id = "id"
     issue = "issue"
     month_sequencing_billed = "month_sequencing_billed"
+    msi_score = "msi_score"
     omics_profile_id = "omics_profile_id"
     pdo_id = "pdo_id"
     prioritized = "prioritized"
@@ -692,7 +693,6 @@ class omics_sequencing_update_column(str, Enum):
     sequencing_date = "sequencing_date"
     sm_id = "sm_id"
     source = "source"
-    str_profile_id = "str_profile_id"
     stranded = "stranded"
     update_time = "update_time"
     updated_at = "updated_at"
@@ -833,6 +833,194 @@ class patient_update_column(str, Enum):
     updated_at = "updated_at"
 
 
+class screen_constraint(str, Enum):
+    screen_benchling_id_key = "screen_benchling_id_key"
+    screen_pkey = "screen_pkey"
+
+
+class screen_select_column(str, Enum):
+    benchling_id = "benchling_id"
+    blacklist = "blacklist"
+    blacklist_expiration_date = "blacklist_expiration_date"
+    blacklist_reason = "blacklist_reason"
+    blasticidin_selection_ug_ml = "blasticidin_selection_ug_ml"
+    cas_activity = "cas_activity"
+    cas_vector = "cas_vector"
+    cdsqc = "cdsqc"
+    comments = "comments"
+    consortium_release_annot = "consortium_release_annot"
+    consortium_release_date = "consortium_release_date"
+    consortium_retracted_date = "consortium_retracted_date"
+    created_at = "created_at"
+    crispr_screen_deliverables = "crispr_screen_deliverables"
+    crispr_screen_funding_source = "crispr_screen_funding_source"
+    date_completed = "date_completed"
+    depmap_priority = "depmap_priority"
+    destination_datasets = "destination_datasets"
+    drop_reason = "drop_reason"
+    exclude_from_crispr_combined = "exclude_from_crispr_combined"
+    ibm_release_annot = "ibm_release_annot"
+    ibm_release_date = "ibm_release_date"
+    id = "id"
+    infection_rate = "infection_rate"
+    internal_release_annot = "internal_release_annot"
+    internal_release_date = "internal_release_date"
+    internal_retracted_date = "internal_retracted_date"
+    latest_consortium_release_date = "latest_consortium_release_date"
+    latest_internal_release_date = "latest_internal_release_date"
+    latest_public_release_date = "latest_public_release_date"
+    library = "library"
+    model_condition_id = "model_condition_id"
+    observed_infection_rate = "observed_infection_rate"
+    opt_stage_sent_to_broad = "opt_stage_sent_to_broad"
+    optimization = "optimization"
+    optimization_team = "optimization_team"
+    optimization_type = "optimization_type"
+    previous_screening_id = "previous_screening_id"
+    proposed_internal_release = "proposed_internal_release"
+    public_release_annot = "public_release_annot"
+    public_release_date = "public_release_date"
+    public_retracted_date = "public_retracted_date"
+    puromycin_selection_ug_ml = "puromycin_selection_ug_ml"
+    screen_doubling_time = "screen_doubling_time"
+    screen_population_doublings = "screen_population_doublings"
+    screen_start = "screen_start"
+    screen_type = "screen_type"
+    screener = "screener"
+    screener_qc_pass = "screener_qc_pass"
+    screener_subgroup = "screener_subgroup"
+    status = "status"
+    status_description = "status_description"
+    substatus = "substatus"
+    to_gpp_date = "to_gpp_date"
+    transfected = "transfected"
+    updated_at = "updated_at"
+    vol_pooled_virus_for_each_well = "vol_pooled_virus_for_each_well"
+
+
+class screen_sequence_constraint(str, Enum):
+    screen_sequence_pkey = "screen_sequence_pkey"
+
+
+class screen_sequence_select_column(str, Enum):
+    cds_exclude = "cds_exclude"
+    cds_seq_qc = "cds_seq_qc"
+    comments = "comments"
+    created_at = "created_at"
+    days = "days"
+    directory = "directory"
+    exclusion_notes = "exclusion_notes"
+    files = "files"
+    id = "id"
+    legacy_file = "legacy_file"
+    legacy_poolq_job_id = "legacy_poolq_job_id"
+    library_subset = "library_subset"
+    p_dna_batch = "p_dna_batch"
+    p_dna_sequence = "p_dna_sequence"
+    plate_id = "plate_id"
+    poolq_job_id = "poolq_job_id"
+    previous_arxspan_id = "previous_arxspan_id"
+    replicate = "replicate"
+    screen_id = "screen_id"
+    screener_exclude = "screener_exclude"
+    sequence_id = "sequence_id"
+    sequencing_technology = "sequencing_technology"
+    snp_fingerprint = "snp_fingerprint"
+    str_fingerprint = "str_fingerprint"
+    str_query_name = "str_query_name"
+    str_result_file = "str_result_file"
+    updated_at = "updated_at"
+
+
+class screen_sequence_update_column(str, Enum):
+    cds_exclude = "cds_exclude"
+    cds_seq_qc = "cds_seq_qc"
+    comments = "comments"
+    created_at = "created_at"
+    days = "days"
+    directory = "directory"
+    exclusion_notes = "exclusion_notes"
+    files = "files"
+    legacy_file = "legacy_file"
+    legacy_poolq_job_id = "legacy_poolq_job_id"
+    library_subset = "library_subset"
+    p_dna_batch = "p_dna_batch"
+    p_dna_sequence = "p_dna_sequence"
+    plate_id = "plate_id"
+    poolq_job_id = "poolq_job_id"
+    previous_arxspan_id = "previous_arxspan_id"
+    replicate = "replicate"
+    screen_id = "screen_id"
+    screener_exclude = "screener_exclude"
+    sequence_id = "sequence_id"
+    sequencing_technology = "sequencing_technology"
+    snp_fingerprint = "snp_fingerprint"
+    str_fingerprint = "str_fingerprint"
+    str_query_name = "str_query_name"
+    str_result_file = "str_result_file"
+    updated_at = "updated_at"
+
+
+class screen_update_column(str, Enum):
+    benchling_id = "benchling_id"
+    blacklist = "blacklist"
+    blacklist_expiration_date = "blacklist_expiration_date"
+    blacklist_reason = "blacklist_reason"
+    blasticidin_selection_ug_ml = "blasticidin_selection_ug_ml"
+    cas_activity = "cas_activity"
+    cas_vector = "cas_vector"
+    cdsqc = "cdsqc"
+    comments = "comments"
+    consortium_release_annot = "consortium_release_annot"
+    consortium_release_date = "consortium_release_date"
+    consortium_retracted_date = "consortium_retracted_date"
+    created_at = "created_at"
+    crispr_screen_deliverables = "crispr_screen_deliverables"
+    crispr_screen_funding_source = "crispr_screen_funding_source"
+    date_completed = "date_completed"
+    depmap_priority = "depmap_priority"
+    destination_datasets = "destination_datasets"
+    drop_reason = "drop_reason"
+    exclude_from_crispr_combined = "exclude_from_crispr_combined"
+    ibm_release_annot = "ibm_release_annot"
+    ibm_release_date = "ibm_release_date"
+    id = "id"
+    infection_rate = "infection_rate"
+    internal_release_annot = "internal_release_annot"
+    internal_release_date = "internal_release_date"
+    internal_retracted_date = "internal_retracted_date"
+    latest_consortium_release_date = "latest_consortium_release_date"
+    latest_internal_release_date = "latest_internal_release_date"
+    latest_public_release_date = "latest_public_release_date"
+    library = "library"
+    model_condition_id = "model_condition_id"
+    observed_infection_rate = "observed_infection_rate"
+    opt_stage_sent_to_broad = "opt_stage_sent_to_broad"
+    optimization = "optimization"
+    optimization_team = "optimization_team"
+    optimization_type = "optimization_type"
+    previous_screening_id = "previous_screening_id"
+    proposed_internal_release = "proposed_internal_release"
+    public_release_annot = "public_release_annot"
+    public_release_date = "public_release_date"
+    public_retracted_date = "public_retracted_date"
+    puromycin_selection_ug_ml = "puromycin_selection_ug_ml"
+    screen_doubling_time = "screen_doubling_time"
+    screen_population_doublings = "screen_population_doublings"
+    screen_start = "screen_start"
+    screen_type = "screen_type"
+    screener = "screener"
+    screener_qc_pass = "screener_qc_pass"
+    screener_subgroup = "screener_subgroup"
+    status = "status"
+    status_description = "status_description"
+    substatus = "substatus"
+    to_gpp_date = "to_gpp_date"
+    transfected = "transfected"
+    updated_at = "updated_at"
+    vol_pooled_virus_for_each_well = "vol_pooled_virus_for_each_well"
+
+
 class sequencing_alignment_constraint(str, Enum):
     sequencing_alignment_pkey = "sequencing_alignment_pkey"
 
@@ -846,7 +1034,6 @@ class sequencing_alignment_select_column(str, Enum):
     reference_genome = "reference_genome"
     sequencing_alignment_source = "sequencing_alignment_source"
     size = "size"
-    str_profile_id = "str_profile_id"
     updated_at = "updated_at"
     url = "url"
 
@@ -860,14 +1047,83 @@ class sequencing_alignment_update_column(str, Enum):
     reference_genome = "reference_genome"
     sequencing_alignment_source = "sequencing_alignment_source"
     size = "size"
-    str_profile_id = "str_profile_id"
     updated_at = "updated_at"
     url = "url"
 
 
+class str_profile_comparison_constraint(str, Enum):
+    str_profile_comparison_pkey = "str_profile_comparison_pkey"
+
+
+class str_profile_comparison_select_column(str, Enum):
+    created_at = "created_at"
+    id = "id"
+    n_loci_used = "n_loci_used"
+    patient_id1 = "patient_id1"
+    patient_id2 = "patient_id2"
+    score = "score"
+    str_profile_id1 = "str_profile_id1"
+    str_profile_id2 = "str_profile_id2"
+
+
+class str_profile_comparison_update_column(str, Enum):
+    created_at = "created_at"
+    id = "id"
+    n_loci_used = "n_loci_used"
+    patient_id1 = "patient_id1"
+    patient_id2 = "patient_id2"
+    score = "score"
+    str_profile_id1 = "str_profile_id1"
+    str_profile_id2 = "str_profile_id2"
+
+
 class str_profile_constraint(str, Enum):
-    single_reference_per_patient = "single_reference_per_patient"
     str_profile_pkey = "str_profile_pkey"
+    str_profile_screen_sequence_id_unique = "str_profile_screen_sequence_id_unique"
+    str_profile_sequencing_alignment_id_unique = (
+        "str_profile_sequencing_alignment_id_unique"
+    )
+
+
+class str_profile_failure_constraint(str, Enum):
+    str_profile_failure_pkey = "str_profile_failure_pkey"
+
+
+class str_profile_failure_select_column(str, Enum):
+    acknowledged = "acknowledged"
+    comments = "comments"
+    created_at = "created_at"
+    id = "id"
+    updated_at = "updated_at"
+
+
+class str_profile_failure_str_profile_comparison_constraint(str, Enum):
+    str_profile_failure_str_profile_comparison_pkey = (
+        "str_profile_failure_str_profile_comparison_pkey"
+    )
+    str_profile_uniq_failure_comparison = "str_profile_uniq_failure_comparison"
+
+
+class str_profile_failure_str_profile_comparison_select_column(str, Enum):
+    created_at = "created_at"
+    id = "id"
+    str_profile_comparison_id = "str_profile_comparison_id"
+    str_profile_failure_id = "str_profile_failure_id"
+
+
+class str_profile_failure_str_profile_comparison_update_column(str, Enum):
+    created_at = "created_at"
+    id = "id"
+    str_profile_comparison_id = "str_profile_comparison_id"
+    str_profile_failure_id = "str_profile_failure_id"
+
+
+class str_profile_failure_update_column(str, Enum):
+    acknowledged = "acknowledged"
+    comments = "comments"
+    created_at = "created_at"
+    id = "id"
+    updated_at = "updated_at"
 
 
 class str_profile_select_column(str, Enum):
@@ -896,8 +1152,9 @@ class str_profile_select_column(str, Enum):
     pellet_submitted_date = "pellet_submitted_date"
     penta_d = "penta_d"
     penta_e = "penta_e"
-    percentage_match_to_parental = "percentage_match_to_parental"
     sample_reference = "sample_reference"
+    screen_sequence_id = "screen_sequence_id"
+    sequencing_alignment_id = "sequencing_alignment_id"
     source = "source"
     source_group = "source_group"
     th01 = "th01"
@@ -932,8 +1189,9 @@ class str_profile_update_column(str, Enum):
     pellet_submitted_date = "pellet_submitted_date"
     penta_d = "penta_d"
     penta_e = "penta_e"
-    percentage_match_to_parental = "percentage_match_to_parental"
     sample_reference = "sample_reference"
+    screen_sequence_id = "screen_sequence_id"
+    sequencing_alignment_id = "sequencing_alignment_id"
     source = "source"
     source_group = "source_group"
     th01 = "th01"

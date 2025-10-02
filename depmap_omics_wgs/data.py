@@ -8,18 +8,21 @@ from nebelung.terra_workspace import TerraWorkspace
 from nebelung.utils import call_firecloud_api, type_data_frame
 from pd_flatten import pd_flatten
 
-from depmap_omics_wgs.gcs import copy_to_cclebams, get_objects_metadata
+from depmap_omics_wgs.gcs import copy_to_cclebams, delete_blobs, get_objects_metadata
 from depmap_omics_wgs.types import (
     AlignedSamplesWithObjectMetadata,
-    CopiedSampleFiles,
     GumboClient,
     GumboWgsSequencing,
-    NewSequencingAlignments,
+    NewSequencingAlignment,
     TerraSample,
     TypedDataFrame,
+    UpdatedSequencingAlignment,
 )
 from depmap_omics_wgs.utils import model_to_df
-from gumbo_gql_client import sequencing_alignment_insert_input
+from gumbo_gql_client import (
+    sequencing_alignment_insert_input,
+    sequencing_alignment_set_input,
+)
 
 
 def refresh_terra_samples(
@@ -57,28 +60,58 @@ def refresh_terra_samples(
             }
         )
         .merge(
-            wgs_sequencings.loc[
-                wgs_sequencings["sequencing_alignment_source"].eq("CDS")
-            ]
-            .drop(
-                columns=[
-                    "sequencing_alignment_source",
-                    "model_id",
-                    "model_condition_id",
-                    "omics_profile_id",
-                    "cell_line_name",
-                    "stripped_cell_line_name",
-                ]
-            )
-            .rename(
-                columns={
-                    "omics_sequencing_id": "sample_id",
-                    "sequencing_alignment_id": "aligned_sequencing_alignment_id",
-                    "url": "analysis_ready_bam",
-                    "size": "analysis_ready_bam_size",
-                    "index_url": "analysis_ready_bai",
-                    "reference_genome": "ref",
-                }
+            pd.concat(
+                [
+                    wgs_sequencings.loc[
+                        wgs_sequencings["sequencing_alignment_source"].eq("CDS")
+                        & wgs_sequencings["url"].str.endswith(".bam")
+                    ]
+                    .drop(
+                        columns=[
+                            "sequencing_alignment_source",
+                            "model_id",
+                            "model_condition_id",
+                            "omics_profile_id",
+                            "cell_line_name",
+                            "size",
+                            "stripped_cell_line_name",
+                        ]
+                    )
+                    .rename(
+                        columns={
+                            "omics_sequencing_id": "sample_id",
+                            "sequencing_alignment_id": "aligned_sequencing_alignment_id",
+                            "url": "analysis_ready_bam",
+                            "index_url": "analysis_ready_bai",
+                            "reference_genome": "ref",
+                        }
+                    ),
+                    wgs_sequencings.loc[
+                        wgs_sequencings["sequencing_alignment_source"].eq("CDS")
+                        & wgs_sequencings["url"].str.endswith(".cram")
+                    ]
+                    .drop(
+                        columns=[
+                            "sequencing_alignment_source",
+                            "model_id",
+                            "model_condition_id",
+                            "omics_profile_id",
+                            "cell_line_name",
+                            "stripped_cell_line_name",
+                        ]
+                    )
+                    .rename(
+                        columns={
+                            "omics_sequencing_id": "sample_id",
+                            "sequencing_alignment_id": "aligned_sequencing_alignment_id",
+                            "url": "analysis_ready_cram",
+                            "size": "analysis_ready_cram_size",
+                            "index_url": "analysis_ready_crai",
+                            "reference_genome": "ref",
+                        }
+                    ),
+                ],
+                ignore_index=True,
             ),
             how="outer",
             on="sample_id",
@@ -107,17 +140,20 @@ def refresh_terra_samples(
         ),
     )
 
-    # if the sample is new, set this indicator column for later use in delta job logic
-    samples.loc[
-        ~samples["sample_id"].isin(terra_samples["sample_id"]), "automation_status"
-    ] = "ready"
-
     sample_ids = samples.pop("sample_id")
     samples.insert(0, "entity:sample_id", sample_ids)
-    # don't replace recently populated cells like `analysis_ready_bam` with blanks in
-    # case we haven't run `onboard_aligned_bams` since the most recent alignment jobs
+    # don't replace recently populated cells like `analysis_ready_cram` with blanks in
+    # case we haven't run `onboard_aligned_crams` since the most recent alignment jobs
     # have completed, thus `delete_empty=False`
     terra_workspace.upload_entities(df=samples, delete_empty=False)
+
+    # if a sample has an analysis-ready CRAM, though, that means we've completed all
+    # workflows, converted the temporary analysis-ready BAM to CRAM, and archived the
+    # CRAM, so we can blank out the analysis_ready_ba{i,m} columns now
+    samples_done = samples.dropna(subset=["analysis_ready_cram"]).loc[
+        :, ["entity:sample_id", "analysis_ready_bai", "analysis_ready_bam"]
+    ]
+    terra_workspace.upload_entities(df=samples_done, delete_empty=True)
 
 
 def set_ref_urls(
@@ -289,14 +325,15 @@ def refresh_legacy_terra_samples(
         )
 
 
-def onboard_aligned_bams(
+def onboard_aligned_crams(
     gumbo_client: GumboClient,
     terra_workspace: TerraWorkspace,
     gcp_project_id: str,
     dry_run: bool,
 ) -> None:
     """
-    Copy BAM/BAI files to cclebams and onboard sequencing alignment records to Gumbo.
+    Copy analysis-ready CRAM/CRAI files to cclebams and onboard sequencing alignment
+    records to Gumbo.
 
     :param terra_workspace: a TerraWorkspace instance
     :param gumbo_client: an instance of the Gumbo GraphQL client
@@ -306,9 +343,68 @@ def onboard_aligned_bams(
 
     # get the alignment files from Terra
     samples = terra_workspace.get_entities("sample")
-    samples = samples.loc[
-        :, ["sample_id", "analysis_ready_bam", "analysis_ready_bai"]
-    ].dropna()
+
+    # subset to samples with all workflows completed (i.e. we're ready to archive the
+    # analysis CRAM now)
+    samples = (
+        samples.dropna(
+            subset=[
+                "sample_id",
+                "analysis_ready_crai",
+                "analysis_ready_cram",
+                "cnv_bin_coverage",
+                "cnv_cn_by_gene_weighted_mean",
+                "cnv_input_params",
+                "cnv_read_cov_bin",
+                "cnv_segments",
+                "guide_bed_avana",
+                "guide_bed_brunello",
+                "guide_bed_humagne",
+                "guide_bed_ky",
+                "guide_bed_tkov",
+                "msisensor2_output",
+                "msisensor2_output_dis",
+                "msisensor2_output_somatic",
+                "msisensor2_score",
+                "mut_annot_bcftools_fixed_vcf",
+                "mut_annot_bcftools_vcf",
+                "mut_annot_open_cravat_vcf",
+                "mut_annot_snpeff_snpsift_vcf",
+                "mut_annot_vcf",
+                "mut_annot_vcf_index",
+                "mut_annot_vep_vcf",
+                "mut_duckdb",
+                "mut_filtering_stats",
+                "mut_sig_variants",
+                "mut_somatic_variants",
+                "mut_vcf",
+                "mut_vcf_idx",
+                "sv_annot_bedpe",
+                "sv_annot_reannotated_bedpe",
+                "sv_annot_vcf",
+                "sv_candidate_indel_vcf",
+                "sv_candidate_indel_vcf_index",
+                "sv_candidate_vcf",
+                "sv_candidate_vcf_index",
+                "sv_del_annotation",
+                "sv_dup_annotation",
+                "sv_selected_somatic",
+                "sv_somatic_vcf",
+                "sv_somatic_vcf_index",
+            ]
+        )
+        .loc[
+            :,
+            [
+                "sample_id",
+                "analysis_ready_bam",
+                "analysis_ready_bai",
+                "analysis_ready_cram",
+                "analysis_ready_crai",
+            ],
+        ]
+        .rename(columns={"sample_id": "omics_sequencing_id"})
+    )
 
     # get sequencing alignment records for WGS omics_sequencings from Gumbo
     existing_alignments = model_to_df(
@@ -317,80 +413,84 @@ def onboard_aligned_bams(
         mutator=partial(pd_flatten, name_columns_with_parent=False),
     )
 
-    # check which sequencings have delivery BAMs but not analysis-ready/aligned BAMs
-    seq_ids_no_cds = set(
-        existing_alignments.loc[
-            existing_alignments["sequencing_alignment_source"].eq("GP"),
-            "omics_sequencing_id",
-        ]
-    ).difference(
-        existing_alignments.loc[
-            existing_alignments["sequencing_alignment_source"].eq("CDS"),
-            "omics_sequencing_id",
-        ]
-    )
+    # subset to the analysis-ready records
+    existing_alignments = existing_alignments.loc[
+        existing_alignments["sequencing_alignment_source"].eq("CDS"),
+        ["omics_sequencing_id", "sequencing_alignment_id", "url", "index_url", "size"],
+    ]
 
-    # subset to newly-aligned sequencings that need to be onboarded
-    samples = samples.loc[samples["sample_id"].isin(list(seq_ids_no_cds))]
+    # compare Gumbo vs. Terra
+    comp = existing_alignments.merge(
+        samples, how="outer", on="omics_sequencing_id"
+    ).drop(columns="size")
 
-    if samples.shape[0] == 0:
-        logging.info("No new aligned BAM files to onboard")
+    # identify records in Gumbo that are missing or need to be updated
+    comp = comp.loc[comp["url"].isna() | comp["url"].ne(comp["analysis_ready_cram"])]
+
+    if len(comp) == 0:
+        logging.info("No new/changed aligned CRAM files to onboard")
         return
 
-    # get GCS blob metadata for the BAMs
-    objects_metadata = get_objects_metadata(samples["analysis_ready_bam"])
+    # get GCS blob metadata for the CRAMs
+    objects_metadata = get_objects_metadata(comp["analysis_ready_cram"])
 
-    samples = type_data_frame(
-        samples.merge(
-            objects_metadata, how="left", left_on="analysis_ready_bam", right_on="url"
-        ).drop(columns=["url", "gcs_obj_updated_at"]),
+    comp = type_data_frame(
+        comp.merge(
+            objects_metadata.rename(columns={"url": "analysis_ready_cram"}),
+            how="left",
+            on="analysis_ready_cram",
+        ).drop(columns=["gcs_obj_updated_at"]),
         AlignedSamplesWithObjectMetadata,
     )
 
-    # confirm again using file size that these BAMs don't already exist as Gumbo records
-    assert not bool(samples["size"].isin(existing_alignments["size"]).any())
+    # confirm again using file size that the CRAMs don't already exist as Gumbo records
+    assert not bool(comp["size"].isin(existing_alignments["size"]).any())
 
     # copy BAMs and BAIs to our bucket
-    sample_files = copy_to_cclebams(
-        samples,
+    copied_files = copy_to_cclebams(
+        comp,
         gcp_project_id=gcp_project_id,
         gcs_destination_bucket="cclebams",
         gcs_destination_prefix="wgs_hg38",
         dry_run=dry_run,
     )
 
-    samples = update_sample_file_urls(samples, sample_files)
+    assert bool(copied_files["copied"].all())
 
-    # create sequencing_alignment records in Gumbo
-    persist_sequencing_alignments(gumbo_client, samples, dry_run)
+    # delete obsolete alignment files
+    blobs_to_delete = (
+        pd.concat(
+            [
+                # can delete the workspace's analysis ready BAM
+                comp["analysis_ready_bam"],
+                comp["analysis_ready_bai"],
+                # can delete the old analysis ready BAM/CRAM reference in Gumbo
+                comp["url"],
+                comp["index_url"],
+            ]
+        )
+        .dropna()
+        .drop_duplicates()
+    )
 
+    if len(blobs_to_delete) > 0:
+        delete_blobs(blobs_to_delete, gcp_project_id, dry_run)
 
-def update_sample_file_urls(
-    samples: TypedDataFrame[AlignedSamplesWithObjectMetadata],
-    sample_files: TypedDataFrame[CopiedSampleFiles],
-) -> TypedDataFrame[AlignedSamplesWithObjectMetadata]:
-    """
-    Replace BAM URLs with new ones used in `copy_to_depmap_omics_bucket`.
+    # update URLs with the ones we just copied to the archive bucket
+    samples_updated = comp.copy().drop(columns=["url", "index_url"])
 
-    :param samples: the data frame of samples
-    :param sample_files: a data frame of files we attempted to copy
-    :return: the samples data frame with issue column filled out for rows with files we
-    couldn't copy
-    """
-
-    logging.info("Updating GCS file URLs...")
-
-    samples_updated = samples.copy()
-
-    for c in ["analysis_ready_bai", "analysis_ready_bam"]:
-        sample_file_urls = sample_files.loc[sample_files["copied"], ["url", "new_url"]]
+    for c in ["analysis_ready_crai", "analysis_ready_cram"]:
+        sample_file_urls = copied_files.loc[copied_files["copied"], ["url", "new_url"]]
         samples_updated = samples_updated.merge(
             sample_file_urls, how="left", left_on=c, right_on="url"
         )
         samples_updated[c] = samples_updated["new_url"]
         samples_updated = samples_updated.drop(columns=["url", "new_url"])
 
-    return type_data_frame(samples_updated, AlignedSamplesWithObjectMetadata)
+    # create/update sequencing_alignment records in Gumbo
+    persist_sequencing_alignments(
+        gumbo_client, samples=samples_updated, dry_run=dry_run
+    )
 
 
 def persist_sequencing_alignments(
@@ -402,37 +502,67 @@ def persist_sequencing_alignments(
     Insert many sequencing alignments to Gumbo.
 
     :param gumbo_client: an instance of the Gumbo GraphQL client
+    :param samples: a data frame of prepared sequencing alignments to insert/update
+    :param dry_run: whether to skip updates to external data stores
+    """
+
+    # set columns and names for Gumbo inserts/updates
+    samples["reference_genome"] = "hg38"
+    samples["sequencing_alignment_source"] = "CDS"
+
+    samples = samples.rename(
+        columns={
+            "crc32c": "crc32c_hash",
+            "analysis_ready_cram": "url",
+            "analysis_ready_crai": "index_url",
+        }
+    )
+
+    # collect and insert new records
+    new_sequencing_alignments = type_data_frame(
+        samples.loc[samples["sequencing_alignment_id"].isna()],
+        NewSequencingAlignment,
+        remove_unknown_cols=True,
+    )
+
+    if len(new_sequencing_alignments) > 0:
+        persist_new_sequencing_alignments(
+            gumbo_client, samples=new_sequencing_alignments, dry_run=dry_run
+        )
+
+    # collect and update changed records
+    updated_sequencing_alignments = type_data_frame(
+        samples.loc[samples["sequencing_alignment_id"].notna()],
+        UpdatedSequencingAlignment,
+    )
+
+    if len(updated_sequencing_alignments) > 0:
+        persist_updated_sequencing_alignments(
+            gumbo_client, samples=updated_sequencing_alignments, dry_run=dry_run
+        )
+
+
+def persist_new_sequencing_alignments(
+    gumbo_client: GumboClient,
+    samples: TypedDataFrame[NewSequencingAlignment],
+    dry_run: bool = True,
+):
+    """
+    Insert many sequencing alignments to Gumbo.
+
+    :param gumbo_client: an instance of the Gumbo GraphQL client
     :param samples: a data frame of prepared sequencing alignments to insert
     :param dry_run: whether to skip updates to external data stores
     """
 
-    new_sequencing_alignments = samples.rename(
-        columns={
-            "sample_id": "omics_sequencing_id",
-            "crc32c": "crc32c_hash",
-            "analysis_ready_bam": "url",
-            "analysis_ready_bai": "index_url",
-        }
-    )
-
-    new_sequencing_alignments["reference_genome"] = "hg38"
-    new_sequencing_alignments["sequencing_alignment_source"] = "CDS"
-
-    new_sequencing_alignments = type_data_frame(
-        new_sequencing_alignments, NewSequencingAlignments
-    )
+    if dry_run:
+        logging.info(f"(skipping) Inserting {len(samples)} sequencing alignments")
+        return
 
     sequencing_alignment_inserts = [
         sequencing_alignment_insert_input.model_validate(x)
-        for x in new_sequencing_alignments.to_dict(orient="records")
+        for x in samples.to_dict(orient="records")
     ]
-
-    if dry_run:
-        logging.info(
-            f"(skipping) Inserting {len(sequencing_alignment_inserts)} "
-            "sequencing alignments"
-        )
-        return
 
     res = gumbo_client.insert_sequencing_alignments(
         gumbo_client.username, objects=sequencing_alignment_inserts, timeout=60.0
@@ -440,3 +570,37 @@ def persist_sequencing_alignments(
 
     affected_rows = res.insert_sequencing_alignment.affected_rows  # pyright: ignore
     logging.info(f"Inserted {affected_rows} sequencing alignments")
+
+
+def persist_updated_sequencing_alignments(
+    gumbo_client: GumboClient,
+    samples: TypedDataFrame[UpdatedSequencingAlignment],
+    dry_run: bool = True,
+):
+    """
+    Updated many sequencing alignments in Gumbo.
+
+    :param gumbo_client: an instance of the Gumbo GraphQL client
+    :param samples: a data frame of prepared sequencing alignments to update
+    :param dry_run: whether to skip updates to external data stores
+    """
+
+    if dry_run:
+        logging.info(f"(skipping) Updating {len(samples)} sequencing alignments")
+        return
+
+    for _, r in samples.iterrows():
+        sequencing_alignment_update = sequencing_alignment_set_input.model_validate(
+            r.to_dict()
+        )
+
+        # noinspection PyTypeChecker
+        res = gumbo_client.update_sequencing_alignment(
+            gumbo_client.username,
+            id=r["sequencing_alignment_id"],
+            object=sequencing_alignment_update,
+            timeout=30.0,
+        )
+
+        updated_id = res.update_sequencing_alignment_by_pk.id  # pyright: ignore
+        logging.info(f"Updated sequencing alignment {updated_id}")

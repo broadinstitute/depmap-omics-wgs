@@ -151,8 +151,8 @@ def refresh_legacy_terra_samples(
 
 
 @app.command()
-def onboard_aligned_bams(ctx: typer.Context) -> None:
-    data.onboard_aligned_bams(
+def onboard_aligned_crams(ctx: typer.Context) -> None:
+    data.onboard_aligned_crams(
         terra_workspace=ctx.obj["terra_workspace"],
         gumbo_client=ctx.obj["get_gumbo_client"](),
         gcp_project_id=config["gcp_project_id"],

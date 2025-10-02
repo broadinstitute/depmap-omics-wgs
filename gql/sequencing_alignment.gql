@@ -1,7 +1,5 @@
 query WgsSequencingAlignments {
-  records: omics_mapping(
-    where: { datatype: { _eq: "wgs" } }
-  ) {
+  records: omics_mapping(where: { datatype: { _eq: "wgs" } }) {
     model_id
     model_condition_id
     omics_profile_id
@@ -34,5 +32,18 @@ mutation InsertSequencingAlignments(
   }
   insert_sequencing_alignment(objects: $objects) {
     affected_rows
+  }
+}
+
+mutation UpdateSequencingAlignment(
+  $_username: String!
+  $id: bigint!
+  $object: sequencing_alignment_set_input!
+) {
+  set_username(args: { _username: $_username }) {
+    username
+  }
+  update_sequencing_alignment_by_pk(pk_columns: { id: $id }, _set: $object) {
+    id
   }
 }
