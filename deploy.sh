@@ -5,7 +5,7 @@ set -euo pipefail
 uv pip compile pyproject.toml -o requirements.txt --emit-index-url > requirements.txt
 
 echo "Updating GCP Function"
-gcloud functions deploy depmap-omics-wgs \
+uv run gcloud functions deploy depmap-omics-wgs \
   --gen2 \
   --runtime="python312" \
   --region="us-central1" \
