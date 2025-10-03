@@ -1,5 +1,5 @@
 {
-  "prep_annotations.exclude_string": "FILTER~\\\"weak_evidence\\\"||FILTER~\\\"map_qual\\\"||FILTER~\\\"strand_bias\\\"||FILTER~\\\"slippage\\\"||FILTER~\\\"base_qual\\\"",
+  "prep_annotations.exclude_string": "FILTER~\"weak_evidence\"||FILTER~\"map_qual\"||FILTER~\"strand_bias\"||FILTER~\"slippage\"||FILTER~\"base_qual\"",
   "prep_annotations.filter_vcf": true,
   "prep_annotations.fix_ploidy": true,
   "prep_annotations.normalize_indels": true

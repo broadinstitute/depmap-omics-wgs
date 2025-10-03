@@ -446,7 +446,7 @@ def onboard_aligned_crams(
     # confirm again using file size that the CRAMs don't already exist as Gumbo records
     assert not bool(comp["size"].isin(existing_alignments["size"]).any())
 
-    # copy BAMs and BAIs to our bucket
+    # copy CRAMs and CRAIs to our bucket
     copied_files = copy_to_cclebams(
         comp,
         gcp_project_id=gcp_project_id,
@@ -464,7 +464,7 @@ def onboard_aligned_crams(
                 # can delete the workspace's analysis ready BAM
                 comp["analysis_ready_bam"],
                 comp["analysis_ready_bai"],
-                # can delete the old analysis ready BAM/CRAM reference in Gumbo
+                # can delete the old analysis ready BAM/CRAM referenced in Gumbo
                 comp["url"],
                 comp["index_url"],
             ]
