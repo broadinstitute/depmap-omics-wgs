@@ -265,16 +265,18 @@ task merge_dbs {
         set -euo pipefail
 
         # collect unique enclosing folder names of sharded DB files
-        folder_names=$(for f in ~{sep=' ' all_db_files}; do
+        folder_names_file=$(mktemp)
+
+        for f in ~{sep=' ' all_db_files}; do
           dirname "$f"
-        done | sort -u | xargs -n1 basename
+        done | sort -u > "$folder_names_file"
 
         # build repeated --db options
         db_opts=""
 
-        for name in $folder_names; do
-          db_opts="$db_opts --db=$name"
-        done
+        while IFS= read -r path; do
+            db_opts="$db_opts --db=$path"
+        done < "$folder_names_file"
 
         python -m vcf_to_duckdb merge $db_opts --parquet-dir="./parq"
     >>>
