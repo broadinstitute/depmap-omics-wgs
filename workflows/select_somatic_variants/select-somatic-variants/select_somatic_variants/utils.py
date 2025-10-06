@@ -329,7 +329,7 @@ def make_supporting_tables(db: duckdb.DuckDBPyConnection) -> None:
         DROP TABLE IF EXISTS vep;
         
         CREATE TABLE vep (
-            vid UINTEGER PRIMARY KEY,
+            vid VARCHAR PRIMARY KEY,
             am_class VARCHAR,
             am_pathogenicity FLOAT,
             biotype VARCHAR,
@@ -363,7 +363,7 @@ def make_supporting_tables(db: duckdb.DuckDBPyConnection) -> None:
         
         CREATE TABLE variants_enriched (
             sample_id VARCHAR,
-            vid UINTEGER PRIMARY KEY,
+            vid VARCHAR PRIMARY KEY,
             chrom VARCHAR,
             pos UINTEGER,
             id VARCHAR,
