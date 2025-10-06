@@ -4,6 +4,7 @@ workflow annotate_mutations_merge {
     input {
         String sample_id
         Array[File] input_vcfs
+        File xy_intervals
     }
 
     call merge_info {
@@ -17,16 +18,31 @@ workflow annotate_mutations_merge {
             vcf = merge_info.vcf_info_merged
     }
 
-    call vcf_to_duckdb {
+    call split_vcf_by_chrom {
         input:
             vcf = merge_info.vcf_info_merged,
-            vcf_index = index_vcf.vcf_index
+            xy_intervals = xy_intervals
+    }
+
+    Array[Pair[File, File]] indexed_vcfs = zip(split_vcf_by_chrom.vcfs, split_vcf_by_chrom.indexes)
+
+    scatter (indexed_vcf in indexed_vcfs) {
+        call vcf_to_duckdb {
+            input:
+                vcf = indexed_vcf.left,
+                vcf_index = indexed_vcf.right
+        }
+    }
+
+    call merge_dbs {
+        input:
+            duckdbs = vcf_to_duckdb.duckdb
     }
 
     output {
         File mut_annot_vcf = merge_info.vcf_info_merged
         File mut_annot_vcf_index = index_vcf.vcf_index
-        Array[File] mut_duckdb = vcf_to_duckdb.duckdb
+        Array[File] mut_duckdb = merge_dbs.duckdb
     }
 }
 
@@ -117,6 +133,66 @@ task merge_info {
     }
 }
 
+task split_vcf_by_chrom {
+    input {
+        File vcf
+        File xy_intervals
+
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools"
+        String docker_image_hash_or_tag = ":production"
+        Int mem_gb = 2
+        Int cpu = 1
+        Int preemptible = 2
+        Int max_retries = 1
+        Int additional_disk_gb = 0
+    }
+
+    Int disk_space = ceil(2 * size(vcf, "GiB")) + 10 + additional_disk_gb
+
+    command <<<
+        set -euo pipefail
+
+        bcftools index ~{vcf}
+
+        mkdir "out"
+
+        for chr in $(cat ~{xy_intervals}); do
+            vcf_out="out/${chr}.vcf.gz"
+            index_out="out/${chr}.vcf.gz.csi"
+
+            bcftools view \
+                "~{vcf}" \
+                --regions="${chr}" \
+                --output="${vcf_out}" \
+                --no-version
+
+            if [[ $(bcftools view -H "${vcf_out}" | wc -l) -eq 0 ]]; then
+                rm "${vcf_out}"
+            else
+                bcftools index "${vcf_out}" -o "${index_out}"
+            fi
+        done
+    >>>
+
+    output {
+        Array[File] vcfs = glob("out/*.vcf.gz")
+        Array[File] indexes = glob("out/*.vcf.gz.csi")
+    }
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+
+    meta {
+        allowNestedInputs: true
+    }
+}
+
 task vcf_to_duckdb {
     input {
         File vcf
@@ -125,14 +201,14 @@ task vcf_to_duckdb {
 
         String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/vcf-to-duckdb"
         String docker_image_hash_or_tag = ":production"
-        Int mem_gb = 32
-        Int cpu = 8
+        Int mem_gb = 8
+        Int cpu = 2
         Int preemptible = 1
         Int max_retries = 1
         Int additional_disk_gb = 0
     }
 
-    Int disk_space = ceil(50 * size(vcf, "GiB")) + 20 + additional_disk_gb
+    Int disk_space = ceil(3 * size(vcf, "GiB")) + 10 + additional_disk_gb
 
     command <<<
         set -euo pipefail
@@ -148,6 +224,59 @@ task vcf_to_duckdb {
             --no-multiallelics \
             --config="/app/config.json" \
             --batch-size=~{batch_size}
+    >>>
+
+    output {
+        Array[File] duckdb = glob("parq/*.*")
+    }
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+
+    meta {
+        allowNestedInputs: true
+    }
+}
+
+task merge_dbs {
+    input {
+        Array[Array[File]] duckdbs
+
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/vcf-to-duckdb"
+        String docker_image_hash_or_tag = ":production"
+        Int mem_gb = 8
+        Int cpu = 2
+        Int preemptible = 1
+        Int max_retries = 1
+        Int additional_disk_gb = 0
+    }
+
+    Array[File] all_db_files = flatten(duckdbs)
+
+    Int disk_space = ceil(3 * size(all_db_files, "GiB")) + 10 + additional_disk_gb
+
+    command <<<
+        set -euo pipefail
+
+        # collect unique enclosing folder names of sharded DB files
+        folder_names=$(for f in ~{sep=' ' all_db_files}; do
+          dirname "$f"
+        done | sort -u | xargs -n1 basename
+
+        # build repeated --db options
+        db_opts=""
+
+        for name in $folder_names; do
+          db_opts="$db_opts --db=$name"
+        done
+
+        python -m vcf_to_duckdb merge $db_opts --parquet-dir="./parq"
     >>>
 
     output {

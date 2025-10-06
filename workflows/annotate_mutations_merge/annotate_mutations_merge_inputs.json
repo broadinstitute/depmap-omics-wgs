@@ -1,3 +1,4 @@
 {
-  "annotate_mutations_merge.vcf_to_duckdb.batch_size": 100000
+  "annotate_mutations_merge.vcf_to_duckdb.batch_size": 10000,
+  "annotate_mutations_merge.xy_intervals": "gs://ccleparams/references/references_wgs_xy.intervals"
 }
