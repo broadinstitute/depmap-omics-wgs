@@ -57,6 +57,7 @@ def do_select_somatic_variants(
         db.execute("SET preserve_insertion_order = false;")
 
         logging.info(f"Reading schema and Parquet files from {parquet_dir_path}")
+        replace_vid_uinteger_with_varchar(parquet_dir_path)
         db.sql(f"IMPORT DATABASE '{parquet_dir_path}'")
 
         # make views and tables
@@ -120,6 +121,21 @@ def do_select_somatic_variants(
             f" to {somatic_variants_out_file_path}"
         )
         somatic_variants.to_parquet(somatic_variants_out_file_path, index=False)
+
+
+def replace_vid_uinteger_with_varchar(parquet_dir_path: Path) -> None:
+    """
+    Replace all instances of `vid UINTEGER` with `vid VARCHAR` in the `schema.sql`
+    file located in ``parquet_dir_path`` (for backward compatibility).
+    """
+
+    schema_path = parquet_dir_path / "schema.sql"
+
+    text = schema_path.read_text()
+    updated = text.replace("vid UINTEGER", "vid VARCHAR")
+
+    if updated != text:
+        schema_path.write_text(updated)
 
 
 def make_views_and_tables(
@@ -198,7 +214,7 @@ def delete_low_quality_variants(
 
     logging.info("Deleting low quality variants")
 
-    low_quality_vids = db.sql(f"""
+    low_quality_vids = db.sql(rf"""
         SELECT DISTINCT
             vid
         FROM
