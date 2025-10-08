@@ -68,6 +68,7 @@ def run(cloud_event: CloudEvent) -> None:
             terra_workspace=terra_workspace,
             gumbo_client=gumbo_client,
             gcp_project_id=config["gcp_project_id"],
+            ref_urls=config["ref"],
             dry_run=False,
         )
 

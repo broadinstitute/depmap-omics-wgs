@@ -329,6 +329,7 @@ def onboard_aligned_crams(
     gumbo_client: GumboClient,
     terra_workspace: TerraWorkspace,
     gcp_project_id: str,
+    ref_urls: dict[str, dict[str, str]],
     dry_run: bool,
 ) -> None:
     """
@@ -338,6 +339,7 @@ def onboard_aligned_crams(
     :param terra_workspace: a TerraWorkspace instance
     :param gumbo_client: an instance of the Gumbo GraphQL client
     :param gcp_project_id: the ID of a GCP project to use for billing
+    :param ref_urls: a nested dictionary of genomes and their reference file URLs
     :param dry_run: whether to skip updates to external data stores
     """
 
@@ -424,7 +426,8 @@ def onboard_aligned_crams(
         samples, how="outer", on="omics_sequencing_id"
     ).drop(columns="size")
 
-    # identify records in Gumbo that are missing or need to be updated
+    # identify records in Gumbo that are missing or need to be updated (e.g. replacing
+    # an analysis-ready BAM with a CRAM)
     comp = comp.loc[comp["url"].isna() | comp["url"].ne(comp["analysis_ready_cram"])]
 
     if len(comp) == 0:
@@ -490,6 +493,13 @@ def onboard_aligned_crams(
     # create/update sequencing_alignment records in Gumbo
     persist_sequencing_alignments(
         gumbo_client, samples=samples_updated, dry_run=dry_run
+    )
+
+    # ensure all BAM/CRAM cols in workspace are up to date
+    refresh_terra_samples(
+        terra_workspace=terra_workspace,
+        gumbo_client=gumbo_client,
+        ref_urls=config["ref"],
     )
 
 
