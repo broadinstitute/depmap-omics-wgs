@@ -11,7 +11,7 @@ anyio==4.11.0
     #   starlette
 ariadne-codegen==0.14.0
     # via depmap-omics-wgs (pyproject.toml)
-attrs==25.3.0
+attrs==25.4.0
     # via hypothesis
 autoflake==2.3.1
     # via ariadne-codegen
@@ -21,7 +21,7 @@ blinker==1.9.0
     # via flask
 cachetools==6.2.0
     # via google-auth
-certifi==2025.8.3
+certifi==2025.10.5
     # via
     #   httpcore
     #   httpx
@@ -54,7 +54,7 @@ flask==3.1.2
     # via functions-framework
 functions-framework==3.9.2
     # via depmap-omics-wgs (pyproject.toml)
-google-api-core==2.25.1
+google-api-core==2.25.2
     # via
     #   google-cloud-appengine-logging
     #   google-cloud-core
@@ -72,7 +72,7 @@ google-auth==2.41.1
     #   google-cloud-storage
 google-cloud-appengine-logging==1.6.2
     # via google-cloud-logging
-google-cloud-audit-log==0.3.2
+google-cloud-audit-log==0.3.3
     # via google-cloud-logging
 google-cloud-core==2.4.3
     # via
@@ -124,7 +124,7 @@ httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via ariadne-codegen
-hypothesis==6.140.2
+hypothesis==6.140.3
     # via pandera
 idna==3.10
     # via
@@ -154,7 +154,7 @@ mypy-extensions==1.1.0
     # via
     #   black
     #   typing-inspect
-nebelung==2.12.0
+nebelung==2.12.1
     # via depmap-omics-wgs (pyproject.toml)
 numpy==2.3.3
     # via
@@ -211,13 +211,13 @@ pyasn1-modules==0.4.2
     # via google-auth
 pycparser==2.23
     # via cffi
-pydantic==2.11.9
+pydantic==2.12.0
     # via
     #   depmap-omics-wgs (pyproject.toml)
     #   ariadne-codegen
     #   nebelung
     #   pandera
-pydantic-core==2.33.2
+pydantic-core==2.41.1
     # via pydantic
 pydot==4.0.1
     # via firecloud-api-cds
