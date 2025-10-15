@@ -1,6 +1,15 @@
 version: 1.2
 workflows:
   - subclass: WDL
+    name: short_read_remap
+    primaryDescriptorPath: /workflows/short_read_remap/short_read_remap.wdl
+    testParameterFiles:
+      - /workflows/short_read_remap/short_read_remap.json
+    filters:
+      branches:
+        - giab-dev
+    publish: True
+  - subclass: WDL
     name: align_wgs_sample
     readMePath: /workflows/align_wgs_sample/README.md
     primaryDescriptorPath: /workflows/align_wgs_sample/align_wgs_sample.wdl
