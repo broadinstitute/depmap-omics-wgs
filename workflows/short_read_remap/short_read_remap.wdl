@@ -173,7 +173,7 @@ task remap_reads {
   runtime {
     cpu: threads
     memory: "16G"
-    disks: "local-disk 100 HDD"
+    disks: "local-disk 10 SDD"
     # docker: "biocontainers/samtools:v1.17-4-deb_cv1"
     preemptible: preemptible
     docker: "broadgdac/bwa:0.7.15-r1142-dirty"
