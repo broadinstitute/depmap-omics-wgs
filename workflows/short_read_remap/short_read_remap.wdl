@@ -125,7 +125,7 @@ task extract_reads {
   runtime {
     cpu: threads
     memory: "16G"
-    disks: "local-disk 100 HDD"
+    disks: "local-disk 10 HDD"
     preemptible: preemptible
     # docker: "biocontainers/samtools:v1.17-4-deb_cv1"
     docker: "broadgdac/samtools:1.10"
