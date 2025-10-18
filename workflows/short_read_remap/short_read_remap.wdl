@@ -72,7 +72,7 @@ task extract_reads {
     String out_prefix
     Int threads
     File? old_ref
-    Int preemptible = 3
+    # Int preemptible = 3
   }
 
   command <<<
@@ -126,7 +126,7 @@ task extract_reads {
     cpu: threads
     memory: "16G"
     disks: "local-disk 10 SSD"
-    preemptible: preemptible
+    # preemptible: preemptible
     # docker: "biocontainers/samtools:v1.17-4-deb_cv1"
     docker: "broadgdac/samtools:1.10"
   }
@@ -149,7 +149,7 @@ task remap_reads {
     File read_group
     String out_prefix
     Int threads
-    Int preemptible = 3
+    # Int preemptible = 3
   }
 
   command <<<
@@ -175,7 +175,7 @@ task remap_reads {
     memory: "16G"
     disks: "local-disk 10 SSD"
     # docker: "biocontainers/samtools:v1.17-4-deb_cv1"
-    preemptible: preemptible
+    # preemptible: preemptible
     docker: "broadgdac/bwa:0.7.15-r1142-dirty"
   }
 }
