@@ -41,6 +41,14 @@ workflow short_read_remap {
       threads = threads
   }
 
+  call merge_reads {
+    input:
+      original_bam = bam_or_cram,
+      remapped_bam = remap_reads.remapped_sorted_bam,
+      out_prefix = out_prefix,
+      threads = threads
+  }
+
   output {
     # Outputs from extraction
     File extracted_bam = extract_reads.extracted_bam
@@ -57,6 +65,10 @@ workflow short_read_remap {
     File remapped_bam = remap_reads.remapped_bam
     File remapped_sorted_bam = remap_reads.remapped_sorted_bam
     File remapped_sorted_bai = remap_reads.remapped_sorted_bai
+
+    # Outputs from merging
+    File final_merged_bam = merge_reads.merged_bam
+    File final_merged_bai = merge_reads.merged_bai
   }
 }
 
@@ -181,5 +193,40 @@ task remap_reads {
     # docker: "biocontainers/samtools:v1.17-4-deb_cv1"
     # preemptible: preemptible
     docker: "broadgdac/bwa:0.7.15-r1142-dirty"
+  }
+}
+
+task merge_reads {
+  input {
+    File original_bam
+    File remapped_bam
+    String out_prefix
+    Int threads
+    Int memory
+    Int disk_size
+    # Int preemptible = 3
+  }
+
+  command <<<
+    set -euo pipefail
+
+    echo "Merging reads..."
+    samtools merge -@ "~{threads}" -o "~{out_prefix}_merged.bam" "~{original_bam}" "~{remapped_bam}"
+    samtools index "~{out_prefix}_merged.bam"
+
+  >>>
+
+  output {
+    File merged_bam = "${out_prefix}_merged.bam"
+    File merged_bai = "${out_prefix}_merged.bam.bai"
+  }
+
+  runtime {
+    cpu: threads
+    memory: "${memory}GB"
+    disks: "local-disk ${disk_size} SSD"
+    # docker: "biocontainers/samtools:v1.17-4-deb_cv1"
+    # preemptible: preemptible
+    docker: "broadgdac/samtools:1.10"
   }
 }
