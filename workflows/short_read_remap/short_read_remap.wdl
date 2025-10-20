@@ -227,6 +227,7 @@ task merge_reads {
     disks: "local-disk ${disk_size} SSD"
     # docker: "biocontainers/samtools:v1.17-4-deb_cv1"
     # preemptible: preemptible
-    docker: "broadgdac/samtools:1.10"
+    # docker: "broadgdac/samtools:1.10"
+    docker: "staphb/samtools:1.22"
   }
 }
