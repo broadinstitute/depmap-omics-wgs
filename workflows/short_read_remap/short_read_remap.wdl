@@ -211,7 +211,7 @@ task merge_reads {
     set -euo pipefail
 
     echo "Merging reads..."
-    samtools merge -@ "~{threads}" "~{out_prefix}_merged.bam" "~{original_bam}" "~{remapped_bam}"
+    samtools merge "~{out_prefix}_merged.bam" "~{original_bam}" "~{remapped_bam}"
     samtools index "~{out_prefix}_merged.bam"
 
   >>>
