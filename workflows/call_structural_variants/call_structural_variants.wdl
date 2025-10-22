@@ -105,6 +105,7 @@ task run_manta {
             $major_contig_line \
             --referenceFasta="~{basename(ref_fasta)}" \
             --runDir="."
+	    --retainTempFiles
 
         # always tell manta there are 2 GiB per job, otherwise it will scale back the
         # requested number of jobs, even if they won't need that much memory
