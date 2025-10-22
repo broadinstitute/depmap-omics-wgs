@@ -113,7 +113,7 @@ task run_manta {
             --mode="local" \
             --jobs=~{cpu} \
             --memGb=$((~{num_jobs} * 2)) \
-            --quiet
+            # --quiet
 
         if [[ -f "~{normal_bam}" ]]; then
            mv results/variants/diploidSV.vcf.gz "~{sample_id}.diploid_sv.vcf.gz"
