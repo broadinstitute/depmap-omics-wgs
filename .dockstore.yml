@@ -41,6 +41,7 @@ workflows:
       branches:
         - main
         - develop
+        - giab-dev
     publish: True
   - subclass: WDL
     name: annotate_structural_variants
