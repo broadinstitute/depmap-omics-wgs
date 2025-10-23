@@ -41,9 +41,19 @@ workflow short_read_remap {
       threads = threads
   }
 
+  call filter_reads {
+    input:
+      bam_or_cram = bam_or_cram,
+      bam_or_cram_index = bam_or_cram_index,
+      bed = bed,
+      out_prefix = out_prefix,
+      threads = threads,
+      old_ref = old_ref
+  }
+
   call merge_reads {
     input:
-      original_bam = bam_or_cram,
+      original_bam = filter_reads.filtered_bam,
       remapped_bam = remap_reads.remapped_sorted_bam,
       out_prefix = out_prefix,
       threads = threads
@@ -65,6 +75,10 @@ workflow short_read_remap {
     File remapped_bam = remap_reads.remapped_bam
     File remapped_sorted_bam = remap_reads.remapped_sorted_bam
     File remapped_sorted_bai = remap_reads.remapped_sorted_bai
+
+    # Outputs from filtering
+    File filtered_bam = filter_reads.filtered_bam
+    File filtered_bai = filter_reads.filtered_bai
 
     # Outputs from merging
     File final_merged_bam = merge_reads.merged_bam
@@ -196,9 +210,54 @@ task remap_reads {
   }
 }
 
+task filter_reads {
+  input {
+    File bam_or_cram
+    File bam_or_cram_index
+    File bed
+    String out_prefix
+    Int threads
+    File? old_ref
+    Int memory
+    Int disk_size
+    # Int preemptible = 3
+  }
+
+  command <<<
+    set -euo pipefail
+
+    echo "Filtering original BAM/CRAM to BED regions..."
+    if [[ "~{bam_or_cram}" == *.cram ]]; then
+      if [ -z "~{old_ref}" ]; then
+        echo "Error: CRAM input requires old reference."
+        exit 1
+      fi
+      samtools view -L "~{bed}" -U -hb --reference "~{old_ref}" -o "~{out_prefix}_filtered_original.bam" "~{bam_or_cram}" 
+    else
+      samtools view -L "~{bed}" -U -hb -o "~{out_prefix}_filtered_original.bam" "~{bam_or_cram}" 
+    fi
+
+    samtools index "~{out_prefix}_filtered_original.bam"
+  >>>
+
+  output {
+    File filtered_bam = "${out_prefix}_filtered_original.bam"
+    File filtered_bai = "${out_prefix}_filtered_original.bam.bai"
+  }
+
+  runtime {
+    cpu: threads
+    memory: "${memory}GB"
+    disks: "local-disk ${disk_size} SSD"
+    # preemptible: preemptible
+    # docker: "biocontainers/samtools:v1.17-4-deb_cv1"
+    docker: "staphb/samtools:1.22"
+  }
+}
+
 task merge_reads {
   input {
-    File original_bam
+    File filtered_bam
     File remapped_bam
     String out_prefix
     Int threads
@@ -211,7 +270,7 @@ task merge_reads {
     set -euo pipefail
 
     echo "Merging reads..."
-    samtools merge "~{out_prefix}_merged.bam" "~{original_bam}" "~{remapped_bam}"
+    samtools merge "~{out_prefix}_merged.bam" "~{filtered_bam}" "~{remapped_bam}"
     samtools index "~{out_prefix}_merged.bam"
 
   >>>
