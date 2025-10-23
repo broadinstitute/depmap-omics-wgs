@@ -53,7 +53,7 @@ workflow short_read_remap {
 
   call merge_reads {
     input:
-      original_bam = filter_reads.filtered_bam,
+      filtered_bam = filter_reads.filtered_bam,
       remapped_bam = remap_reads.remapped_sorted_bam,
       out_prefix = out_prefix,
       threads = threads
