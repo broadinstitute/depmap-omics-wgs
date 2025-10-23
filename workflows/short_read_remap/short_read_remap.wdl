@@ -232,9 +232,9 @@ task filter_reads {
         echo "Error: CRAM input requires old reference."
         exit 1
       fi
-      samtools view -L "~{bed}" -U -hb --reference "~{old_ref}" -o "~{out_prefix}_filtered_original.bam" "~{bam_or_cram}" 
+      samtools view -L "~{bed}" -U "~{out_prefix}_filtered_original.bam" -b --reference "~{old_ref}" -o "~{out_prefix}_filtered_remapped.bam" "~{bam_or_cram}" 
     else
-      samtools view -L "~{bed}" -U -hb -o "~{out_prefix}_filtered_original.bam" "~{bam_or_cram}" 
+      samtools view -L "~{bed}" -U "~{out_prefix}_filtered_original.bam" -b -o "~{out_prefix}_filtered_remapped.bam" "~{bam_or_cram}" 
     fi
 
     samtools index "~{out_prefix}_filtered_original.bam"
