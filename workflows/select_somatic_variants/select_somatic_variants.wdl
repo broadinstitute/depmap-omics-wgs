@@ -61,7 +61,7 @@ task do_select_somatic_variants {
 
         if [ "~{save_enriched_variants}" = "true" ]
         then
-            variants_enriched_line="--variants-enriched-out-file=\"~{sample_id}.enriched_variants.parquet\""
+            variants_enriched_line="--variants-enriched-out-file=~{sample_id}.enriched_variants.parquet"
         else
             variants_enriched_line=""
         fi
