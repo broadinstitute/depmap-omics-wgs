@@ -38,7 +38,7 @@ task do_select_somatic_variants {
         Float max_pop_af
         Float max_brca1_func_assay_score
         Boolean save_enriched_variants
-        Int batch_size = 500000
+        Int batch_size = 300000
 
         String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/select-somatic-variants"
         String docker_image_hash_or_tag = ":production"
