@@ -97,8 +97,6 @@ submissions = submissions.loc[
     )
 ]
 
-# submissions = submissions.sample(n=10)
-
 
 def get_submission_costs(s):
     sid = s["submissionId"]

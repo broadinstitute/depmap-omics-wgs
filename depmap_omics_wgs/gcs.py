@@ -25,7 +25,7 @@ def get_objects_metadata(urls: Iterable[str]) -> TypedDataFrame[GcsObject]:
     """
 
     logging.info(f"Getting metadata about {len(list(urls))} GCS objects")
-    storage_client = storage.Client()
+    storage_client = storage.Client(project="depmap-omics")
     blobs = {}
 
     # the GCS batch context below has a max batch size of 1000, so do this outer layer
