@@ -75,7 +75,6 @@ class TerraSample(CoercedDataFrame):
     ref_fasta_index: Series[pd.StringDtype]
     ref_pac: Series[pd.StringDtype]
     ref_sa: Series[pd.StringDtype]
-    automation_status: Series[pd.StringDtype] = pa.Field(nullable=True)
 
 
 class GcsObject(CoercedDataFrame):

@@ -125,9 +125,6 @@ def refresh_terra_samples(
     # set reference genome columns
     samples = set_ref_urls(samples, ref_urls)
 
-    # only newly loaded samples can be processed by automation
-    samples["automation_status"] = pd.NA
-
     # validate types
     samples = type_data_frame(samples, TerraSample)
 
