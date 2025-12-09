@@ -385,8 +385,6 @@ def onboard_aligned_crams(
                 "sv_candidate_indel_vcf_index",
                 "sv_candidate_vcf",
                 "sv_candidate_vcf_index",
-                "sv_del_annotation",
-                "sv_dup_annotation",
                 "sv_selected_somatic",
                 "sv_somatic_vcf",
                 "sv_somatic_vcf_index",
