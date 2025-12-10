@@ -16,6 +16,7 @@ version 1.0
 #   - Check to see if BQSR has already been run but the input BAM file is missing `OQ`
 #     tags, which would make re-running BQSR inappropriate.
 #   - Added optional ref_alt input for BWA.
+#   - Added support for FASTQ input type.
 #
 # Use this file as a base and manually implement changes in the upstream code in order
 # to retain these modifications.
@@ -38,9 +39,10 @@ struct FastqSingleRecord {
 workflow align_wgs_sample {
     input {
         String sample_id
-        String input_type # "CRAM" or "BAM"
-        File input_cram_bam
-        File input_crai_bai
+        String input_type # "CRAM", "BAM", or "FASTQ"
+        File? input_cram_bam
+        File? input_crai_bai
+        Array[File]? fastqs
         File? delivery_ref_fasta
         File? delivery_ref_fasta_index
         File? output_map
@@ -66,34 +68,63 @@ workflow align_wgs_sample {
         File? ref_alt
     }
 
-    call ToUbams.CramToUnmappedBams {
-        input:
-            input_type = input_type,
-            input_cram_bam = input_cram_bam,
-            input_crai_bai = input_crai_bai,
-            ref_fasta = select_first([delivery_ref_fasta, ref_fasta]),
-            ref_fasta_index = select_first([delivery_ref_fasta_index, ref_fasta_index]),
-            output_map = output_map,
-            unmapped_bam_suffix = unmapped_bam_suffix
-    }
-
-    scatter (ubam in CramToUnmappedBams.unmapped_bams) {
-        call bam_readgroup_to_contents {
-            input: bam = ubam
+    # Validate inputs based on input_type
+    if (input_type == "CRAM" || input_type == "BAM") {
+        # For CRAM/BAM input, convert to unmapped BAMs first
+        call ToUbams.CramToUnmappedBams {
+            input:
+                input_type = input_type,
+                input_cram_bam = select_first([input_cram_bam]),
+                input_crai_bai = select_first([input_crai_bai]),
+                ref_fasta = select_first([delivery_ref_fasta, ref_fasta]),
+                ref_fasta_index = select_first([delivery_ref_fasta_index, ref_fasta_index]),
+                output_map = output_map,
+                unmapped_bam_suffix = unmapped_bam_suffix
         }
 
-        call biobambam_bamtofastq {
-            input: filename = ubam
+        scatter (ubam in select_first([CramToUnmappedBams.unmapped_bams, []])) {
+            call bam_readgroup_to_contents {
+                input: bam = ubam
+            }
+
+            call biobambam_bamtofastq {
+                input: filename = ubam
+            }
         }
     }
 
-    Array[Object] readgroups = flatten(bam_readgroup_to_contents.readgroups)
+    if (input_type == "FASTQ") {
+        # For FASTQ input, process directly
+        call process_fastqs {
+            input:
+                fastqs = select_first([fastqs]),
+                sample_id = sample_id
+        }
+    }
 
-    Array[File] fastq1 = flatten(biobambam_bamtofastq.output_fastq1)
-    Array[File] fastq2 = flatten(biobambam_bamtofastq.output_fastq2)
-    Array[File] fastq_o1 = flatten(biobambam_bamtofastq.output_fastq_o1)
-    Array[File] fastq_o2 = flatten(biobambam_bamtofastq.output_fastq_o2)
-    Array[File] fastq_s = flatten(biobambam_bamtofastq.output_fastq_s)
+    # Combine readgroups from both paths
+    Array[Object] readgroups_from_bam = if defined(bam_readgroup_to_contents.readgroups) then flatten(select_first([bam_readgroup_to_contents.readgroups, []])) else []
+    Array[Object] readgroups_from_fastq = if defined(process_fastqs.readgroups) then select_first([process_fastqs.readgroups, []]) else []
+    Array[Object] readgroups = flatten([readgroups_from_bam, readgroups_from_fastq])
+
+    # Combine FASTQ files from both paths
+    Array[File] fastq1_from_bam = if defined(biobambam_bamtofastq.output_fastq1) then flatten(select_first([biobambam_bamtofastq.output_fastq1, []])) else []
+    Array[File] fastq2_from_bam = if defined(biobambam_bamtofastq.output_fastq2) then flatten(select_first([biobambam_bamtofastq.output_fastq2, []])) else []
+    Array[File] fastq_o1_from_bam = if defined(biobambam_bamtofastq.output_fastq_o1) then flatten(select_first([biobambam_bamtofastq.output_fastq_o1, []])) else []
+    Array[File] fastq_o2_from_bam = if defined(biobambam_bamtofastq.output_fastq_o2) then flatten(select_first([biobambam_bamtofastq.output_fastq_o2, []])) else []
+    Array[File] fastq_s_from_bam = if defined(biobambam_bamtofastq.output_fastq_s) then flatten(select_first([biobambam_bamtofastq.output_fastq_s, []])) else []
+
+    Array[File] fastq1_from_fastq = if defined(process_fastqs.fastq1) then select_first([process_fastqs.fastq1, []]) else []
+    Array[File] fastq2_from_fastq = if defined(process_fastqs.fastq2) then select_first([process_fastqs.fastq2, []]) else []
+    Array[File] fastq_o1_from_fastq = if defined(process_fastqs.fastq_o1) then select_first([process_fastqs.fastq_o1, []]) else []
+    Array[File] fastq_o2_from_fastq = if defined(process_fastqs.fastq_o2) then select_first([process_fastqs.fastq_o2, []]) else []
+    Array[File] fastq_s_from_fastq = if defined(process_fastqs.fastq_s) then select_first([process_fastqs.fastq_s, []]) else []
+
+    Array[File] fastq1 = flatten([fastq1_from_bam, fastq1_from_fastq])
+    Array[File] fastq2 = flatten([fastq2_from_bam, fastq2_from_fastq])
+    Array[File] fastq_o1 = flatten([fastq_o1_from_bam, fastq_o1_from_fastq])
+    Array[File] fastq_o2 = flatten([fastq_o2_from_bam, fastq_o2_from_fastq])
+    Array[File] fastq_s = flatten([fastq_s_from_bam, fastq_s_from_fastq])
 
     Int pe_count = length(fastq1)
     Int o1_count = length(fastq_o1)
@@ -179,14 +210,16 @@ workflow align_wgs_sample {
     }
 
     if (run_bqsr) {
-        call check_bqsr_and_oq_tags {
-            input:
-                bam = input_cram_bam,
-                bai = input_crai_bai,
-                ref_fasta = ref_fasta
+        if (input_type == "CRAM" || input_type == "BAM") {
+            call check_bqsr_and_oq_tags {
+                input:
+                    bam = select_first([input_cram_bam]),
+                    bai = select_first([input_crai_bai]),
+                    ref_fasta = ref_fasta
+            }
         }
 
-        if (!check_bqsr_and_oq_tags.bqsr_performed || (rerun_bqsr && check_bqsr_and_oq_tags.has_oq_tags)) {
+        if (input_type == "FASTQ" || !check_bqsr_and_oq_tags.bqsr_performed || (rerun_bqsr && check_bqsr_and_oq_tags.has_oq_tags)) {
             call CreateSequenceGroupingTSV {
                 input:
                     ref_dict = ref_dict
@@ -256,6 +289,90 @@ workflow align_wgs_sample {
 
     meta {
         allowNestedInputs: true
+    }
+}
+
+task process_fastqs {
+    input {
+        Array[File] fastqs
+        String sample_id
+        Int preemptible = 5
+        Int max_retries = 1
+        Int cpu = 1
+        Int additional_memory_mb = 0
+        Int additional_disk_gb = 0
+    }
+
+    Int mem = 2000 + additional_memory_mb
+    Int disk_space = ceil(size(fastqs, "GiB")) + 10 + additional_disk_gb
+
+    command <<<
+        set -euo pipefail
+
+        # Create readgroup information for FASTQ files
+        # This is a simplified approach - in practice, you might want to extract
+        # readgroup info from FASTQ headers or provide it as input
+        echo -e "ID\tBC\tCN\tDS\tDT\tFO\tKS\tLB\tPG\tPI\tPL\tPM\tPU\tSM" > readgroups.tsv
+
+        # For each FASTQ file, create a basic readgroup
+        # Extract unique readgroup IDs from R1 files (remove _R1_001.fastq.gz suffix)
+        declare -A seen_rgs
+        for fastq in ~{sep=' ' fastqs}; do
+            basename_fastq=$(basename "$fastq")
+            if [[ "$basename_fastq" =~ _R1_001\.f(ast)?q(\.gz)?$ ]]; then
+                # Extract readgroup ID by removing _R1_001.fastq.gz suffix
+                rg_id=$(echo "$basename_fastq" | sed 's/_R1_001\.f\(ast\)\?q\(\.gz\)\?$//')
+                
+                # Only add if we haven't seen this readgroup ID before
+                if [[ -z "${seen_rgs[$rg_id]:-}" ]]; then
+                    seen_rgs[$rg_id]=1
+                    # Create a basic readgroup entry
+                    echo -e "${rg_id}\t\t\t\t\t\t\t~{sample_id}\t\t\tILLUMINA\t\t${rg_id}\t~{sample_id}" >> readgroups.tsv
+                fi
+            fi
+        done
+
+        # Separate paired-end and single-end FASTQ files based on naming convention
+        # This handles the pattern *_R1_001.fastq.gz, *_R2_001.fastq.gz
+        mkdir -p fastq_pe fastq_se
+
+        for fastq in ~{sep=' ' fastqs}; do
+            basename_fastq=$(basename "$fastq")
+            if [[ "$basename_fastq" =~ _R1_001\.f(ast)?q(\.gz)?$ ]]; then
+                ln -s "$fastq" "fastq_pe/${basename_fastq}"
+            elif [[ "$basename_fastq" =~ _R2_001\.f(ast)?q(\.gz)?$ ]]; then
+                ln -s "$fastq" "fastq_pe/${basename_fastq}"
+            else
+                # Any files that don't match R1/R2 pattern go to single-end
+                ln -s "$fastq" "fastq_se/${basename_fastq}"
+            fi
+        done
+
+        # List files for output
+        find fastq_pe -name "*_R1_001.*" | sort > fastq1_list.txt
+        find fastq_pe -name "*_R2_001.*" | sort > fastq2_list.txt
+        find fastq_se -type f | sort > fastq_s_list.txt
+
+        # Create empty files for unused categories
+        touch fastq_o1_list.txt fastq_o2_list.txt
+    >>>
+
+    output {
+        Array[Object] readgroups = read_objects("readgroups.tsv")
+        Array[File] fastq1 = read_lines("fastq1_list.txt")
+        Array[File] fastq2 = read_lines("fastq2_list.txt")
+        Array[File] fastq_o1 = read_lines("fastq_o1_list.txt")
+        Array[File] fastq_o2 = read_lines("fastq_o2_list.txt")
+        Array[File] fastq_s = read_lines("fastq_s_list.txt")
+    }
+
+    runtime {
+        docker: "python:3.8-slim"
+        memory: mem + " MiB"
+        disks: "local-disk " + disk_space + " SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
     }
 }
 
