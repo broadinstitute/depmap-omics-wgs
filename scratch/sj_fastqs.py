@@ -134,7 +134,7 @@ df.loc[df["name"].str.contains("_R2_"), "strand"] = "reverse"
 def make_sample(g: pd.DataFrame) -> dict[str, Any]:
     return {
         "readgroup_id": g["sample_id"].iloc[0],
-        "readgroup_name": g["rg"].iloc[0],
+        "readgroup": g["rg"].str.replace("\t", "\\t").iloc[0],
         "forward_fastq": g.loc[g["strand"].eq("forward"), "url"].squeeze(),
         "reverse_fastq": g.loc[g["strand"].eq("reverse"), "url"].squeeze(),
     }
@@ -151,19 +151,13 @@ samples = samples.merge(
     on=["sample_id", "rg"],
 )[["sample_id", "fastqs_pe"]]
 
-# samples = (
-#     samples.groupby("sample_id")["fastqs_pe"]
-#     .agg(lambda x: json.dumps(list(x)))
-#     .reset_index()
-# )
-
 samples = pd_flatten(samples)
 
 samples = (
     samples.groupby("sample_id")[
         [
             "fastqs_pe__readgroup_id",
-            "fastqs_pe__readgroup_name",
+            "fastqs_pe__readgroup",
             "fastqs_pe__forward_fastq",
             "fastqs_pe__reverse_fastq",
         ]
@@ -172,9 +166,9 @@ samples = (
     .reset_index()
 )
 
-# wgs_samples = TerraWorkspace("broad-firecloud-ccle", "depmap-omics-wgs").get_entities(
-#     "sample"
-# )
+wgs_samples = TerraWorkspace("broad-firecloud-ccle", "depmap-omics-wgs").get_entities(
+    "sample"
+)
 
 ref_vals = (
     wgs_samples.loc[
@@ -203,7 +197,7 @@ samples.insert(0, "entity:sample_id", sample_ids)
 samples = samples.rename(
     columns={
         "fastqs_pe__readgroup_id": "fastqs_pe_readgroup_id",
-        "fastqs_pe__readgroup_name": "fastqs_pe_readgroup_name",
+        "fastqs_pe__readgroup": "fastqs_pe_readgroup",
         "fastqs_pe__forward_fastq": "fastqs_pe_forward",
         "fastqs_pe__reverse_fastq": "fastqs_pe_reverse",
     }
@@ -212,6 +206,6 @@ samples = samples.rename(
 samples["fastq_se"] = pd.NA
 samples["fastq_se_readgroup"] = pd.NA
 samples["fastq_se_readgroup_id"] = pd.NA
-samples["input_type"] = "FASTQ"
+samples["delivery_file_format"] = "FASTQ"
 
 TerraWorkspace("broad-firecloud-ccle", "depmap-sj-wgs-align").upload_entities(samples)

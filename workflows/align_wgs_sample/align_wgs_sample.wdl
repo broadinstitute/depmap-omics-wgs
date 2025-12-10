@@ -624,19 +624,29 @@ task emit_fastq_pe_records {
     command <<<
         set -euo pipefail
 
+        # Convert the WDL arrays (space-separated strings) into bash arrays.
+        IFS=$' ' read -r -a fwd_arr  <<< "~{sep=' ' fastqs_pe_forward}"
+        IFS=$' ' read -r -a rev_arr  <<< "~{sep=' ' fastqs_pe_reverse}"
+        IFS=$' ' read -r -a rg_arr   <<< "~{sep=' ' fastqs_pe_readgroup}"
+        IFS=$' ' read -r -a rgid_arr <<< "~{sep=' ' fastqs_pe_readgroup_id}"
+
+        # Validate lengths
+        len=${#fwd_arr[@]}
+        if [[ ${#rev_arr[@]} -ne $len || ${#rg_arr[@]} -ne $len || ${#rgid_arr[@]} -ne $len ]]; then
+            echo "ERROR: input array lengths differ" 1>&2
+            exit 1
+        fi
+
         # Write header
         printf "forward_fastq\treverse_fastq\treadgroup\treadgroup_id\n" > records.tsv
 
-        # Assume all arrays have the same length.
-        len=${#fastqs_pe_forward[@]}
-
+        # Emit rows
         for ((i=0; i<len; i++)); do
-            fwd="${fastqs_pe_forward[$i]}"
-            rev="${fastqs_pe_reverse[$i]}"
-            rg="${fastqs_pe_readgroup[$i]}"
-            rgid="${fastqs_pe_readgroup_id[$i]}"
-
-            printf "%s\t%s\t%s\t%s\n" "$fwd" "$rev" "$rg" "$rgid" >> records.tsv
+            printf "%s\t%s\t%s\t%s\n" \
+                "${fwd_arr[i]}" \
+                "${rev_arr[i]}" \
+                "${rg_arr[i]}" \
+                "${rgid_arr[i]}" >> records.tsv
         done
     >>>
 
@@ -678,18 +688,27 @@ task emit_fastqs_se_records {
     command <<<
         set -euo pipefail
 
+        # Convert the WDL arrays (space-separated strings) into bash arrays.
+        IFS=$' ' read -r -a fq_arr  <<< "~{sep=' ' fastqs_se}"
+        IFS=$' ' read -r -a rg_arr   <<< "~{sep=' ' fastqs_se_readgroup}"
+        IFS=$' ' read -r -a rgid_arr <<< "~{sep=' ' fastqs_se_readgroup_id}"
+
+        # Validate lengths
+        len=${#fq_arr[@]}
+        if [[ ${#rg_arr[@]} -ne $len || ${#rgid_arr[@]} -ne $len ]]; then
+            echo "ERROR: input array lengths differ" 1>&2
+            exit 1
+        fi
+
         # Write header
         printf "fastq\treadgroup\treadgroup_id\n" > records.tsv
 
-        # Assume all arrays have the same length.
-        len=${#fastqs_se[@]}
-
+        # Emit rows
         for ((i=0; i<len; i++)); do
-            fq="${fastqs_se[$i]}"
-            rg="${fastqs_se_readgroup[$i]}"
-            rgid="${fastqs_se_readgroup_id[$i]}"
-
-            printf "%s\t%s\t%s\n" "$fq" "$rg" "$rgid" >> records.tsv
+            printf "%s\t%s\t%s\t%s\n" \
+                "${fq_arr[i]}" \
+                "${rg_arr[i]}" \
+                "${rgid_arr[i]}" >> records.tsv
         done
     >>>
 
