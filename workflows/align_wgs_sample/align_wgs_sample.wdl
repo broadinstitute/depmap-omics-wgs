@@ -38,9 +38,16 @@ struct FastqSingleRecord {
 workflow align_wgs_sample {
     input {
         String sample_id
-        String input_type # "CRAM" or "BAM"
-        File input_cram_bam
-        File input_crai_bai
+        String input_type # "CRAM", "BAM", or "FASTQ"
+        File? input_cram_bam
+        File? input_crai_bai
+        Array[File]? fastqs_pe_forward
+        Array[File]? fastqs_pe_reverse
+        Array[String]? fastqs_pe_readgroup
+        Array[String]? fastqs_pe_readgroup_id
+        Array[File]? fastqs_se
+        Array[String]? fastqs_se_readgroup
+        Array[String]? fastqs_se_readgroup_id
         File? delivery_ref_fasta
         File? delivery_ref_fasta_index
         File? output_map
@@ -66,92 +73,156 @@ workflow align_wgs_sample {
         File? ref_alt
     }
 
-    call ToUbams.CramToUnmappedBams {
-        input:
-            input_type = input_type,
-            input_cram_bam = input_cram_bam,
-            input_crai_bai = input_crai_bai,
-            ref_fasta = select_first([delivery_ref_fasta, ref_fasta]),
-            ref_fasta_index = select_first([delivery_ref_fasta_index, ref_fasta_index]),
-            output_map = output_map,
-            unmapped_bam_suffix = unmapped_bam_suffix
-    }
-
-    scatter (ubam in CramToUnmappedBams.unmapped_bams) {
-        call bam_readgroup_to_contents {
-            input: bam = ubam
-        }
-
-        call biobambam_bamtofastq {
-            input: filename = ubam
-        }
-    }
-
-    Array[Object] readgroups = flatten(bam_readgroup_to_contents.readgroups)
-
-    Array[File] fastq1 = flatten(biobambam_bamtofastq.output_fastq1)
-    Array[File] fastq2 = flatten(biobambam_bamtofastq.output_fastq2)
-    Array[File] fastq_o1 = flatten(biobambam_bamtofastq.output_fastq_o1)
-    Array[File] fastq_o2 = flatten(biobambam_bamtofastq.output_fastq_o2)
-    Array[File] fastq_s = flatten(biobambam_bamtofastq.output_fastq_s)
-
-    Int pe_count = length(fastq1)
-    Int o1_count = length(fastq_o1)
-    Int o2_count = length(fastq_o2)
-    Int s_count = length(fastq_s)
-
-    if (pe_count > 0) {
-        call emit_pe_records {
+    if (input_type == "BAM" || input_type == "CRAM") {
+        call ToUbams.CramToUnmappedBams {
             input:
-                fastq1_files = fastq1,
-                fastq2_files = fastq2,
-                readgroups = readgroups
+                input_type = input_type,
+                input_cram_bam = select_first([input_cram_bam]),
+                input_crai_bai = select_first([input_crai_bai]),
+                ref_fasta = select_first([delivery_ref_fasta, ref_fasta]),
+                ref_fasta_index = select_first([delivery_ref_fasta_index, ref_fasta_index]),
+                output_map = output_map,
+                unmapped_bam_suffix = unmapped_bam_suffix
         }
 
-        scatter (pe_record in emit_pe_records.fastq_pair_records) {
-            call bwa_pe {
+        scatter (ubam in CramToUnmappedBams.unmapped_bams) {
+            call bam_readgroup_to_contents {
+                input: bam = ubam
+            }
+
+            call biobambam_bamtofastq {
+                input: filename = ubam
+            }
+        }
+
+        Array[Object] readgroups = flatten(bam_readgroup_to_contents.readgroups)
+
+        Array[File] fastq1 = flatten(biobambam_bamtofastq.output_fastq1)
+        Array[File] fastq2 = flatten(biobambam_bamtofastq.output_fastq2)
+        Array[File] fastq_o1 = flatten(biobambam_bamtofastq.output_fastq_o1)
+        Array[File] fastq_o2 = flatten(biobambam_bamtofastq.output_fastq_o2)
+        Array[File] fastq_s = flatten(biobambam_bamtofastq.output_fastq_s)
+
+        Int pe_count = length(fastq1)
+        Int o1_count = length(fastq_o1)
+        Int o2_count = length(fastq_o2)
+        Int s_count = length(fastq_s)
+
+        if (pe_count > 0) {
+            call emit_pe_records {
                 input:
-                    fastq_record = pe_record,
-                    ref_fasta = ref_fasta,
-                    ref_fasta_index = ref_fasta_index,
-                    ref_dict = ref_dict,
-                    ref_amb = ref_amb,
-                    ref_ann = ref_ann,
-                    ref_bwt = ref_bwt,
-                    ref_pac = ref_pac,
-                    ref_sa = ref_sa,
-                    ref_alt = ref_alt
+                    fastq1_files = fastq1,
+                    fastq2_files = fastq2,
+                    readgroups = readgroups
+            }
+
+            scatter (pe_record in emit_pe_records.fastq_pair_records) {
+                call bwa_pe {
+                    input:
+                        fastq_record = pe_record,
+                        ref_fasta = ref_fasta,
+                        ref_fasta_index = ref_fasta_index,
+                        ref_dict = ref_dict,
+                        ref_amb = ref_amb,
+                        ref_ann = ref_ann,
+                        ref_bwt = ref_bwt,
+                        ref_pac = ref_pac,
+                        ref_sa = ref_sa,
+                        ref_alt = ref_alt
+                }
+            }
+        }
+
+        if (o1_count + o2_count + s_count > 0) {
+            call emit_se_records {
+                input:
+                    fastq_o1_files = fastq_o1,
+                    fastq_o2_files = fastq_o2,
+                    fastq_s_files = fastq_s,
+                    readgroups = readgroups
+            }
+
+            scatter (se_record in emit_se_records.fastq_single_records) {
+                call bwa_se {
+                    input:
+                        fastq_record = se_record,
+                        ref_fasta = ref_fasta,
+                        ref_fasta_index = ref_fasta_index,
+                        ref_dict = ref_dict,
+                        ref_amb = ref_amb,
+                        ref_ann = ref_ann,
+                        ref_bwt = ref_bwt,
+                        ref_pac = ref_pac,
+                        ref_sa = ref_sa,
+                        ref_alt = ref_alt
+                }
             }
         }
     }
 
-    if (o1_count + o2_count + s_count > 0) {
-        call emit_se_records {
-            input:
-                fastq_o1_files = fastq_o1,
-                fastq_o2_files = fastq_o2,
-                fastq_s_files = fastq_s,
-                readgroups = readgroups
+    if (input_type == "FASTQ") {
+        Int fastqs_pe_count = length(select_first([fastqs_pe_forward]))
+
+        if (fastqs_pe_count > 0) {
+            call emit_fastq_pe_records {
+                input:
+                    fastqs_pe_forward = select_first([fastqs_pe_forward]),
+                    fastqs_pe_reverse = select_first([fastqs_pe_reverse]),
+                    fastqs_pe_readgroup = select_first([fastqs_pe_readgroup]),
+                    fastqs_pe_readgroup_id = select_first([fastqs_pe_readgroup_id])
+            }
+
+            scatter (pe_record in emit_fastq_pe_records.fastq_pair_records) {
+                call bwa_pe as fastq_bwa_pe {
+                    input:
+                        fastq_record = pe_record,
+                        ref_fasta = ref_fasta,
+                        ref_fasta_index = ref_fasta_index,
+                        ref_dict = ref_dict,
+                        ref_amb = ref_amb,
+                        ref_ann = ref_ann,
+                        ref_bwt = ref_bwt,
+                        ref_pac = ref_pac,
+                        ref_sa = ref_sa,
+                        ref_alt = ref_alt
+                }
+            }
         }
 
-        scatter (se_record in emit_se_records.fastq_single_records) {
-            call bwa_se {
+        Int fastqs_se_count = length(select_first([fastqs_se]))
+
+        if (fastqs_se_count > 0) {
+            call emit_fastqs_se_records {
                 input:
-                    fastq_record = se_record,
-                    ref_fasta = ref_fasta,
-                    ref_fasta_index = ref_fasta_index,
-                    ref_dict = ref_dict,
-                    ref_amb = ref_amb,
-                    ref_ann = ref_ann,
-                    ref_bwt = ref_bwt,
-                    ref_pac = ref_pac,
-                    ref_sa = ref_sa,
-                    ref_alt = ref_alt
+                    fastqs_se = select_first([fastqs_se]),
+                    fastqs_se_readgroup = select_first([fastqs_se_readgroup]),
+                    fastqs_se_readgroup_id = select_first([fastqs_se_readgroup_id])
+            }
+
+            scatter (se_record in emit_fastqs_se_records.fastq_single_records) {
+                call bwa_se as fastq_bwa_se {
+                    input:
+                        fastq_record = se_record,
+                        ref_fasta = ref_fasta,
+                        ref_fasta_index = ref_fasta_index,
+                        ref_dict = ref_dict,
+                        ref_amb = ref_amb,
+                        ref_ann = ref_ann,
+                        ref_bwt = ref_bwt,
+                        ref_pac = ref_pac,
+                        ref_sa = ref_sa,
+                        ref_alt = ref_alt
+                }
             }
         }
     }
 
-    Array[File] aligned_bams = flatten([select_first([bwa_pe.bam, []]), select_first([bwa_se.bam, []])])
+    Array[File] aligned_bams = flatten([
+        select_first([bwa_pe.bam, []]),
+        select_first([bwa_se.bam, []]),
+        select_first([fastq_bwa_pe.bam, []]),
+        select_first([fastq_bwa_se.bam, []]),
+    ])
 
     call picard_markduplicates {
         input:
@@ -179,14 +250,16 @@ workflow align_wgs_sample {
     }
 
     if (run_bqsr) {
-        call check_bqsr_and_oq_tags {
-            input:
-                bam = input_cram_bam,
-                bai = input_crai_bai,
-                ref_fasta = ref_fasta
+        if (input_type == "BAM" || input_type == "CRAM") {
+            call check_bqsr_and_oq_tags {
+                input:
+                    bam = select_first([input_cram_bam]),
+                    bai = select_first([input_crai_bai]),
+                    ref_fasta = ref_fasta
+            }
         }
 
-        if (!check_bqsr_and_oq_tags.bqsr_performed || (rerun_bqsr && check_bqsr_and_oq_tags.has_oq_tags)) {
+        if (input_type == "FASTQ" || !check_bqsr_and_oq_tags.bqsr_performed || (rerun_bqsr && check_bqsr_and_oq_tags.has_oq_tags)) {
             call CreateSequenceGroupingTSV {
                 input:
                     ref_dict = ref_dict
@@ -519,6 +592,115 @@ task emit_se_records {
         docker: "python:3.8-slim"
         memory: mem + " MiB"
         disks: "local-disk " + disk_space + " SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+}
+
+task emit_fastq_pe_records {
+    input {
+        Array[File] fastqs_pe_forward
+        Array[File] fastqs_pe_reverse
+        Array[String] fastqs_pe_readgroup
+        Array[String] fastqs_pe_readgroup_id
+
+        # any linux image works here
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools"
+        String docker_image_hash_or_tag = ":production"
+        Int mem_gb = 2
+        Int cpu = 1
+        Int preemptible = 2
+        Int max_retries = 1
+        Int additional_disk_gb = 0
+        Int disk_space = 10 # GB
+    }
+
+    parameter_meta {
+        fastqs_pe_forward: { localization_optional: true }
+        fastqs_pe_reverse: { localization_optional: true }
+    }
+
+    command <<<
+        set -euo pipefail
+
+        # Write header
+        printf "forward_fastq\treverse_fastq\treadgroup\treadgroup_id\n" > records.tsv
+
+        # Assume all arrays have the same length.
+        len=${#fastqs_pe_forward[@]}
+
+        for ((i=0; i<len; i++)); do
+            fwd="${fastqs_pe_forward[$i]}"
+            rev="${fastqs_pe_reverse[$i]}"
+            rg="${fastqs_pe_readgroup[$i]}"
+            rgid="${fastqs_pe_readgroup_id[$i]}"
+
+            printf "%s\t%s\t%s\t%s\n" "$fwd" "$rev" "$rg" "$rgid" >> records.tsv
+        done
+    >>>
+
+    output {
+        Array[FastqPairRecord] fastq_pair_records = read_objects("records.tsv")
+    }
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
+        preemptible: preemptible
+        maxRetries: max_retries
+        cpu: cpu
+    }
+}
+
+task emit_fastqs_se_records {
+    input {
+        Array[File] fastqs_se
+        Array[String] fastqs_se_readgroup
+        Array[String] fastqs_se_readgroup_id
+
+        # any linux image works here
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools"
+        String docker_image_hash_or_tag = ":production"
+        Int mem_gb = 2
+        Int cpu = 1
+        Int preemptible = 2
+        Int max_retries = 1
+        Int additional_disk_gb = 0
+        Int disk_space = 10 # GB
+    }
+
+    parameter_meta {
+        fastqs_se: { localization_optional: true }
+    }
+
+    command <<<
+        set -euo pipefail
+
+        # Write header
+        printf "fastq\treadgroup\treadgroup_id\n" > records.tsv
+
+        # Assume all arrays have the same length.
+        len=${#fastqs_se[@]}
+
+        for ((i=0; i<len; i++)); do
+            fq="${fastqs_se[$i]}"
+            rg="${fastqs_se_readgroup[$i]}"
+            rgid="${fastqs_se_readgroup_id[$i]}"
+
+            printf "%s\t%s\t%s\n" "$fq" "$rg" "$rgid" >> records.tsv
+        done
+    >>>
+
+    output {
+        Array[FastqSingleRecord] fastq_single_records = read_objects("records.tsv")
+    }
+
+    runtime {
+        docker: "~{docker_image}~{docker_image_hash_or_tag}"
+        memory: "~{mem_gb} GB"
+        disks: "local-disk ~{disk_space} SSD"
         preemptible: preemptible
         maxRetries: max_retries
         cpu: cpu
