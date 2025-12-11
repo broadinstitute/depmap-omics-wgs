@@ -111,7 +111,7 @@ def make_readgroup_header(sample_id: str, fastq_url: str) -> str:
     rg_pu = f"{flowcell}.L{lane}.{index_seq}"
 
     # Construct BWA-ready @RG line (tabs required)
-    rg = f"@RG\tID:{rg_id}\tSM:{sample_id}\tPU:{rg_pu}\tPL:ILLUMINA"
+    rg = f"@RG\tID:{rg_id}\tSM:{sample_id}\tPU:{rg_pu}\tPL:ILLUMINA\tCN:STJUDE\tPM:NovaSeq"
     return rg
 
 
