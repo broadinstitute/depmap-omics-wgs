@@ -115,52 +115,52 @@ def make_readgroup_header(sample_id: str, fastq_url: str) -> str:
     return rg
 
 
-df = list_blobs(bucket_name="depmap-stjude")
-assert bool(~df["size"].duplicated().any())
-df = df.loc[:, ["url"]]
-
-df["name"] = df["url"].str.split("/").str.get(-1)
-df["sample_id"] = df["name"].str.extract(r"^\d+_(.+)_S\d+_L\d+_R\d+_\d+.fastq.gz$")
-
-df["rg"] = df.apply(lambda x: make_readgroup_header(x["sample_id"], x["url"]), axis=1)
-
-df.to_parquet("./data/sj_fastqs.parquet", index=False)
+# df = list_blobs(bucket_name="depmap-stjude")
+# assert bool(~df["size"].duplicated().any())
+# df = df.loc[:, ["url"]]
+#
+# df["name"] = df["url"].str.split("/").str.get(-1)
+# df["sample_id"] = df["name"].str.extract(r"^\d+_(.+)_S\d+_L\d+_R\d+_\d+.fastq.gz$")
+#
+# df["rg"] = df.apply(lambda x: make_readgroup_header(x["sample_id"], x["url"]), axis=1)
+#
+# df.to_parquet("./data/sj_fastqs.parquet", index=False)
 df = pd.read_parquet("./data/sj_fastqs.parquet")
 
 df["strand"] = "forward"
 df.loc[df["name"].str.contains("_R2_"), "strand"] = "reverse"
 
 
-def make_sample(g: pd.DataFrame) -> dict[str, Any]:
-    return {
-        "readgroup_id": g["sample_id"].iloc[0],
-        "readgroup": g["rg"].str.replace("\t", "\\t").iloc[0],
-        "forward_fastq": g.loc[g["strand"].eq("forward"), "url"].squeeze(),
-        "reverse_fastq": g.loc[g["strand"].eq("reverse"), "url"].squeeze(),
-    }
+samples_arr = []
+
+for sample_id in df["sample_id"].unique():
+    df_sub = df.loc[df["sample_id"].eq(sample_id)]
+
+    for rg in df_sub["rg"].unique():
+        df_sub_rg = df_sub.loc[df_sub["rg"].eq(rg)]
+        assert len(df_sub_rg) == 2
+        assert bool(df_sub_rg[["sample_id", "rg"]].nunique().eq(1).all())
+
+        rec = {
+            "sample_id": sample_id,
+            "readgroup_id": sample_id,
+            "readgroup": df_sub_rg["rg"].str.replace("\t", "\\t").iloc[0],
+            "forward_fastq": df_sub_rg.loc[
+                df_sub_rg["strand"].eq("forward"), "url"
+            ].squeeze(),
+            "reverse_fastq": df_sub_rg.loc[
+                df_sub_rg["strand"].eq("reverse"), "url"
+            ].squeeze(),
+        }
+
+        samples_arr.append(rec)
 
 
-samples = df.copy()
-
-samples = samples.merge(
-    samples.groupby(["sample_id", "rg"])
-    .apply(make_sample)
-    .to_frame(name="fastqs_pe")
-    .reset_index(),
-    how="inner",
-    on=["sample_id", "rg"],
-)[["sample_id", "fastqs_pe"]]
-
-samples = pd_flatten(samples)
+samples = pd.DataFrame(samples_arr)
 
 samples = (
     samples.groupby("sample_id")[
-        [
-            "fastqs_pe__readgroup_id",
-            "fastqs_pe__readgroup",
-            "fastqs_pe__forward_fastq",
-            "fastqs_pe__reverse_fastq",
-        ]
+        ["readgroup_id", "readgroup", "forward_fastq", "reverse_fastq"]
     ]
     .agg(lambda x: json.dumps(list(x)))
     .reset_index()
@@ -196,10 +196,10 @@ samples.insert(0, "entity:sample_id", sample_ids)
 
 samples = samples.rename(
     columns={
-        "fastqs_pe__readgroup_id": "fastqs_pe_readgroup_id",
-        "fastqs_pe__readgroup": "fastqs_pe_readgroup",
-        "fastqs_pe__forward_fastq": "fastqs_pe_forward",
-        "fastqs_pe__reverse_fastq": "fastqs_pe_reverse",
+        "readgroup_id": "fastqs_pe_readgroup_id",
+        "readgroup": "fastqs_pe_readgroup",
+        "forward_fastq": "fastqs_pe_forward",
+        "reverse_fastq": "fastqs_pe_reverse",
     }
 )
 
