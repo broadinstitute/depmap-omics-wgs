@@ -738,8 +738,8 @@ task bwa_pe {
         File ref_pac
         File ref_sa
         File? ref_alt
-        Int cpu = 8
-        Int preemptible = 2
+        Int cpu = 16
+        Int preemptible = 1
         Int max_retries = 1
         Int additional_memory_mb = 0
         Int additional_disk_gb = 0
@@ -750,9 +750,9 @@ task bwa_pe {
     String readgroup = fastq_record.readgroup
     String outbam = fastq_record.readgroup_id + ".bam"
     Float ref_size = size([ref_fasta, ref_dict, ref_amb, ref_ann, ref_bwt, ref_pac, ref_sa, ref_fasta_index], "GiB")
-    Int computed_mem = 8000 + ceil(size([fastq1, fastq2], "MiB") * 0.1) + additional_memory_mb
-    Int mem = if computed_mem < 16000 then computed_mem else 16000
-    Int disk_space = ceil((size([fastq1, fastq2], "GiB") * 2) + ref_size) + 10 + additional_disk_gb
+    Int computed_mem = 8000 + ceil(size([fastq1, fastq2], "MiB") * 0.2) + additional_memory_mb
+    Int mem = if computed_mem < 24000 then computed_mem else 24000
+    Int disk_space = ceil((size([fastq1, fastq2], "GiB") * 5) + ref_size) + 20 + additional_disk_gb
 
     command <<<
         set -euo pipefail
@@ -810,7 +810,7 @@ task bwa_se {
     Float ref_size = size([ref_fasta, ref_dict, ref_amb, ref_ann, ref_bwt, ref_pac, ref_sa, ref_fasta_index], "GiB")
     Int computed_mem = 8000 + ceil(size(fastq, "MiB") * 0.1) + additional_memory_mb
     Int mem = if computed_mem < 16000 then computed_mem else 16000
-    Int disk_space = ceil((size(fastq, "GiB") * 2) + ref_size) + 10 + additional_disk_gb
+    Int disk_space = ceil((size(fastq, "GiB") * 4) + ref_size) + 20 + additional_disk_gb
 
     command <<<
         set -euo pipefail
