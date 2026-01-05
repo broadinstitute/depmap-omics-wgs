@@ -477,8 +477,6 @@ class omics_profile_select_column(str, Enum):
     blacklist_omics = "blacklist_omics"
     blacklist_reason = "blacklist_reason"
     bsp_sample_id_csv = "bsp_sample_id_csv"
-    cell_available = "cell_available"
-    cell_pellet_needed = "cell_pellet_needed"
     collaborator_sample_id = "collaborator_sample_id"
     consortium_release_date = "consortium_release_date"
     consortium_retracted_date = "consortium_retracted_date"
@@ -488,7 +486,6 @@ class omics_profile_select_column(str, Enum):
     destination_datasets = "destination_datasets"
     drop_reason = "drop_reason"
     eta_for_omics_completion = "eta_for_omics_completion"
-    extraction_needed = "extraction_needed"
     ibm_release_date = "ibm_release_date"
     id = "id"
     internal_release_date = "internal_release_date"
@@ -497,17 +494,16 @@ class omics_profile_select_column(str, Enum):
     kit_id = "kit_id"
     lcset_protocol = "lcset_protocol"
     lcsets = "lcsets"
-    line_received_by_gp = "line_received_by_gp"
-    line_sent_to_gp = "line_sent_to_gp"
     model_condition_id = "model_condition_id"
+    olink_dilution = "olink_dilution"
     omics_order_date = "omics_order_date"
     omics_profile_flagship = "omics_profile_flagship"
     omics_profile_funding_source = "omics_profile_funding_source"
     omics_return_date = "omics_return_date"
+    other_id = "other_id"
     pdo_title = "pdo_title"
     pdoid = "pdoid"
     pf_bases_bc = "pf_bases_bc"
-    prioritized = "prioritized"
     product = "product"
     product_goal = "product_goal"
     profile_source = "profile_source"
@@ -516,9 +512,6 @@ class omics_profile_select_column(str, Enum):
     public_release_date = "public_release_date"
     public_retracted_date = "public_retracted_date"
     quote_to_bill = "quote_to_bill"
-    registered = "registered"
-    resubmit_for_extraction = "resubmit_for_extraction"
-    rna_delivery_date = "rna_delivery_date"
     sample_coverage_normalized = "sample_coverage_normalized"
     sample_coverage_rounded = "sample_coverage_rounded"
     sample_is_on_risk = "sample_is_on_risk"
@@ -530,7 +523,6 @@ class omics_profile_select_column(str, Enum):
     status = "status"
     updated_at = "updated_at"
     version = "version"
-    wgs_delivery_date = "wgs_delivery_date"
     workspace = "workspace"
 
 
@@ -538,12 +530,6 @@ class omics_profile_select_column_omics_profile_aggregate_bool_exp_bool_and_argu
     str, Enum
 ):
     blacklist_omics = "blacklist_omics"
-    cell_available = "cell_available"
-    cell_pellet_needed = "cell_pellet_needed"
-    extraction_needed = "extraction_needed"
-    prioritized = "prioritized"
-    registered = "registered"
-    resubmit_for_extraction = "resubmit_for_extraction"
     sample_is_on_risk = "sample_is_on_risk"
     shared_to_dbgap = "shared_to_dbgap"
 
@@ -552,12 +538,6 @@ class omics_profile_select_column_omics_profile_aggregate_bool_exp_bool_or_argum
     str, Enum
 ):
     blacklist_omics = "blacklist_omics"
-    cell_available = "cell_available"
-    cell_pellet_needed = "cell_pellet_needed"
-    extraction_needed = "extraction_needed"
-    prioritized = "prioritized"
-    registered = "registered"
-    resubmit_for_extraction = "resubmit_for_extraction"
     sample_is_on_risk = "sample_is_on_risk"
     shared_to_dbgap = "shared_to_dbgap"
 
@@ -571,8 +551,6 @@ class omics_profile_update_column(str, Enum):
     blacklist_omics = "blacklist_omics"
     blacklist_reason = "blacklist_reason"
     bsp_sample_id_csv = "bsp_sample_id_csv"
-    cell_available = "cell_available"
-    cell_pellet_needed = "cell_pellet_needed"
     collaborator_sample_id = "collaborator_sample_id"
     consortium_release_date = "consortium_release_date"
     consortium_retracted_date = "consortium_retracted_date"
@@ -582,7 +560,6 @@ class omics_profile_update_column(str, Enum):
     destination_datasets = "destination_datasets"
     drop_reason = "drop_reason"
     eta_for_omics_completion = "eta_for_omics_completion"
-    extraction_needed = "extraction_needed"
     ibm_release_date = "ibm_release_date"
     id = "id"
     internal_release_date = "internal_release_date"
@@ -591,17 +568,16 @@ class omics_profile_update_column(str, Enum):
     kit_id = "kit_id"
     lcset_protocol = "lcset_protocol"
     lcsets = "lcsets"
-    line_received_by_gp = "line_received_by_gp"
-    line_sent_to_gp = "line_sent_to_gp"
     model_condition_id = "model_condition_id"
+    olink_dilution = "olink_dilution"
     omics_order_date = "omics_order_date"
     omics_profile_flagship = "omics_profile_flagship"
     omics_profile_funding_source = "omics_profile_funding_source"
     omics_return_date = "omics_return_date"
+    other_id = "other_id"
     pdo_title = "pdo_title"
     pdoid = "pdoid"
     pf_bases_bc = "pf_bases_bc"
-    prioritized = "prioritized"
     product = "product"
     product_goal = "product_goal"
     profile_source = "profile_source"
@@ -610,9 +586,6 @@ class omics_profile_update_column(str, Enum):
     public_release_date = "public_release_date"
     public_retracted_date = "public_retracted_date"
     quote_to_bill = "quote_to_bill"
-    registered = "registered"
-    resubmit_for_extraction = "resubmit_for_extraction"
-    rna_delivery_date = "rna_delivery_date"
     sample_coverage_normalized = "sample_coverage_normalized"
     sample_coverage_rounded = "sample_coverage_rounded"
     sample_is_on_risk = "sample_is_on_risk"
@@ -624,7 +597,6 @@ class omics_profile_update_column(str, Enum):
     status = "status"
     updated_at = "updated_at"
     version = "version"
-    wgs_delivery_date = "wgs_delivery_date"
     workspace = "workspace"
 
 
@@ -906,6 +878,7 @@ class screen_sequence_select_column(str, Enum):
     cds_exclude = "cds_exclude"
     cds_seq_qc = "cds_seq_qc"
     comments = "comments"
+    cpd = "cpd"
     created_at = "created_at"
     days = "days"
     directory = "directory"
@@ -936,6 +909,7 @@ class screen_sequence_update_column(str, Enum):
     cds_exclude = "cds_exclude"
     cds_seq_qc = "cds_seq_qc"
     comments = "comments"
+    cpd = "cpd"
     created_at = "created_at"
     days = "days"
     directory = "directory"
@@ -1198,103 +1172,3 @@ class str_profile_update_column(str, Enum):
     tpox = "tpox"
     updated_at = "updated_at"
     vwa = "vwa"
-
-
-class task_entity_constraint(str, Enum):
-    task_entity_pkey = "task_entity_pkey"
-
-
-class task_entity_select_column(str, Enum):
-    created_at = "created_at"
-    id = "id"
-    omics_sequencing_id = "omics_sequencing_id"
-    updated_at = "updated_at"
-
-
-class task_entity_update_column(str, Enum):
-    created_at = "created_at"
-    id = "id"
-    omics_sequencing_id = "omics_sequencing_id"
-    updated_at = "updated_at"
-
-
-class task_result_constraint(str, Enum):
-    task_result_pkey = "task_result_pkey"
-
-
-class task_result_select_column(str, Enum):
-    completed_at = "completed_at"
-    crc32c_hash = "crc32c_hash"
-    created_at = "created_at"
-    format = "format"
-    id = "id"
-    label = "label"
-    size = "size"
-    task_entity_id = "task_entity_id"
-    terra_entity_name = "terra_entity_name"
-    terra_entity_type = "terra_entity_type"
-    terra_method_config_name = "terra_method_config_name"
-    terra_method_config_namespace = "terra_method_config_namespace"
-    terra_submission_id = "terra_submission_id"
-    terra_sync_id = "terra_sync_id"
-    terra_workflow_id = "terra_workflow_id"
-    terra_workflow_inputs = "terra_workflow_inputs"
-    terra_workflow_root_dir = "terra_workflow_root_dir"
-    terra_workspace_id = "terra_workspace_id"
-    terra_workspace_name = "terra_workspace_name"
-    terra_workspace_namespace = "terra_workspace_namespace"
-    updated_at = "updated_at"
-    url = "url"
-    value = "value"
-    workflow_name = "workflow_name"
-    workflow_source_url = "workflow_source_url"
-    workflow_version = "workflow_version"
-
-
-class task_result_update_column(str, Enum):
-    completed_at = "completed_at"
-    crc32c_hash = "crc32c_hash"
-    created_at = "created_at"
-    format = "format"
-    id = "id"
-    label = "label"
-    size = "size"
-    task_entity_id = "task_entity_id"
-    terra_entity_name = "terra_entity_name"
-    terra_entity_type = "terra_entity_type"
-    terra_method_config_name = "terra_method_config_name"
-    terra_method_config_namespace = "terra_method_config_namespace"
-    terra_submission_id = "terra_submission_id"
-    terra_sync_id = "terra_sync_id"
-    terra_workflow_id = "terra_workflow_id"
-    terra_workflow_inputs = "terra_workflow_inputs"
-    terra_workflow_root_dir = "terra_workflow_root_dir"
-    terra_workspace_id = "terra_workspace_id"
-    terra_workspace_name = "terra_workspace_name"
-    terra_workspace_namespace = "terra_workspace_namespace"
-    updated_at = "updated_at"
-    url = "url"
-    value = "value"
-    workflow_name = "workflow_name"
-    workflow_source_url = "workflow_source_url"
-    workflow_version = "workflow_version"
-
-
-class terra_sync_constraint(str, Enum):
-    terra_sync_pkey = "terra_sync_pkey"
-
-
-class terra_sync_select_column(str, Enum):
-    created_at = "created_at"
-    id = "id"
-    terra_workspace_name = "terra_workspace_name"
-    terra_workspace_namespace = "terra_workspace_namespace"
-    updated_at = "updated_at"
-
-
-class terra_sync_update_column(str, Enum):
-    created_at = "created_at"
-    id = "id"
-    terra_workspace_name = "terra_workspace_name"
-    terra_workspace_namespace = "terra_workspace_namespace"
-    updated_at = "updated_at"

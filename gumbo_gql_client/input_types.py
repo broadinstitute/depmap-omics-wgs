@@ -76,14 +76,6 @@ from .enums import (
     str_profile_failure_str_profile_comparison_update_column,
     str_profile_failure_update_column,
     str_profile_update_column,
-    task_entity_constraint,
-    task_entity_select_column,
-    task_entity_update_column,
-    task_result_constraint,
-    task_result_select_column,
-    task_result_update_column,
-    terra_sync_constraint,
-    terra_sync_update_column,
 )
 
 
@@ -2255,8 +2247,6 @@ class omics_profile_bool_exp(BaseModel):
     blacklist_omics: Optional["Boolean_comparison_exp"] = None
     blacklist_reason: Optional["String_comparison_exp"] = None
     bsp_sample_id_csv: Optional["String_comparison_exp"] = None
-    cell_available: Optional["Boolean_comparison_exp"] = None
-    cell_pellet_needed: Optional["Boolean_comparison_exp"] = None
     collaborator_sample_id: Optional["String_comparison_exp"] = None
     consortium_release_date: Optional["date_comparison_exp"] = None
     consortium_retracted_date: Optional["date_comparison_exp"] = None
@@ -2266,7 +2256,6 @@ class omics_profile_bool_exp(BaseModel):
     destination_datasets: Optional["String_comparison_exp"] = None
     drop_reason: Optional["String_comparison_exp"] = None
     eta_for_omics_completion: Optional["date_comparison_exp"] = None
-    extraction_needed: Optional["Boolean_comparison_exp"] = None
     ibm_release_date: Optional["date_comparison_exp"] = None
     id: Optional["String_comparison_exp"] = None
     internal_release_date: Optional["date_comparison_exp"] = None
@@ -2275,20 +2264,19 @@ class omics_profile_bool_exp(BaseModel):
     kit_id: Optional["String_comparison_exp"] = None
     lcset_protocol: Optional["String_comparison_exp"] = None
     lcsets: Optional["String_comparison_exp"] = None
-    line_received_by_gp: Optional["date_comparison_exp"] = None
-    line_sent_to_gp: Optional["date_comparison_exp"] = None
     model_condition: Optional["model_condition_bool_exp"] = None
     model_condition_id: Optional["String_comparison_exp"] = None
+    olink_dilution: Optional["String_comparison_exp"] = None
     omics_order_date: Optional["date_comparison_exp"] = None
     omics_profile_flagship: Optional["String_comparison_exp"] = None
     omics_profile_funding_source: Optional["String_comparison_exp"] = None
     omics_return_date: Optional["date_comparison_exp"] = None
     omics_sequencings: Optional["omics_sequencing_bool_exp"] = None
     omics_sequencings_aggregate: Optional["omics_sequencing_aggregate_bool_exp"] = None
+    other_id: Optional["String_comparison_exp"] = None
     pdo_title: Optional["String_comparison_exp"] = None
     pdoid: Optional["String_comparison_exp"] = None
     pf_bases_bc: Optional["String_comparison_exp"] = None
-    prioritized: Optional["Boolean_comparison_exp"] = None
     product: Optional["String_comparison_exp"] = None
     product_goal: Optional["String_comparison_exp"] = None
     profile_source: Optional["String_comparison_exp"] = None
@@ -2297,9 +2285,6 @@ class omics_profile_bool_exp(BaseModel):
     public_release_date: Optional["date_comparison_exp"] = None
     public_retracted_date: Optional["date_comparison_exp"] = None
     quote_to_bill: Optional["String_comparison_exp"] = None
-    registered: Optional["Boolean_comparison_exp"] = None
-    resubmit_for_extraction: Optional["Boolean_comparison_exp"] = None
-    rna_delivery_date: Optional["date_comparison_exp"] = None
     sample_coverage_normalized: Optional["String_comparison_exp"] = None
     sample_coverage_rounded: Optional["String_comparison_exp"] = None
     sample_is_on_risk: Optional["Boolean_comparison_exp"] = None
@@ -2311,7 +2296,6 @@ class omics_profile_bool_exp(BaseModel):
     status: Optional["String_comparison_exp"] = None
     updated_at: Optional["timestamptz_comparison_exp"] = None
     version: Optional["String_comparison_exp"] = None
-    wgs_delivery_date: Optional["date_comparison_exp"] = None
     workspace: Optional["String_comparison_exp"] = None
 
 
@@ -2324,8 +2308,6 @@ class omics_profile_insert_input(BaseModel):
     blacklist_omics: Optional[bool] = None
     blacklist_reason: Optional[str] = None
     bsp_sample_id_csv: Optional[str] = None
-    cell_available: Optional[bool] = None
-    cell_pellet_needed: Optional[bool] = None
     collaborator_sample_id: Optional[str] = None
     consortium_release_date: Optional[Any] = None
     consortium_retracted_date: Optional[Any] = None
@@ -2335,7 +2317,6 @@ class omics_profile_insert_input(BaseModel):
     destination_datasets: Optional[str] = None
     drop_reason: Optional[str] = None
     eta_for_omics_completion: Optional[Any] = None
-    extraction_needed: Optional[bool] = None
     ibm_release_date: Optional[Any] = None
     id: Optional[str] = None
     internal_release_date: Optional[Any] = None
@@ -2344,19 +2325,18 @@ class omics_profile_insert_input(BaseModel):
     kit_id: Optional[str] = None
     lcset_protocol: Optional[str] = None
     lcsets: Optional[str] = None
-    line_received_by_gp: Optional[Any] = None
-    line_sent_to_gp: Optional[Any] = None
     model_condition: Optional["model_condition_obj_rel_insert_input"] = None
     model_condition_id: Optional[str] = None
+    olink_dilution: Optional[str] = None
     omics_order_date: Optional[Any] = None
     omics_profile_flagship: Optional[str] = None
     omics_profile_funding_source: Optional[str] = None
     omics_return_date: Optional[Any] = None
     omics_sequencings: Optional["omics_sequencing_arr_rel_insert_input"] = None
+    other_id: Optional[str] = None
     pdo_title: Optional[str] = None
     pdoid: Optional[str] = None
     pf_bases_bc: Optional[str] = None
-    prioritized: Optional[bool] = None
     product: Optional[str] = None
     product_goal: Optional[str] = None
     profile_source: Optional[str] = None
@@ -2365,9 +2345,6 @@ class omics_profile_insert_input(BaseModel):
     public_release_date: Optional[Any] = None
     public_retracted_date: Optional[Any] = None
     quote_to_bill: Optional[str] = None
-    registered: Optional[bool] = None
-    resubmit_for_extraction: Optional[bool] = None
-    rna_delivery_date: Optional[Any] = None
     sample_coverage_normalized: Optional[str] = None
     sample_coverage_rounded: Optional[str] = None
     sample_is_on_risk: Optional[bool] = None
@@ -2379,7 +2356,6 @@ class omics_profile_insert_input(BaseModel):
     status: Optional[str] = None
     updated_at: Optional[Any] = None
     version: Optional[str] = None
-    wgs_delivery_date: Optional[Any] = None
     workspace: Optional[str] = None
 
 
@@ -2408,13 +2384,13 @@ class omics_profile_max_order_by(BaseModel):
     kit_id: Optional[order_by] = None
     lcset_protocol: Optional[order_by] = None
     lcsets: Optional[order_by] = None
-    line_received_by_gp: Optional[order_by] = None
-    line_sent_to_gp: Optional[order_by] = None
     model_condition_id: Optional[order_by] = None
+    olink_dilution: Optional[order_by] = None
     omics_order_date: Optional[order_by] = None
     omics_profile_flagship: Optional[order_by] = None
     omics_profile_funding_source: Optional[order_by] = None
     omics_return_date: Optional[order_by] = None
+    other_id: Optional[order_by] = None
     pdo_title: Optional[order_by] = None
     pdoid: Optional[order_by] = None
     pf_bases_bc: Optional[order_by] = None
@@ -2426,7 +2402,6 @@ class omics_profile_max_order_by(BaseModel):
     public_release_date: Optional[order_by] = None
     public_retracted_date: Optional[order_by] = None
     quote_to_bill: Optional[order_by] = None
-    rna_delivery_date: Optional[order_by] = None
     sample_coverage_normalized: Optional[order_by] = None
     sample_coverage_rounded: Optional[order_by] = None
     sample_type: Optional[order_by] = None
@@ -2436,7 +2411,6 @@ class omics_profile_max_order_by(BaseModel):
     status: Optional[order_by] = None
     updated_at: Optional[order_by] = None
     version: Optional[order_by] = None
-    wgs_delivery_date: Optional[order_by] = None
     workspace: Optional[order_by] = None
 
 
@@ -2465,13 +2439,13 @@ class omics_profile_min_order_by(BaseModel):
     kit_id: Optional[order_by] = None
     lcset_protocol: Optional[order_by] = None
     lcsets: Optional[order_by] = None
-    line_received_by_gp: Optional[order_by] = None
-    line_sent_to_gp: Optional[order_by] = None
     model_condition_id: Optional[order_by] = None
+    olink_dilution: Optional[order_by] = None
     omics_order_date: Optional[order_by] = None
     omics_profile_flagship: Optional[order_by] = None
     omics_profile_funding_source: Optional[order_by] = None
     omics_return_date: Optional[order_by] = None
+    other_id: Optional[order_by] = None
     pdo_title: Optional[order_by] = None
     pdoid: Optional[order_by] = None
     pf_bases_bc: Optional[order_by] = None
@@ -2483,7 +2457,6 @@ class omics_profile_min_order_by(BaseModel):
     public_release_date: Optional[order_by] = None
     public_retracted_date: Optional[order_by] = None
     quote_to_bill: Optional[order_by] = None
-    rna_delivery_date: Optional[order_by] = None
     sample_coverage_normalized: Optional[order_by] = None
     sample_coverage_rounded: Optional[order_by] = None
     sample_type: Optional[order_by] = None
@@ -2493,7 +2466,6 @@ class omics_profile_min_order_by(BaseModel):
     status: Optional[order_by] = None
     updated_at: Optional[order_by] = None
     version: Optional[order_by] = None
-    wgs_delivery_date: Optional[order_by] = None
     workspace: Optional[order_by] = None
 
 
@@ -2517,8 +2489,6 @@ class omics_profile_order_by(BaseModel):
     blacklist_omics: Optional[order_by] = None
     blacklist_reason: Optional[order_by] = None
     bsp_sample_id_csv: Optional[order_by] = None
-    cell_available: Optional[order_by] = None
-    cell_pellet_needed: Optional[order_by] = None
     collaborator_sample_id: Optional[order_by] = None
     consortium_release_date: Optional[order_by] = None
     consortium_retracted_date: Optional[order_by] = None
@@ -2528,7 +2498,6 @@ class omics_profile_order_by(BaseModel):
     destination_datasets: Optional[order_by] = None
     drop_reason: Optional[order_by] = None
     eta_for_omics_completion: Optional[order_by] = None
-    extraction_needed: Optional[order_by] = None
     ibm_release_date: Optional[order_by] = None
     id: Optional[order_by] = None
     internal_release_date: Optional[order_by] = None
@@ -2537,19 +2506,18 @@ class omics_profile_order_by(BaseModel):
     kit_id: Optional[order_by] = None
     lcset_protocol: Optional[order_by] = None
     lcsets: Optional[order_by] = None
-    line_received_by_gp: Optional[order_by] = None
-    line_sent_to_gp: Optional[order_by] = None
     model_condition: Optional["model_condition_order_by"] = None
     model_condition_id: Optional[order_by] = None
+    olink_dilution: Optional[order_by] = None
     omics_order_date: Optional[order_by] = None
     omics_profile_flagship: Optional[order_by] = None
     omics_profile_funding_source: Optional[order_by] = None
     omics_return_date: Optional[order_by] = None
     omics_sequencings_aggregate: Optional["omics_sequencing_aggregate_order_by"] = None
+    other_id: Optional[order_by] = None
     pdo_title: Optional[order_by] = None
     pdoid: Optional[order_by] = None
     pf_bases_bc: Optional[order_by] = None
-    prioritized: Optional[order_by] = None
     product: Optional[order_by] = None
     product_goal: Optional[order_by] = None
     profile_source: Optional[order_by] = None
@@ -2558,9 +2526,6 @@ class omics_profile_order_by(BaseModel):
     public_release_date: Optional[order_by] = None
     public_retracted_date: Optional[order_by] = None
     quote_to_bill: Optional[order_by] = None
-    registered: Optional[order_by] = None
-    resubmit_for_extraction: Optional[order_by] = None
-    rna_delivery_date: Optional[order_by] = None
     sample_coverage_normalized: Optional[order_by] = None
     sample_coverage_rounded: Optional[order_by] = None
     sample_is_on_risk: Optional[order_by] = None
@@ -2572,7 +2537,6 @@ class omics_profile_order_by(BaseModel):
     status: Optional[order_by] = None
     updated_at: Optional[order_by] = None
     version: Optional[order_by] = None
-    wgs_delivery_date: Optional[order_by] = None
     workspace: Optional[order_by] = None
 
 
@@ -2589,8 +2553,6 @@ class omics_profile_set_input(BaseModel):
     blacklist_omics: Optional[bool] = None
     blacklist_reason: Optional[str] = None
     bsp_sample_id_csv: Optional[str] = None
-    cell_available: Optional[bool] = None
-    cell_pellet_needed: Optional[bool] = None
     collaborator_sample_id: Optional[str] = None
     consortium_release_date: Optional[Any] = None
     consortium_retracted_date: Optional[Any] = None
@@ -2600,7 +2562,6 @@ class omics_profile_set_input(BaseModel):
     destination_datasets: Optional[str] = None
     drop_reason: Optional[str] = None
     eta_for_omics_completion: Optional[Any] = None
-    extraction_needed: Optional[bool] = None
     ibm_release_date: Optional[Any] = None
     id: Optional[str] = None
     internal_release_date: Optional[Any] = None
@@ -2609,17 +2570,16 @@ class omics_profile_set_input(BaseModel):
     kit_id: Optional[str] = None
     lcset_protocol: Optional[str] = None
     lcsets: Optional[str] = None
-    line_received_by_gp: Optional[Any] = None
-    line_sent_to_gp: Optional[Any] = None
     model_condition_id: Optional[str] = None
+    olink_dilution: Optional[str] = None
     omics_order_date: Optional[Any] = None
     omics_profile_flagship: Optional[str] = None
     omics_profile_funding_source: Optional[str] = None
     omics_return_date: Optional[Any] = None
+    other_id: Optional[str] = None
     pdo_title: Optional[str] = None
     pdoid: Optional[str] = None
     pf_bases_bc: Optional[str] = None
-    prioritized: Optional[bool] = None
     product: Optional[str] = None
     product_goal: Optional[str] = None
     profile_source: Optional[str] = None
@@ -2628,9 +2588,6 @@ class omics_profile_set_input(BaseModel):
     public_release_date: Optional[Any] = None
     public_retracted_date: Optional[Any] = None
     quote_to_bill: Optional[str] = None
-    registered: Optional[bool] = None
-    resubmit_for_extraction: Optional[bool] = None
-    rna_delivery_date: Optional[Any] = None
     sample_coverage_normalized: Optional[str] = None
     sample_coverage_rounded: Optional[str] = None
     sample_is_on_risk: Optional[bool] = None
@@ -2642,7 +2599,6 @@ class omics_profile_set_input(BaseModel):
     status: Optional[str] = None
     updated_at: Optional[Any] = None
     version: Optional[str] = None
-    wgs_delivery_date: Optional[Any] = None
     workspace: Optional[str] = None
 
 
@@ -2660,8 +2616,6 @@ class omics_profile_stream_cursor_value_input(BaseModel):
     blacklist_omics: Optional[bool] = None
     blacklist_reason: Optional[str] = None
     bsp_sample_id_csv: Optional[str] = None
-    cell_available: Optional[bool] = None
-    cell_pellet_needed: Optional[bool] = None
     collaborator_sample_id: Optional[str] = None
     consortium_release_date: Optional[Any] = None
     consortium_retracted_date: Optional[Any] = None
@@ -2671,7 +2625,6 @@ class omics_profile_stream_cursor_value_input(BaseModel):
     destination_datasets: Optional[str] = None
     drop_reason: Optional[str] = None
     eta_for_omics_completion: Optional[Any] = None
-    extraction_needed: Optional[bool] = None
     ibm_release_date: Optional[Any] = None
     id: Optional[str] = None
     internal_release_date: Optional[Any] = None
@@ -2680,17 +2633,16 @@ class omics_profile_stream_cursor_value_input(BaseModel):
     kit_id: Optional[str] = None
     lcset_protocol: Optional[str] = None
     lcsets: Optional[str] = None
-    line_received_by_gp: Optional[Any] = None
-    line_sent_to_gp: Optional[Any] = None
     model_condition_id: Optional[str] = None
+    olink_dilution: Optional[str] = None
     omics_order_date: Optional[Any] = None
     omics_profile_flagship: Optional[str] = None
     omics_profile_funding_source: Optional[str] = None
     omics_return_date: Optional[Any] = None
+    other_id: Optional[str] = None
     pdo_title: Optional[str] = None
     pdoid: Optional[str] = None
     pf_bases_bc: Optional[str] = None
-    prioritized: Optional[bool] = None
     product: Optional[str] = None
     product_goal: Optional[str] = None
     profile_source: Optional[str] = None
@@ -2699,9 +2651,6 @@ class omics_profile_stream_cursor_value_input(BaseModel):
     public_release_date: Optional[Any] = None
     public_retracted_date: Optional[Any] = None
     quote_to_bill: Optional[str] = None
-    registered: Optional[bool] = None
-    resubmit_for_extraction: Optional[bool] = None
-    rna_delivery_date: Optional[Any] = None
     sample_coverage_normalized: Optional[str] = None
     sample_coverage_rounded: Optional[str] = None
     sample_is_on_risk: Optional[bool] = None
@@ -2713,7 +2662,6 @@ class omics_profile_stream_cursor_value_input(BaseModel):
     status: Optional[str] = None
     updated_at: Optional[Any] = None
     version: Optional[str] = None
-    wgs_delivery_date: Optional[Any] = None
     workspace: Optional[str] = None
 
 
@@ -2804,8 +2752,6 @@ class omics_sequencing_bool_exp(BaseModel):
     sm_id: Optional["String_comparison_exp"] = None
     source: Optional["String_comparison_exp"] = None
     stranded: Optional["Boolean_comparison_exp"] = None
-    task_entities: Optional["task_entity_bool_exp"] = None
-    task_entities_aggregate: Optional["task_entity_aggregate_bool_exp"] = None
     update_time: Optional["date_comparison_exp"] = None
     updated_at: Optional["timestamptz_comparison_exp"] = None
     version: Optional["Int_comparison_exp"] = None
@@ -2840,7 +2786,6 @@ class omics_sequencing_insert_input(BaseModel):
     sm_id: Optional[str] = None
     source: Optional[str] = None
     stranded: Optional[bool] = None
-    task_entities: Optional["task_entity_arr_rel_insert_input"] = None
     update_time: Optional[Any] = None
     updated_at: Optional[Any] = None
     version: Optional[int] = None
@@ -2923,7 +2868,6 @@ class omics_sequencing_order_by(BaseModel):
     sm_id: Optional[order_by] = None
     source: Optional[order_by] = None
     stranded: Optional[order_by] = None
-    task_entities_aggregate: Optional["task_entity_aggregate_order_by"] = None
     update_time: Optional[order_by] = None
     updated_at: Optional[order_by] = None
     version: Optional[order_by] = None
@@ -3939,6 +3883,7 @@ class screen_sequence_bool_exp(BaseModel):
     cds_exclude: Optional["String_comparison_exp"] = None
     cds_seq_qc: Optional["String_comparison_exp"] = None
     comments: Optional["String_comparison_exp"] = None
+    cpd: Optional["numeric_comparison_exp"] = None
     created_at: Optional["timestamptz_comparison_exp"] = None
     days: Optional["Int_comparison_exp"] = None
     directory: Optional["String_comparison_exp"] = None
@@ -3968,6 +3913,7 @@ class screen_sequence_bool_exp(BaseModel):
 
 
 class screen_sequence_inc_input(BaseModel):
+    cpd: Optional[Any] = None
     days: Optional[int] = None
 
 
@@ -3975,6 +3921,7 @@ class screen_sequence_insert_input(BaseModel):
     cds_exclude: Optional[str] = None
     cds_seq_qc: Optional[str] = None
     comments: Optional[str] = None
+    cpd: Optional[Any] = None
     created_at: Optional[Any] = None
     days: Optional[int] = None
     directory: Optional[str] = None
@@ -4017,6 +3964,7 @@ class screen_sequence_order_by(BaseModel):
     cds_exclude: Optional[order_by] = None
     cds_seq_qc: Optional[order_by] = None
     comments: Optional[order_by] = None
+    cpd: Optional[order_by] = None
     created_at: Optional[order_by] = None
     days: Optional[order_by] = None
     directory: Optional[order_by] = None
@@ -4053,6 +4001,7 @@ class screen_sequence_set_input(BaseModel):
     cds_exclude: Optional[str] = None
     cds_seq_qc: Optional[str] = None
     comments: Optional[str] = None
+    cpd: Optional[Any] = None
     created_at: Optional[Any] = None
     days: Optional[int] = None
     directory: Optional[str] = None
@@ -4087,6 +4036,7 @@ class screen_sequence_stream_cursor_value_input(BaseModel):
     cds_exclude: Optional[str] = None
     cds_seq_qc: Optional[str] = None
     comments: Optional[str] = None
+    cpd: Optional[Any] = None
     created_at: Optional[Any] = None
     days: Optional[int] = None
     directory: Optional[str] = None
@@ -5127,587 +5077,6 @@ class str_profile_updates(BaseModel):
     where: "str_profile_bool_exp"
 
 
-class task_entity_aggregate_bool_exp(BaseModel):
-    count: Optional["task_entity_aggregate_bool_exp_count"] = None
-
-
-class task_entity_aggregate_bool_exp_count(BaseModel):
-    arguments: Optional[List[task_entity_select_column]] = None
-    distinct: Optional[bool] = None
-    filter: Optional["task_entity_bool_exp"] = None
-    predicate: "Int_comparison_exp"
-
-
-class task_entity_aggregate_order_by(BaseModel):
-    avg: Optional["task_entity_avg_order_by"] = None
-    count: Optional[order_by] = None
-    max: Optional["task_entity_max_order_by"] = None
-    min: Optional["task_entity_min_order_by"] = None
-    stddev: Optional["task_entity_stddev_order_by"] = None
-    stddev_pop: Optional["task_entity_stddev_pop_order_by"] = None
-    stddev_samp: Optional["task_entity_stddev_samp_order_by"] = None
-    sum: Optional["task_entity_sum_order_by"] = None
-    var_pop: Optional["task_entity_var_pop_order_by"] = None
-    var_samp: Optional["task_entity_var_samp_order_by"] = None
-    variance: Optional["task_entity_variance_order_by"] = None
-
-
-class task_entity_arr_rel_insert_input(BaseModel):
-    data: List["task_entity_insert_input"]
-    on_conflict: Optional["task_entity_on_conflict"] = None
-
-
-class task_entity_avg_order_by(BaseModel):
-    id: Optional[order_by] = None
-
-
-class task_entity_bool_exp(BaseModel):
-    and_: Optional[List["task_entity_bool_exp"]] = Field(alias="_and", default=None)
-    not_: Optional["task_entity_bool_exp"] = Field(alias="_not", default=None)
-    or_: Optional[List["task_entity_bool_exp"]] = Field(alias="_or", default=None)
-    created_at: Optional["timestamptz_comparison_exp"] = None
-    id: Optional["bigint_comparison_exp"] = None
-    omics_sequencing: Optional["omics_sequencing_bool_exp"] = None
-    omics_sequencing_id: Optional["String_comparison_exp"] = None
-    task_results: Optional["task_result_bool_exp"] = None
-    task_results_aggregate: Optional["task_result_aggregate_bool_exp"] = None
-    updated_at: Optional["timestamptz_comparison_exp"] = None
-
-
-class task_entity_inc_input(BaseModel):
-    id: Optional[int] = None
-
-
-class task_entity_insert_input(BaseModel):
-    created_at: Optional[Any] = None
-    id: Optional[int] = None
-    omics_sequencing: Optional["omics_sequencing_obj_rel_insert_input"] = None
-    omics_sequencing_id: Optional[str] = None
-    task_results: Optional["task_result_arr_rel_insert_input"] = None
-    updated_at: Optional[Any] = None
-
-
-class task_entity_max_order_by(BaseModel):
-    created_at: Optional[order_by] = None
-    id: Optional[order_by] = None
-    omics_sequencing_id: Optional[order_by] = None
-    updated_at: Optional[order_by] = None
-
-
-class task_entity_min_order_by(BaseModel):
-    created_at: Optional[order_by] = None
-    id: Optional[order_by] = None
-    omics_sequencing_id: Optional[order_by] = None
-    updated_at: Optional[order_by] = None
-
-
-class task_entity_obj_rel_insert_input(BaseModel):
-    data: "task_entity_insert_input"
-    on_conflict: Optional["task_entity_on_conflict"] = None
-
-
-class task_entity_on_conflict(BaseModel):
-    constraint: task_entity_constraint
-    update_columns: List[task_entity_update_column]
-    where: Optional["task_entity_bool_exp"] = None
-
-
-class task_entity_order_by(BaseModel):
-    created_at: Optional[order_by] = None
-    id: Optional[order_by] = None
-    omics_sequencing: Optional["omics_sequencing_order_by"] = None
-    omics_sequencing_id: Optional[order_by] = None
-    task_results_aggregate: Optional["task_result_aggregate_order_by"] = None
-    updated_at: Optional[order_by] = None
-
-
-class task_entity_pk_columns_input(BaseModel):
-    id: int
-
-
-class task_entity_set_input(BaseModel):
-    created_at: Optional[Any] = None
-    id: Optional[int] = None
-    omics_sequencing_id: Optional[str] = None
-    updated_at: Optional[Any] = None
-
-
-class task_entity_stddev_order_by(BaseModel):
-    id: Optional[order_by] = None
-
-
-class task_entity_stddev_pop_order_by(BaseModel):
-    id: Optional[order_by] = None
-
-
-class task_entity_stddev_samp_order_by(BaseModel):
-    id: Optional[order_by] = None
-
-
-class task_entity_stream_cursor_input(BaseModel):
-    initial_value: "task_entity_stream_cursor_value_input"
-    ordering: Optional[cursor_ordering] = None
-
-
-class task_entity_stream_cursor_value_input(BaseModel):
-    created_at: Optional[Any] = None
-    id: Optional[int] = None
-    omics_sequencing_id: Optional[str] = None
-    updated_at: Optional[Any] = None
-
-
-class task_entity_sum_order_by(BaseModel):
-    id: Optional[order_by] = None
-
-
-class task_entity_updates(BaseModel):
-    inc: Optional["task_entity_inc_input"] = Field(alias="_inc", default=None)
-    set: Optional["task_entity_set_input"] = Field(alias="_set", default=None)
-    where: "task_entity_bool_exp"
-
-
-class task_entity_var_pop_order_by(BaseModel):
-    id: Optional[order_by] = None
-
-
-class task_entity_var_samp_order_by(BaseModel):
-    id: Optional[order_by] = None
-
-
-class task_entity_variance_order_by(BaseModel):
-    id: Optional[order_by] = None
-
-
-class task_result_aggregate_bool_exp(BaseModel):
-    count: Optional["task_result_aggregate_bool_exp_count"] = None
-
-
-class task_result_aggregate_bool_exp_count(BaseModel):
-    arguments: Optional[List[task_result_select_column]] = None
-    distinct: Optional[bool] = None
-    filter: Optional["task_result_bool_exp"] = None
-    predicate: "Int_comparison_exp"
-
-
-class task_result_aggregate_order_by(BaseModel):
-    avg: Optional["task_result_avg_order_by"] = None
-    count: Optional[order_by] = None
-    max: Optional["task_result_max_order_by"] = None
-    min: Optional["task_result_min_order_by"] = None
-    stddev: Optional["task_result_stddev_order_by"] = None
-    stddev_pop: Optional["task_result_stddev_pop_order_by"] = None
-    stddev_samp: Optional["task_result_stddev_samp_order_by"] = None
-    sum: Optional["task_result_sum_order_by"] = None
-    var_pop: Optional["task_result_var_pop_order_by"] = None
-    var_samp: Optional["task_result_var_samp_order_by"] = None
-    variance: Optional["task_result_variance_order_by"] = None
-
-
-class task_result_append_input(BaseModel):
-    terra_workflow_inputs: Optional[dict] = None
-    value: Optional[dict] = None
-
-
-class task_result_arr_rel_insert_input(BaseModel):
-    data: List["task_result_insert_input"]
-    on_conflict: Optional["task_result_on_conflict"] = None
-
-
-class task_result_avg_order_by(BaseModel):
-    size: Optional[order_by] = None
-    task_entity_id: Optional[order_by] = None
-    terra_sync_id: Optional[order_by] = None
-
-
-class task_result_bool_exp(BaseModel):
-    and_: Optional[List["task_result_bool_exp"]] = Field(alias="_and", default=None)
-    not_: Optional["task_result_bool_exp"] = Field(alias="_not", default=None)
-    or_: Optional[List["task_result_bool_exp"]] = Field(alias="_or", default=None)
-    completed_at: Optional["timestamptz_comparison_exp"] = None
-    crc_32_c_hash: Optional["String_comparison_exp"] = Field(
-        alias="crc32c_hash", default=None
-    )
-    created_at: Optional["timestamptz_comparison_exp"] = None
-    format: Optional["String_comparison_exp"] = None
-    id: Optional["uuid_comparison_exp"] = None
-    label: Optional["String_comparison_exp"] = None
-    size: Optional["bigint_comparison_exp"] = None
-    task_entity: Optional["task_entity_bool_exp"] = None
-    task_entity_id: Optional["bigint_comparison_exp"] = None
-    terra_entity_name: Optional["String_comparison_exp"] = None
-    terra_entity_type: Optional["String_comparison_exp"] = None
-    terra_method_config_name: Optional["String_comparison_exp"] = None
-    terra_method_config_namespace: Optional["String_comparison_exp"] = None
-    terra_submission_id: Optional["String_comparison_exp"] = None
-    terra_sync: Optional["terra_sync_bool_exp"] = None
-    terra_sync_id: Optional["bigint_comparison_exp"] = None
-    terra_workflow_id: Optional["String_comparison_exp"] = None
-    terra_workflow_inputs: Optional["jsonb_comparison_exp"] = None
-    terra_workflow_root_dir: Optional["String_comparison_exp"] = None
-    terra_workspace_id: Optional["String_comparison_exp"] = None
-    terra_workspace_name: Optional["String_comparison_exp"] = None
-    terra_workspace_namespace: Optional["String_comparison_exp"] = None
-    updated_at: Optional["timestamptz_comparison_exp"] = None
-    url: Optional["String_comparison_exp"] = None
-    value: Optional["jsonb_comparison_exp"] = None
-    workflow_name: Optional["String_comparison_exp"] = None
-    workflow_source_url: Optional["String_comparison_exp"] = None
-    workflow_version: Optional["String_comparison_exp"] = None
-
-
-class task_result_delete_at_path_input(BaseModel):
-    terra_workflow_inputs: Optional[List[str]] = None
-    value: Optional[List[str]] = None
-
-
-class task_result_delete_elem_input(BaseModel):
-    terra_workflow_inputs: Optional[int] = None
-    value: Optional[int] = None
-
-
-class task_result_delete_key_input(BaseModel):
-    terra_workflow_inputs: Optional[str] = None
-    value: Optional[str] = None
-
-
-class task_result_inc_input(BaseModel):
-    size: Optional[int] = None
-    task_entity_id: Optional[int] = None
-    terra_sync_id: Optional[int] = None
-
-
-class task_result_insert_input(BaseModel):
-    completed_at: Optional[Any] = None
-    crc_32_c_hash: Optional[str] = Field(alias="crc32c_hash", default=None)
-    created_at: Optional[Any] = None
-    format: Optional[str] = None
-    id: Optional[str] = None
-    label: Optional[str] = None
-    size: Optional[int] = None
-    task_entity: Optional["task_entity_obj_rel_insert_input"] = None
-    task_entity_id: Optional[int] = None
-    terra_entity_name: Optional[str] = None
-    terra_entity_type: Optional[str] = None
-    terra_method_config_name: Optional[str] = None
-    terra_method_config_namespace: Optional[str] = None
-    terra_submission_id: Optional[str] = None
-    terra_sync: Optional["terra_sync_obj_rel_insert_input"] = None
-    terra_sync_id: Optional[int] = None
-    terra_workflow_id: Optional[str] = None
-    terra_workflow_inputs: Optional[dict] = None
-    terra_workflow_root_dir: Optional[str] = None
-    terra_workspace_id: Optional[str] = None
-    terra_workspace_name: Optional[str] = None
-    terra_workspace_namespace: Optional[str] = None
-    updated_at: Optional[Any] = None
-    url: Optional[str] = None
-    value: Optional[dict] = None
-    workflow_name: Optional[str] = None
-    workflow_source_url: Optional[str] = None
-    workflow_version: Optional[str] = None
-
-
-class task_result_max_order_by(BaseModel):
-    completed_at: Optional[order_by] = None
-    crc_32_c_hash: Optional[order_by] = Field(alias="crc32c_hash", default=None)
-    created_at: Optional[order_by] = None
-    format: Optional[order_by] = None
-    id: Optional[order_by] = None
-    label: Optional[order_by] = None
-    size: Optional[order_by] = None
-    task_entity_id: Optional[order_by] = None
-    terra_entity_name: Optional[order_by] = None
-    terra_entity_type: Optional[order_by] = None
-    terra_method_config_name: Optional[order_by] = None
-    terra_method_config_namespace: Optional[order_by] = None
-    terra_submission_id: Optional[order_by] = None
-    terra_sync_id: Optional[order_by] = None
-    terra_workflow_id: Optional[order_by] = None
-    terra_workflow_root_dir: Optional[order_by] = None
-    terra_workspace_id: Optional[order_by] = None
-    terra_workspace_name: Optional[order_by] = None
-    terra_workspace_namespace: Optional[order_by] = None
-    updated_at: Optional[order_by] = None
-    url: Optional[order_by] = None
-    workflow_name: Optional[order_by] = None
-    workflow_source_url: Optional[order_by] = None
-    workflow_version: Optional[order_by] = None
-
-
-class task_result_min_order_by(BaseModel):
-    completed_at: Optional[order_by] = None
-    crc_32_c_hash: Optional[order_by] = Field(alias="crc32c_hash", default=None)
-    created_at: Optional[order_by] = None
-    format: Optional[order_by] = None
-    id: Optional[order_by] = None
-    label: Optional[order_by] = None
-    size: Optional[order_by] = None
-    task_entity_id: Optional[order_by] = None
-    terra_entity_name: Optional[order_by] = None
-    terra_entity_type: Optional[order_by] = None
-    terra_method_config_name: Optional[order_by] = None
-    terra_method_config_namespace: Optional[order_by] = None
-    terra_submission_id: Optional[order_by] = None
-    terra_sync_id: Optional[order_by] = None
-    terra_workflow_id: Optional[order_by] = None
-    terra_workflow_root_dir: Optional[order_by] = None
-    terra_workspace_id: Optional[order_by] = None
-    terra_workspace_name: Optional[order_by] = None
-    terra_workspace_namespace: Optional[order_by] = None
-    updated_at: Optional[order_by] = None
-    url: Optional[order_by] = None
-    workflow_name: Optional[order_by] = None
-    workflow_source_url: Optional[order_by] = None
-    workflow_version: Optional[order_by] = None
-
-
-class task_result_on_conflict(BaseModel):
-    constraint: task_result_constraint
-    update_columns: List[task_result_update_column]
-    where: Optional["task_result_bool_exp"] = None
-
-
-class task_result_order_by(BaseModel):
-    completed_at: Optional[order_by] = None
-    crc_32_c_hash: Optional[order_by] = Field(alias="crc32c_hash", default=None)
-    created_at: Optional[order_by] = None
-    format: Optional[order_by] = None
-    id: Optional[order_by] = None
-    label: Optional[order_by] = None
-    size: Optional[order_by] = None
-    task_entity: Optional["task_entity_order_by"] = None
-    task_entity_id: Optional[order_by] = None
-    terra_entity_name: Optional[order_by] = None
-    terra_entity_type: Optional[order_by] = None
-    terra_method_config_name: Optional[order_by] = None
-    terra_method_config_namespace: Optional[order_by] = None
-    terra_submission_id: Optional[order_by] = None
-    terra_sync: Optional["terra_sync_order_by"] = None
-    terra_sync_id: Optional[order_by] = None
-    terra_workflow_id: Optional[order_by] = None
-    terra_workflow_inputs: Optional[order_by] = None
-    terra_workflow_root_dir: Optional[order_by] = None
-    terra_workspace_id: Optional[order_by] = None
-    terra_workspace_name: Optional[order_by] = None
-    terra_workspace_namespace: Optional[order_by] = None
-    updated_at: Optional[order_by] = None
-    url: Optional[order_by] = None
-    value: Optional[order_by] = None
-    workflow_name: Optional[order_by] = None
-    workflow_source_url: Optional[order_by] = None
-    workflow_version: Optional[order_by] = None
-
-
-class task_result_pk_columns_input(BaseModel):
-    id: str
-
-
-class task_result_prepend_input(BaseModel):
-    terra_workflow_inputs: Optional[dict] = None
-    value: Optional[dict] = None
-
-
-class task_result_set_input(BaseModel):
-    completed_at: Optional[Any] = None
-    crc_32_c_hash: Optional[str] = Field(alias="crc32c_hash", default=None)
-    created_at: Optional[Any] = None
-    format: Optional[str] = None
-    id: Optional[str] = None
-    label: Optional[str] = None
-    size: Optional[int] = None
-    task_entity_id: Optional[int] = None
-    terra_entity_name: Optional[str] = None
-    terra_entity_type: Optional[str] = None
-    terra_method_config_name: Optional[str] = None
-    terra_method_config_namespace: Optional[str] = None
-    terra_submission_id: Optional[str] = None
-    terra_sync_id: Optional[int] = None
-    terra_workflow_id: Optional[str] = None
-    terra_workflow_inputs: Optional[dict] = None
-    terra_workflow_root_dir: Optional[str] = None
-    terra_workspace_id: Optional[str] = None
-    terra_workspace_name: Optional[str] = None
-    terra_workspace_namespace: Optional[str] = None
-    updated_at: Optional[Any] = None
-    url: Optional[str] = None
-    value: Optional[dict] = None
-    workflow_name: Optional[str] = None
-    workflow_source_url: Optional[str] = None
-    workflow_version: Optional[str] = None
-
-
-class task_result_stddev_order_by(BaseModel):
-    size: Optional[order_by] = None
-    task_entity_id: Optional[order_by] = None
-    terra_sync_id: Optional[order_by] = None
-
-
-class task_result_stddev_pop_order_by(BaseModel):
-    size: Optional[order_by] = None
-    task_entity_id: Optional[order_by] = None
-    terra_sync_id: Optional[order_by] = None
-
-
-class task_result_stddev_samp_order_by(BaseModel):
-    size: Optional[order_by] = None
-    task_entity_id: Optional[order_by] = None
-    terra_sync_id: Optional[order_by] = None
-
-
-class task_result_stream_cursor_input(BaseModel):
-    initial_value: "task_result_stream_cursor_value_input"
-    ordering: Optional[cursor_ordering] = None
-
-
-class task_result_stream_cursor_value_input(BaseModel):
-    completed_at: Optional[Any] = None
-    crc_32_c_hash: Optional[str] = Field(alias="crc32c_hash", default=None)
-    created_at: Optional[Any] = None
-    format: Optional[str] = None
-    id: Optional[str] = None
-    label: Optional[str] = None
-    size: Optional[int] = None
-    task_entity_id: Optional[int] = None
-    terra_entity_name: Optional[str] = None
-    terra_entity_type: Optional[str] = None
-    terra_method_config_name: Optional[str] = None
-    terra_method_config_namespace: Optional[str] = None
-    terra_submission_id: Optional[str] = None
-    terra_sync_id: Optional[int] = None
-    terra_workflow_id: Optional[str] = None
-    terra_workflow_inputs: Optional[dict] = None
-    terra_workflow_root_dir: Optional[str] = None
-    terra_workspace_id: Optional[str] = None
-    terra_workspace_name: Optional[str] = None
-    terra_workspace_namespace: Optional[str] = None
-    updated_at: Optional[Any] = None
-    url: Optional[str] = None
-    value: Optional[dict] = None
-    workflow_name: Optional[str] = None
-    workflow_source_url: Optional[str] = None
-    workflow_version: Optional[str] = None
-
-
-class task_result_sum_order_by(BaseModel):
-    size: Optional[order_by] = None
-    task_entity_id: Optional[order_by] = None
-    terra_sync_id: Optional[order_by] = None
-
-
-class task_result_updates(BaseModel):
-    append: Optional["task_result_append_input"] = Field(alias="_append", default=None)
-    delete_at_path: Optional["task_result_delete_at_path_input"] = Field(
-        alias="_delete_at_path", default=None
-    )
-    delete_elem: Optional["task_result_delete_elem_input"] = Field(
-        alias="_delete_elem", default=None
-    )
-    delete_key: Optional["task_result_delete_key_input"] = Field(
-        alias="_delete_key", default=None
-    )
-    inc: Optional["task_result_inc_input"] = Field(alias="_inc", default=None)
-    prepend: Optional["task_result_prepend_input"] = Field(
-        alias="_prepend", default=None
-    )
-    set: Optional["task_result_set_input"] = Field(alias="_set", default=None)
-    where: "task_result_bool_exp"
-
-
-class task_result_var_pop_order_by(BaseModel):
-    size: Optional[order_by] = None
-    task_entity_id: Optional[order_by] = None
-    terra_sync_id: Optional[order_by] = None
-
-
-class task_result_var_samp_order_by(BaseModel):
-    size: Optional[order_by] = None
-    task_entity_id: Optional[order_by] = None
-    terra_sync_id: Optional[order_by] = None
-
-
-class task_result_variance_order_by(BaseModel):
-    size: Optional[order_by] = None
-    task_entity_id: Optional[order_by] = None
-    terra_sync_id: Optional[order_by] = None
-
-
-class terra_sync_bool_exp(BaseModel):
-    and_: Optional[List["terra_sync_bool_exp"]] = Field(alias="_and", default=None)
-    not_: Optional["terra_sync_bool_exp"] = Field(alias="_not", default=None)
-    or_: Optional[List["terra_sync_bool_exp"]] = Field(alias="_or", default=None)
-    created_at: Optional["timestamptz_comparison_exp"] = None
-    id: Optional["bigint_comparison_exp"] = None
-    task_results: Optional["task_result_bool_exp"] = None
-    task_results_aggregate: Optional["task_result_aggregate_bool_exp"] = None
-    terra_workspace_name: Optional["String_comparison_exp"] = None
-    terra_workspace_namespace: Optional["String_comparison_exp"] = None
-    updated_at: Optional["timestamptz_comparison_exp"] = None
-
-
-class terra_sync_inc_input(BaseModel):
-    id: Optional[int] = None
-
-
-class terra_sync_insert_input(BaseModel):
-    created_at: Optional[Any] = None
-    id: Optional[int] = None
-    task_results: Optional["task_result_arr_rel_insert_input"] = None
-    terra_workspace_name: Optional[str] = None
-    terra_workspace_namespace: Optional[str] = None
-    updated_at: Optional[Any] = None
-
-
-class terra_sync_obj_rel_insert_input(BaseModel):
-    data: "terra_sync_insert_input"
-    on_conflict: Optional["terra_sync_on_conflict"] = None
-
-
-class terra_sync_on_conflict(BaseModel):
-    constraint: terra_sync_constraint
-    update_columns: List[terra_sync_update_column]
-    where: Optional["terra_sync_bool_exp"] = None
-
-
-class terra_sync_order_by(BaseModel):
-    created_at: Optional[order_by] = None
-    id: Optional[order_by] = None
-    task_results_aggregate: Optional["task_result_aggregate_order_by"] = None
-    terra_workspace_name: Optional[order_by] = None
-    terra_workspace_namespace: Optional[order_by] = None
-    updated_at: Optional[order_by] = None
-
-
-class terra_sync_pk_columns_input(BaseModel):
-    id: int
-
-
-class terra_sync_set_input(BaseModel):
-    created_at: Optional[Any] = None
-    id: Optional[int] = None
-    terra_workspace_name: Optional[str] = None
-    terra_workspace_namespace: Optional[str] = None
-    updated_at: Optional[Any] = None
-
-
-class terra_sync_stream_cursor_input(BaseModel):
-    initial_value: "terra_sync_stream_cursor_value_input"
-    ordering: Optional[cursor_ordering] = None
-
-
-class terra_sync_stream_cursor_value_input(BaseModel):
-    created_at: Optional[Any] = None
-    id: Optional[int] = None
-    terra_workspace_name: Optional[str] = None
-    terra_workspace_namespace: Optional[str] = None
-    updated_at: Optional[Any] = None
-
-
-class terra_sync_updates(BaseModel):
-    inc: Optional["terra_sync_inc_input"] = Field(alias="_inc", default=None)
-    set: Optional["terra_sync_set_input"] = Field(alias="_set", default=None)
-    where: "terra_sync_bool_exp"
-
-
 class timestamptz_comparison_exp(BaseModel):
     eq: Optional[Any] = Field(alias="_eq", default=None)
     gt: Optional[Any] = Field(alias="_gt", default=None)
@@ -5722,18 +5091,6 @@ class timestamptz_comparison_exp(BaseModel):
 
 class update_msi_scores_args(BaseModel):
     updates: Optional[dict] = None
-
-
-class uuid_comparison_exp(BaseModel):
-    eq: Optional[str] = Field(alias="_eq", default=None)
-    gt: Optional[str] = Field(alias="_gt", default=None)
-    gte: Optional[str] = Field(alias="_gte", default=None)
-    in_: Optional[List[str]] = Field(alias="_in", default=None)
-    is_null: Optional[bool] = Field(alias="_is_null", default=None)
-    lt: Optional[str] = Field(alias="_lt", default=None)
-    lte: Optional[str] = Field(alias="_lte", default=None)
-    neq: Optional[str] = Field(alias="_neq", default=None)
-    nin: Optional[List[str]] = Field(alias="_nin", default=None)
 
 
 audit_user_bool_exp.model_rebuild()
@@ -5939,31 +5296,3 @@ str_profile_on_conflict.model_rebuild()
 str_profile_order_by.model_rebuild()
 str_profile_stream_cursor_input.model_rebuild()
 str_profile_updates.model_rebuild()
-task_entity_aggregate_bool_exp.model_rebuild()
-task_entity_aggregate_bool_exp_count.model_rebuild()
-task_entity_aggregate_order_by.model_rebuild()
-task_entity_arr_rel_insert_input.model_rebuild()
-task_entity_bool_exp.model_rebuild()
-task_entity_insert_input.model_rebuild()
-task_entity_obj_rel_insert_input.model_rebuild()
-task_entity_on_conflict.model_rebuild()
-task_entity_order_by.model_rebuild()
-task_entity_stream_cursor_input.model_rebuild()
-task_entity_updates.model_rebuild()
-task_result_aggregate_bool_exp.model_rebuild()
-task_result_aggregate_bool_exp_count.model_rebuild()
-task_result_aggregate_order_by.model_rebuild()
-task_result_arr_rel_insert_input.model_rebuild()
-task_result_bool_exp.model_rebuild()
-task_result_insert_input.model_rebuild()
-task_result_on_conflict.model_rebuild()
-task_result_order_by.model_rebuild()
-task_result_stream_cursor_input.model_rebuild()
-task_result_updates.model_rebuild()
-terra_sync_bool_exp.model_rebuild()
-terra_sync_insert_input.model_rebuild()
-terra_sync_obj_rel_insert_input.model_rebuild()
-terra_sync_on_conflict.model_rebuild()
-terra_sync_order_by.model_rebuild()
-terra_sync_stream_cursor_input.model_rebuild()
-terra_sync_updates.model_rebuild()
