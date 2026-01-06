@@ -3,6 +3,13 @@
   "inputs": {
     "align_wgs_sample.delivery_ref_fasta": "this.delivery_ref_fasta",
     "align_wgs_sample.delivery_ref_fasta_index": "this.delivery_ref_fasta_index",
+    "align_wgs_sample.fastqs_pe_forward": "this.fastqs_pe_forward",
+    "align_wgs_sample.fastqs_pe_readgroup":  "this.fastqs_pe_readgroup",
+    "align_wgs_sample.fastqs_pe_readgroup_id": "this.fastqs_pe_readgroup_id",
+    "align_wgs_sample.fastqs_pe_reverse": "this.fastqs_pe_reverse",
+    "align_wgs_sample.fastqs_se":  "this.fastqs_se",
+    "align_wgs_sample.fastqs_se_readgroup": "this.fastqs_se_readgroup",
+    "align_wgs_sample.fastqs_se_readgroup_id":  "this.fastqs_se_readgroup_id",
     "align_wgs_sample.input_crai_bai": "this.delivery_crai_bai",
     "align_wgs_sample.input_cram_bam": "this.delivery_cram_bam",
     "align_wgs_sample.input_type": "this.delivery_file_format",
