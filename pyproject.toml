@@ -20,7 +20,7 @@ dependencies = [
     "google-cloud-secret-manager>=2.22.1,<3",
     "tqdm>=4.67.1,<5",
     "firecloud-api-cds>=0.2.0",
-    "nebelung>=2.12.3",
+    "nebelung>=2.13",
 ]
 
 [dependency-groups]
@@ -38,10 +38,6 @@ dev = [
     "fsspec>=2025.7.0",
     "gcsfs>=2025.7.0",
 ]
-
-[[tool.uv.index]]
-name = "public-python"
-url = "https://us-central1-python.pkg.dev/cds-artifacts/public-python/simple/"
 
 [build-system]
 requires = ["hatchling"]

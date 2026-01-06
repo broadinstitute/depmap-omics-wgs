@@ -4,3 +4,5 @@
 .gitignore
 .github/
 tests/
+scratch/
+notebooks/
