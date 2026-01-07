@@ -1,0 +1,4 @@
+{
+  "fix_rg.do_fix_rg.docker_image": "\"us-central1-docker.pkg.dev/depmap-omics/terra-images/samtools\"",
+  "fix_rg.do_fix_rg.docker_image_hash_or_tag": "\":production\""
+}

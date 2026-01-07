@@ -152,6 +152,16 @@ workflow_wdl_path = "./workflows/cram_to_bam/cram_to_bam.wdl"
 method_config_json_path = "./workflows/cram_to_bam/cram_to_bam.json"
 workflow_inputs_json_path = "./workflows/cram_to_bam/cram_to_bam_inputs.json"
 
+[terra.fix_rg]
+method_namespace = "cds-pipelines"
+method_name = "fix_rg"
+method_config_namespace = "cds-pipelines"
+method_config_name = "fix_rg"
+method_synopsis = "fix_rg"
+workflow_wdl_path = "./workflows/fix_rg/fix_rg.wdl"
+method_config_json_path = "./workflows/fix_rg/fix_rg.json"
+workflow_inputs_json_path = "./workflows/fix_rg/fix_rg_inputs.json"
+
 [ref.hg19]
 ref_alt = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.alt"
 ref_amb = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.amb"

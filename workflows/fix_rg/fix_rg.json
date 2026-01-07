@@ -1,0 +1,20 @@
+{
+  "deleted": false,
+  "inputs": {
+    "fix_rg.sample_id": "this.sample_id",
+    "fix_rg.input_bam": "this.analysis_ready_bam"
+  },
+  "methodConfigVersion": 1,
+  "methodRepoMethod": {
+    "methodNamespace": "cds-pipelines",
+    "methodName": "fix_rg",
+    "methodVersion": 1
+  },
+  "namespace": "cds-pipelines",
+  "name": "fix_rg",
+  "outputs": {
+    "fix_rg.bam_fixed": "this.bam_fixed",
+    "fix_rg.bai_fixed": "this.bai_fixed"
+  },
+  "rootEntityType": "sample"
+}
