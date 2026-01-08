@@ -44,24 +44,29 @@ class TerraSample(CoercedDataFrame):
     stripped_cell_line_name: Series[pd.StringDtype]
     model_condition_id: Series[pd.StringDtype]
     omics_profile_id: Series[pd.StringDtype]
+    delivery_sequencing_alignment_id: Series[pd.Int64Dtype] = pa.Field(nullable=True)
     delivery_cram_bam: Series[pd.StringDtype] = pa.Field(nullable=True)
     delivery_crai_bai: Series[pd.StringDtype] = pa.Field(nullable=True)
     delivery_file_format: Series[pd.StringDtype] = pa.Field(
         isin={"CRAM", "BAM"}, nullable=True
     )
-    delivery_cram_bam_size: Series[pd.Int64Dtype] = pa.Field(unique=True)
-    delivery_ref: Series[pd.StringDtype]
-    delivery_ref_alt: Series[pd.StringDtype]
-    delivery_ref_amb: Series[pd.StringDtype]
-    delivery_ref_ann: Series[pd.StringDtype]
-    delivery_ref_bwt: Series[pd.StringDtype]
-    delivery_ref_dict: Series[pd.StringDtype]
-    delivery_ref_fasta: Series[pd.StringDtype]
-    delivery_ref_fasta_index: Series[pd.StringDtype]
-    delivery_ref_pac: Series[pd.StringDtype]
-    delivery_ref_sa: Series[pd.StringDtype]
+    delivery_cram_bam_size: Series[pd.Int64Dtype] = pa.Field(nullable=True)
+    delivery_ref: Series[pd.StringDtype] = pa.Field(nullable=True)
+    delivery_ref_alt: Series[pd.StringDtype] = pa.Field(nullable=True)
+    delivery_ref_amb: Series[pd.StringDtype] = pa.Field(nullable=True)
+    delivery_ref_ann: Series[pd.StringDtype] = pa.Field(nullable=True)
+    delivery_ref_bwt: Series[pd.StringDtype] = pa.Field(nullable=True)
+    delivery_ref_dict: Series[pd.StringDtype] = pa.Field(nullable=True)
+    delivery_ref_fasta: Series[pd.StringDtype] = pa.Field(nullable=True)
+    delivery_ref_fasta_index: Series[pd.StringDtype] = pa.Field(nullable=True)
+    delivery_ref_pac: Series[pd.StringDtype] = pa.Field(nullable=True)
+    delivery_ref_sa: Series[pd.StringDtype] = pa.Field(nullable=True)
+    analysis_ready_sequencing_alignment_id: Series[pd.Int64Dtype] = pa.Field(
+        nullable=True
+    )
     analysis_ready_bam: Series[pd.StringDtype] = pa.Field(nullable=True)
     analysis_ready_bai: Series[pd.StringDtype] = pa.Field(nullable=True)
+    analysis_ready_bam_size: Series[pd.Int64Dtype] = pa.Field(nullable=True)
     analysis_ready_cram: Series[pd.StringDtype] = pa.Field(nullable=True)
     analysis_ready_crai: Series[pd.StringDtype] = pa.Field(nullable=True)
     analysis_ready_cram_size: Series[pd.Int64Dtype] = pa.Field(nullable=True)

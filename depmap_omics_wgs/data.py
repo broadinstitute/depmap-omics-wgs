@@ -45,13 +45,35 @@ def refresh_terra_samples(
         mutator=partial(pd_flatten, name_columns_with_parent=False),
     )
 
+    # get metadata common to sequencing alignments
+    metadata = wgs_sequencings[
+        [
+            "model_id",
+            "cell_line_name",
+            "stripped_cell_line_name",
+            "model_condition_id",
+            "omics_profile_id",
+            "omics_sequencing_id",
+        ]
+    ].drop_duplicates()
+
+    samples_no_meta = wgs_sequencings.drop(
+        columns=[
+            "model_id",
+            "cell_line_name",
+            "stripped_cell_line_name",
+            "model_condition_id",
+            "omics_profile_id",
+        ]
+    )
+
     # make wide, separating delivery and analysis-ready CRAM/BAMs
     samples = (
-        wgs_sequencings.loc[wgs_sequencings["sequencing_alignment_source"].eq("GP")]
+        # collect GP-provided alignments
+        samples_no_meta.loc[samples_no_meta["sequencing_alignment_source"].eq("GP")]
         .drop(columns=["sequencing_alignment_source"])
         .rename(
             columns={
-                "omics_sequencing_id": "sample_id",
                 "sequencing_alignment_id": "delivery_sequencing_alignment_id",
                 "url": "delivery_cram_bam",
                 "size": "delivery_cram_bam_size",
@@ -60,50 +82,32 @@ def refresh_terra_samples(
             }
         )
         .merge(
+            # collect analysis-ready alignments
             pd.concat(
+                # name columns depending on whether analysis-ready alignment is BAM/CRAM
                 [
-                    wgs_sequencings.loc[
-                        wgs_sequencings["sequencing_alignment_source"].eq("CDS")
-                        & wgs_sequencings["url"].str.endswith(".bam")
+                    samples_no_meta.loc[
+                        samples_no_meta["sequencing_alignment_source"].eq("CDS")
+                        & samples_no_meta["url"].str.endswith(".bam")
                     ]
-                    .drop(
-                        columns=[
-                            "sequencing_alignment_source",
-                            "model_id",
-                            "model_condition_id",
-                            "omics_profile_id",
-                            "cell_line_name",
-                            "size",
-                            "stripped_cell_line_name",
-                        ]
-                    )
+                    .drop(columns=["sequencing_alignment_source"])
                     .rename(
                         columns={
-                            "omics_sequencing_id": "sample_id",
-                            "sequencing_alignment_id": "aligned_sequencing_alignment_id",
+                            "sequencing_alignment_id": "analysis_ready_sequencing_alignment_id",
                             "url": "analysis_ready_bam",
+                            "size": "analysis_ready_bam_size",
                             "index_url": "analysis_ready_bai",
                             "reference_genome": "ref",
                         }
                     ),
-                    wgs_sequencings.loc[
-                        wgs_sequencings["sequencing_alignment_source"].eq("CDS")
-                        & wgs_sequencings["url"].str.endswith(".cram")
+                    samples_no_meta.loc[
+                        samples_no_meta["sequencing_alignment_source"].eq("CDS")
+                        & samples_no_meta["url"].str.endswith(".cram")
                     ]
-                    .drop(
-                        columns=[
-                            "sequencing_alignment_source",
-                            "model_id",
-                            "model_condition_id",
-                            "omics_profile_id",
-                            "cell_line_name",
-                            "stripped_cell_line_name",
-                        ]
-                    )
+                    .drop(columns=["sequencing_alignment_source"])
                     .rename(
                         columns={
-                            "omics_sequencing_id": "sample_id",
-                            "sequencing_alignment_id": "aligned_sequencing_alignment_id",
+                            "sequencing_alignment_id": "analysis_ready_sequencing_alignment_id",
                             "url": "analysis_ready_cram",
                             "size": "analysis_ready_cram_size",
                             "index_url": "analysis_ready_crai",
@@ -114,7 +118,7 @@ def refresh_terra_samples(
                 ignore_index=True,
             ),
             how="outer",
-            on="sample_id",
+            on="omics_sequencing_id",
         )
     )
 
@@ -124,6 +128,11 @@ def refresh_terra_samples(
 
     # set reference genome columns
     samples = set_ref_urls(samples, ref_urls)
+
+    # join back metadata
+    samples = samples.merge(
+        metadata, how="inner", on="omics_sequencing_id", validate="1:1"
+    ).rename(columns={"omics_sequencing_id": "sample_id"})
 
     # validate types
     samples = type_data_frame(samples, TerraSample)

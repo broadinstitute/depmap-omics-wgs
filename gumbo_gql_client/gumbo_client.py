@@ -19,9 +19,7 @@ class GumboClient(BaseClient):
         query = gql(
             """
             query WgsSequencingAlignments {
-              records: omics_mapping(
-                where: {_and: {datatype: {_eq: "wgs"}, omics_sequencing: {source: {_neq: "SJ"}}}}
-              ) {
+              records: omics_mapping(where: {datatype: {_eq: "wgs"}}) {
                 model_id
                 model_condition_id
                 omics_profile_id
