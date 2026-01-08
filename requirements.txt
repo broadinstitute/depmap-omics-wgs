@@ -150,7 +150,7 @@ mypy-extensions==1.1.0
     # via
     #   black
     #   typing-inspect
-nebelung==2.13
+nebelung==2.13.1
     # via depmap-omics-wgs
 numpy==2.3.1
     # via
