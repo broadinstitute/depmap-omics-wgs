@@ -1,12 +1,10 @@
 import gzip
 import json
-from typing import Any
 
 import gcsfs
 import pandas as pd
 from google.cloud import storage
 from nebelung.terra_workspace import TerraWorkspace
-from pd_flatten import pd_flatten
 
 pd.set_option("display.max_columns", 30)
 pd.set_option("display.max_colwidth", 50)
