@@ -16,7 +16,7 @@
   "outputs": {
     "infer_msi_status.msisensor2_score": "this.msisensor2_score",
     "infer_msi_status.msisensor2_output": "this.msisensor2_output",
-    "infer_msi_status.msisensor2_output_dis": "this.msisensor2_output_dis",
+    "infer_msi_status.msisensor2_output_dist": "this.msisensor2_output_dist",
     "infer_msi_status.msisensor2_output_somatic": "this.msisensor2_output_somatic"
   },
   "rootEntityType": "sample"

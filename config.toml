@@ -162,6 +162,16 @@ workflow_wdl_path = "./workflows/fix_rg/fix_rg.wdl"
 method_config_json_path = "./workflows/fix_rg/fix_rg.json"
 workflow_inputs_json_path = "./workflows/fix_rg/fix_rg_inputs.json"
 
+[terra.fix_msi_dist]
+method_namespace = "cds-pipelines"
+method_name = "fix_msi_dist"
+method_config_namespace = "cds-pipelines"
+method_config_name = "fix_msi_dist"
+method_synopsis = "fix_msi_dist"
+workflow_wdl_path = "./workflows/fix_msi_dist/fix_msi_dist.wdl"
+method_config_json_path = "./workflows/fix_msi_dist/fix_msi_dist.json"
+workflow_inputs_json_path = "./workflows/fix_msi_dist/fix_msi_dist_inputs.json"
+
 [ref.hg19]
 ref_alt = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.alt"
 ref_amb = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.amb"

@@ -1,0 +1,19 @@
+{
+  "deleted": false,
+  "inputs": {
+    "fix_msi_dist.msisensor2_output_dis": "this.msisensor2_output_dis",
+    "fix_msi_dist.sample_id": "this.sample_id"
+  },
+  "methodConfigVersion": 1,
+  "methodRepoMethod": {
+    "methodNamespace": "cds-pipelines",
+    "methodName": "fix_msi_dist",
+    "methodVersion": 1
+  },
+  "namespace": "cds-pipelines",
+  "name": "fix_msi_dist",
+  "outputs": {
+    "fix_msi_dist.msisensor2_output_dist": "this.msisensor2_output_dist"
+  },
+  "rootEntityType": "sample"
+}

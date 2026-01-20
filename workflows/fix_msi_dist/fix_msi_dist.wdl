@@ -1,56 +1,40 @@
 version 1.0
 
-workflow infer_msi_status {
+workflow fix_msi_dist {
     input {
         String sample_id
-        File bam
-        File bai
+        File msisensor2_output_dis
     }
 
-    call run_msisensor2 {
+    call do_fix {
         input:
             sample_id = sample_id,
-            bam = bam,
-            bai = bai
+            msisensor2_output_dis = msisensor2_output_dis
     }
 
     output {
-        Float msisensor2_score = run_msisensor2.msisensor2_score
-        File msisensor2_output = run_msisensor2.msisensor2_output
-        File msisensor2_output_dist = run_msisensor2.msisensor2_output_dist
-        File msisensor2_output_somatic = run_msisensor2.msisensor2_output_somatic
+        File msisensor2_output_dist = do_fix.msisensor2_output_dist
     }
 }
 
-task run_msisensor2 {
+task do_fix {
     input {
         String sample_id
-        File bam
-        File bai
+        File msisensor2_output_dis
 
-        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/msisensor2"
+        String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/bedtools2"
         String docker_image_hash_or_tag = ":production"
         Int cpu = 1
-        Int mem_gb = 8
+        Int mem_gb = 2
         Int preemptible = 2
-        Int max_retries = 1
+        Int max_retries = 0
         Int additional_disk_gb = 0
     }
 
-    String bam_path = basename(bam)
-    Int disk_space = ceil(size(bam, "GiB")) + 10 + additional_disk_gb
+    Int disk_space = 10
 
     command <<<
         set -euo pipefail
-
-        # MSISensor needs the BAM in the workdir
-        mv ~{bam} .
-        mv ~{bai} .
-
-        msisensor2 msi \
-            -M /msisensor2/models_hg38 \
-            -t ~{bam_path} \
-            -o ~{sample_id}.msisensor2.output
 
         awk '
             BEGIN {
@@ -84,19 +68,11 @@ task run_msisensor2 {
                     chrom, pos, left_flank, repeat, right_flank, $0
                 );
             }
-        ' "~{sample_id}.msisensor2.output_dis" > "~{sample_id}.msisensor2.output_dist.ndjson"
-
-        head -2 ~{sample_id}.msisensor2.output | \
-            tail -1 | \
-            cut -f3 > \
-            ~{sample_id}.msisensor2.score
+        ' "~{msisensor2_output_dis}" > "~{sample_id}.msisensor2.output_dist.ndjson"
     >>>
 
     output {
-        Float msisensor2_score = read_float("~{sample_id}.msisensor2.score")
-        File msisensor2_output = "~{sample_id}.msisensor2.output"
         File msisensor2_output_dist = "~{sample_id}.msisensor2.output_dist.ndjson"
-        File msisensor2_output_somatic = "~{sample_id}.msisensor2.output_somatic"
     }
 
     runtime {
