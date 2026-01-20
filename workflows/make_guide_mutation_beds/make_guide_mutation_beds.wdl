@@ -5,11 +5,8 @@ workflow make_guide_mutation_beds {
         String sample_id
         File vcf
         File? vcf_idx
-        File bed_avana
-        File bed_brunello
-        File bed_humagne
-        File bed_ky
-        File bed_tkov
+        File bed_chromium_v1
+        File bed_chromium_v2
     }
 
     call filter_vcfs_by_bed {
@@ -17,34 +14,22 @@ workflow make_guide_mutation_beds {
             sample_id = sample_id,
             vcf = vcf,
             vcf_idx = vcf_idx,
-            bed_avana = bed_avana,
-            bed_brunello = bed_brunello,
-            bed_humagne = bed_humagne,
-            bed_ky = bed_ky,
-            bed_tkov = bed_tkov
+            bed_chromium_v1 = bed_chromium_v1,
+            bed_chromium_v2 = bed_chromium_v2
     }
 
     call intersect_beds {
         input:
             sample_id = sample_id,
-            mut_bed_avana = filter_vcfs_by_bed.mut_bed_avana,
-            mut_bed_brunello = filter_vcfs_by_bed.mut_bed_brunello,
-            mut_bed_humagne = filter_vcfs_by_bed.mut_bed_humagne,
-            mut_bed_ky = filter_vcfs_by_bed.mut_bed_ky,
-            mut_bed_tkov = filter_vcfs_by_bed.mut_bed_tkov,
-            bed_avana = bed_avana,
-            bed_brunello = bed_brunello,
-            bed_humagne = bed_humagne,
-            bed_ky = bed_ky,
-            bed_tkov = bed_tkov
+            mut_bed_chromium_v1 = filter_vcfs_by_bed.mut_bed_chromium_v1,
+            mut_bed_chromium_v2 = filter_vcfs_by_bed.mut_bed_chromium_v2,
+            bed_chromium_v1 = bed_chromium_v1,
+            bed_chromium_v2 = bed_chromium_v2
     }
 
     output {
-        File guide_bed_avana = intersect_beds.guide_bed_avana
-        File guide_bed_brunello = intersect_beds.guide_bed_brunello
-        File guide_bed_humagne = intersect_beds.guide_bed_humagne
-        File guide_bed_ky = intersect_beds.guide_bed_ky
-        File guide_bed_tkov = intersect_beds.guide_bed_tkov
+        File guide_bed_chromium_v1 = intersect_beds.guide_bed_chromium_v1
+        File guide_bed_chromium_v2 = intersect_beds.guide_bed_chromium_v2
     }
 }
 
@@ -53,11 +38,8 @@ task filter_vcfs_by_bed {
         String sample_id
         File vcf
         File? vcf_idx
-        File bed_avana
-        File bed_brunello
-        File bed_humagne
-        File bed_ky
-        File bed_tkov
+        File bed_chromium_v1
+        File bed_chromium_v2
 
         String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools"
         String docker_image_hash_or_tag = ":production"
@@ -78,8 +60,8 @@ task filter_vcfs_by_bed {
         fi
 
         # create parallel arrays of labels and library BED files
-        labels=("avana" "brunello" "humagne" "ky" "tkov")
-        beds=(~{bed_avana} ~{bed_brunello} ~{bed_humagne} ~{bed_ky} ~{bed_tkov})
+        labels=("chromium_v1" "chromium_v2")
+        beds=(~{bed_chromium_v1} ~{bed_chromium_v2})
 
         # loop over the tuples
         for i in "${!labels[@]}"; do
@@ -97,11 +79,8 @@ task filter_vcfs_by_bed {
     >>>
 
     output {
-        File mut_bed_avana = "~{sample_id}.mut_avana.bed"
-        File mut_bed_brunello = "~{sample_id}.mut_brunello.bed"
-        File mut_bed_humagne = "~{sample_id}.mut_humagne.bed"
-        File mut_bed_ky = "~{sample_id}.mut_ky.bed"
-        File mut_bed_tkov = "~{sample_id}.mut_tkov.bed"
+        File mut_bed_chromium_v1 = "~{sample_id}.mut_chromium_v1.bed"
+        File mut_bed_chromium_v2 = "~{sample_id}.mut_chromium_v2.bed"
     }
 
     runtime {
@@ -121,16 +100,10 @@ task filter_vcfs_by_bed {
 task intersect_beds {
     input {
         String sample_id
-        File mut_bed_avana
-        File mut_bed_brunello
-        File mut_bed_humagne
-        File mut_bed_ky
-        File mut_bed_tkov
-        File bed_avana
-        File bed_brunello
-        File bed_humagne
-        File bed_ky
-        File bed_tkov
+        File mut_bed_chromium_v1
+        File mut_bed_chromium_v2
+        File bed_chromium_v1
+        File bed_chromium_v2
 
         String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/bedtools2"
         String docker_image_hash_or_tag = ":production"
@@ -142,20 +115,17 @@ task intersect_beds {
     }
 
     Int disk_space = ceil(
-        size(mut_bed_avana, "GiB")
-        + size(mut_bed_brunello, "GiB")
-        + size(mut_bed_humagne, "GiB")
-        + size(mut_bed_ky, "GiB")
-        + size(mut_bed_tkov, "GiB")
+        size(mut_bed_chromium_v1, "GiB")
+        + size(mut_bed_chromium_v2, "GiB")
     ) + 10 + additional_disk_gb
 
     command <<<
         set -euo pipefail
 
         # create parallel arrays of labels, mutation BED files, and library BED files
-        labels=("avana" "brunello" "humagne" "ky" "tkov")
-        mut_beds=(~{mut_bed_avana} ~{mut_bed_brunello} ~{mut_bed_humagne} ~{mut_bed_ky} ~{mut_bed_tkov})
-        beds=(~{bed_avana} ~{bed_brunello} ~{bed_humagne} ~{bed_ky} ~{bed_tkov})
+        labels=("chromium_v1" "chromium_v2")
+        mut_beds=(~{mut_bed_chromium_v1} ~{mut_bed_chromium_v2})
+        beds=(~{bed_chromium_v1} ~{bed_chromium_v2})
 
         # loop over the tuples
         for i in "${!labels[@]}"; do
@@ -175,11 +145,8 @@ task intersect_beds {
     >>>
 
     output {
-        File guide_bed_avana = "~{sample_id}.guide_avana.bed"
-        File guide_bed_brunello = "~{sample_id}.guide_brunello.bed"
-        File guide_bed_humagne = "~{sample_id}.guide_humagne.bed"
-        File guide_bed_ky = "~{sample_id}.guide_ky.bed"
-        File guide_bed_tkov = "~{sample_id}.guide_tkov.bed"
+        File guide_bed_chromium_v1 = "~{sample_id}.guide_chromium_v1.bed"
+        File guide_bed_chromium_v2 = "~{sample_id}.guide_chromium_v2.bed"
     }
 
     runtime {
