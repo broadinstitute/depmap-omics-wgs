@@ -63,10 +63,8 @@ task do_fix {
                 gsub(/[[:space:]]+/, ",", $0);
 
                 # emit NDJSON
-                printf(
-                    "{\"chrom\":\"%s\",\"pos\":%s,\"left_flank\":\"%s\",\"repeat\":\"%s\",\"right_flank\":\"%s\",\"distribution\":[%s]}\n",
+                printf "{\"chrom\":\"%s\",\"pos\":%s,\"left_flank\":\"%s\",\"repeat\":\"%s\",\"right_flank\":\"%s\",\"distribution\":[%s]}\n",
                     chrom, pos, left_flank, repeat, right_flank, $0
-                );
             }
         ' "~{msisensor2_output_dis}" > "~{sample_id}.msisensor2.output_dist.ndjson"
     >>>
