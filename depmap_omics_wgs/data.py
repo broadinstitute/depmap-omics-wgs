@@ -137,15 +137,6 @@ def refresh_terra_samples(
     # validate types
     samples = type_data_frame(samples, TerraSample)
 
-    # delete obsolete samples (e.g. ones that have been blacklisted since the last sync)
-    terra_samples = terra_workspace.get_entities("sample")
-    terra_workspace.delete_entities(
-        entity_type="sample",
-        entity_ids=set(terra_samples["sample_id"]).difference(
-            set(samples["sample_id"])
-        ),
-    )
-
     sample_ids = samples.pop("sample_id")
     samples.insert(0, "entity:sample_id", sample_ids)
     # don't replace recently populated cells like `analysis_ready_cram` with blanks in
@@ -219,7 +210,7 @@ def refresh_legacy_terra_samples(
                 "cnv_segments",
                 "mut_somatic_variants",
                 "sv_selected_somatic",
-                "msisensor2_output_dis",
+                "msisensor2_output_dist",
                 "msisensor2_score",
                 "guide_bed_avana",
                 "guide_bed_brunello",
@@ -371,7 +362,7 @@ def onboard_aligned_crams(
                 "guide_bed_ky",
                 "guide_bed_tkov",
                 "msisensor2_output",
-                "msisensor2_output_dis",
+                "msisensor2_output_dist",
                 "msisensor2_output_somatic",
                 "msisensor2_score",
                 "mut_annot_bcftools_fixed_vcf",
