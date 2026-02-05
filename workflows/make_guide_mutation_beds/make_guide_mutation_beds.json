@@ -2,8 +2,7 @@
   "deleted": false,
   "inputs": {
     "make_guide_mutation_beds.sample_id": "this.sample_id",
-    "make_guide_mutation_beds.vcf": "this.mut_vcf",
-    "make_guide_mutation_beds.vcf_idx": "this.mut_vcf_idx"
+    "make_guide_mutation_beds.vcf": "this.mut_annot_bcftools_fixed_vcf"
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
