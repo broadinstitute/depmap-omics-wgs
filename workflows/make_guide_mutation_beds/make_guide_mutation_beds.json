@@ -18,7 +18,7 @@
     "make_guide_mutation_beds.guide_bed_brunello": "this.guide_bed_brunello",
     "make_guide_mutation_beds.guide_bed_humagne": "this.guide_bed_humagne",
     "make_guide_mutation_beds.guide_bed_ky": "this.guide_bed_ky",
-    "make_guide_mutation_beds.guide_bed_tkov": "this.guide_bed_tkov"
+    "make_guide_mutation_beds.guide_bed_tko": "this.guide_bed_tko"
   },
   "rootEntityType": "sample"
 }

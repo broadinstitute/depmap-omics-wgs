@@ -3,5 +3,5 @@
   "make_guide_mutation_beds.bed_brunello": "gs://ccleparams/brunello_26q1.bed",
   "make_guide_mutation_beds.bed_humagne": "gs://ccleparams/humagne_guides.bed",
   "make_guide_mutation_beds.bed_ky": "gs://ccleparams/ky_score_guides.bed",
-  "make_guide_mutation_beds.bed_tkov": "gs://ccleparams/tkov_26q1.bed"
+  "make_guide_mutation_beds.bed_tko": "gs://ccleparams/tko_26q1.bed"
 }

@@ -9,7 +9,7 @@ workflow make_guide_mutation_beds {
         File bed_brunello
         File bed_humagne
         File bed_ky
-        File bed_tkov
+        File bed_tko
     }
 
     call filter_vcfs_by_bed {
@@ -21,7 +21,7 @@ workflow make_guide_mutation_beds {
             bed_brunello = bed_brunello,
             bed_humagne = bed_humagne,
             bed_ky = bed_ky,
-            bed_tkov = bed_tkov
+            bed_tko = bed_tko
     }
 
     call intersect_beds {
@@ -31,12 +31,12 @@ workflow make_guide_mutation_beds {
             mut_bed_brunello = filter_vcfs_by_bed.mut_bed_brunello,
             mut_bed_humagne = filter_vcfs_by_bed.mut_bed_humagne,
             mut_bed_ky = filter_vcfs_by_bed.mut_bed_ky,
-            mut_bed_tkov = filter_vcfs_by_bed.mut_bed_tkov,
+            mut_bed_tko = filter_vcfs_by_bed.mut_bed_tko,
             bed_avana = bed_avana,
             bed_brunello = bed_brunello,
             bed_humagne = bed_humagne,
             bed_ky = bed_ky,
-            bed_tkov = bed_tkov
+            bed_tko = bed_tko
     }
 
     output {
@@ -44,7 +44,7 @@ workflow make_guide_mutation_beds {
         File guide_bed_brunello = intersect_beds.guide_bed_brunello
         File guide_bed_humagne = intersect_beds.guide_bed_humagne
         File guide_bed_ky = intersect_beds.guide_bed_ky
-        File guide_bed_tkov = intersect_beds.guide_bed_tkov
+        File guide_bed_tko = intersect_beds.guide_bed_tko
     }
 }
 
@@ -57,7 +57,7 @@ task filter_vcfs_by_bed {
         File bed_brunello
         File bed_humagne
         File bed_ky
-        File bed_tkov
+        File bed_tko
 
         String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools"
         String docker_image_hash_or_tag = ":production"
@@ -78,8 +78,8 @@ task filter_vcfs_by_bed {
         fi
 
         # create parallel arrays of labels and library BED files
-        labels=("avana" "brunello" "humagne" "ky" "tkov")
-        beds=(~{bed_avana} ~{bed_brunello} ~{bed_humagne} ~{bed_ky} ~{bed_tkov})
+        labels=("avana" "brunello" "humagne" "ky" "tko")
+        beds=(~{bed_avana} ~{bed_brunello} ~{bed_humagne} ~{bed_ky} ~{bed_tko})
 
         # loop over the tuples
         for i in "${!labels[@]}"; do
@@ -101,7 +101,7 @@ task filter_vcfs_by_bed {
         File mut_bed_brunello = "~{sample_id}.mut_brunello.bed"
         File mut_bed_humagne = "~{sample_id}.mut_humagne.bed"
         File mut_bed_ky = "~{sample_id}.mut_ky.bed"
-        File mut_bed_tkov = "~{sample_id}.mut_tkov.bed"
+        File mut_bed_tko = "~{sample_id}.mut_tko.bed"
     }
 
     runtime {
@@ -125,12 +125,12 @@ task intersect_beds {
         File mut_bed_brunello
         File mut_bed_humagne
         File mut_bed_ky
-        File mut_bed_tkov
+        File mut_bed_tko
         File bed_avana
         File bed_brunello
         File bed_humagne
         File bed_ky
-        File bed_tkov
+        File bed_tko
 
         String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/bedtools2"
         String docker_image_hash_or_tag = ":production"
@@ -146,16 +146,16 @@ task intersect_beds {
         + size(mut_bed_brunello, "GiB")
         + size(mut_bed_humagne, "GiB")
         + size(mut_bed_ky, "GiB")
-        + size(mut_bed_tkov, "GiB")
+        + size(mut_bed_tko, "GiB")
     ) + 10 + additional_disk_gb
 
     command <<<
         set -euo pipefail
 
         # create parallel arrays of labels, mutation BED files, and library BED files
-        labels=("avana" "brunello" "humagne" "ky" "tkov")
-        mut_beds=(~{mut_bed_avana} ~{mut_bed_brunello} ~{mut_bed_humagne} ~{mut_bed_ky} ~{mut_bed_tkov})
-        beds=(~{bed_avana} ~{bed_brunello} ~{bed_humagne} ~{bed_ky} ~{bed_tkov})
+        labels=("avana" "brunello" "humagne" "ky" "tko")
+        mut_beds=(~{mut_bed_avana} ~{mut_bed_brunello} ~{mut_bed_humagne} ~{mut_bed_ky} ~{mut_bed_tko})
+        beds=(~{bed_avana} ~{bed_brunello} ~{bed_humagne} ~{bed_ky} ~{bed_tko})
 
         # loop over the tuples
         for i in "${!labels[@]}"; do
@@ -179,7 +179,7 @@ task intersect_beds {
         File guide_bed_brunello = "~{sample_id}.guide_brunello.bed"
         File guide_bed_humagne = "~{sample_id}.guide_humagne.bed"
         File guide_bed_ky = "~{sample_id}.guide_ky.bed"
-        File guide_bed_tkov = "~{sample_id}.guide_tkov.bed"
+        File guide_bed_tko = "~{sample_id}.guide_tko.bed"
     }
 
     runtime {

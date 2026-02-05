@@ -216,7 +216,7 @@ def refresh_legacy_terra_samples(
                 "guide_bed_brunello",
                 "guide_bed_humagne",
                 "guide_bed_ky",
-                "guide_bed_tkov",
+                "guide_bed_tko",
                 "mut_annot_bcftools_fixed_vcf",
             ],
         ]
@@ -228,7 +228,7 @@ def refresh_legacy_terra_samples(
                 "guide_bed_brunello": "brunello_binary_mut",
                 "guide_bed_humagne": "humagne_binary_mut",
                 "guide_bed_ky": "ky_binary_mut",
-                "guide_bed_tkov": "tkov3_binary_mut",
+                "guide_bed_tko": "tkov3_binary_mut",
                 "mut_annot_bcftools_fixed_vcf": "mutect2_fixed_vcf",
             }
         )
@@ -360,7 +360,7 @@ def onboard_aligned_crams(
                 "guide_bed_brunello",
                 "guide_bed_humagne",
                 "guide_bed_ky",
-                "guide_bed_tkov",
+                "guide_bed_tko",
                 "msisensor2_output",
                 "msisensor2_output_dist",
                 "msisensor2_output_somatic",

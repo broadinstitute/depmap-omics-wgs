@@ -46,7 +46,7 @@ samples_new_done = (
             "guide_bed_brunello",
             "guide_bed_humagne",
             "guide_bed_ky",
-            "guide_bed_tkov",
+            "guide_bed_tko",
             # "model_condition_id",
             # "model_id",
             "msisensor2_output",
