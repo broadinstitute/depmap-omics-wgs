@@ -148,7 +148,13 @@ def refresh_terra_samples(
     # workflows, converted the temporary analysis-ready BAM to CRAM, and archived the
     # CRAM, so we can blank out the analysis_ready_ba{i,m} columns now
     samples_done = samples.dropna(subset=["analysis_ready_cram"]).loc[
-        :, ["entity:sample_id", "analysis_ready_bai", "analysis_ready_bam"]
+        :,
+        [
+            "entity:sample_id",
+            "analysis_ready_bai",
+            "analysis_ready_bam",
+            "analysis_ready_bam_size",
+        ],
     ]
     terra_workspace.upload_entities(df=samples_done, delete_empty=True)
 
