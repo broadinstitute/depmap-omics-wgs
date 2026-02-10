@@ -73,9 +73,8 @@ task filter_vcfs_by_bed {
     command <<<
         set -euo pipefail
 
-        if [[ ! -f "~{vcf_idx}" ]]; then
-            bcftools index "~{vcf}"
-        fi
+        bcftools view "~{vcf}" -o input.vcf.gz && rm "~{vcf}"
+        bcftools index input.vcf.gz
 
         # create parallel arrays of labels and library BED files
         labels=("avana" "brunello" "humagne" "ky" "tko")
@@ -92,7 +91,7 @@ task filter_vcfs_by_bed {
                 --exclude="FILTER!='PASS'&GT!='mis'&GT!~'\.'" \
                 --regions-file="$bed" \
                 --format="%CHROM\t%POS\t%END\t%ALT{0}\n" \
-                "~{vcf}" > "~{sample_id}.mut_${label}.bed"
+                input.vcf.gz > "~{sample_id}.mut_${label}.bed"
         done
     >>>
 
