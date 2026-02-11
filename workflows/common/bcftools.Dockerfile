@@ -30,7 +30,7 @@ ADD https://bootstrap.pypa.io/get-pip.py /tmp/get-pip.py
 RUN apt-get -y update \
     && apt-get -y dist-upgrade \
     && apt-get -y install --no-install-recommends --no-install-suggests \
-        autoconf ca-certificates curl gcc libbz2-dev libcurl4-gnutls-dev \
+        autoconf ca-certificates curl file gcc libbz2-dev libcurl4-gnutls-dev \
         libgsl-dev liblzma-dev libperl-dev libssl-dev libz-dev make perl \
         pkg-config python3-dev python3-distutils lbzip2 \
     && apt-get -y autoremove \

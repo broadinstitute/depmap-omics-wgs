@@ -10,6 +10,7 @@ workflow make_guide_mutation_beds {
         File bed_humagne
         File bed_ky
         File bed_tko
+        Float min_af
     }
 
     call filter_vcfs_by_bed {
@@ -21,7 +22,8 @@ workflow make_guide_mutation_beds {
             bed_brunello = bed_brunello,
             bed_humagne = bed_humagne,
             bed_ky = bed_ky,
-            bed_tko = bed_tko
+            bed_tko = bed_tko,
+            min_af = min_af
     }
 
     call intersect_beds {
@@ -58,6 +60,7 @@ task filter_vcfs_by_bed {
         File bed_humagne
         File bed_ky
         File bed_tko
+        Float min_af
 
         String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/bcftools"
         String docker_image_hash_or_tag = ":production"
@@ -73,8 +76,28 @@ task filter_vcfs_by_bed {
     command <<<
         set -euo pipefail
 
-        bcftools view "~{vcf}" -o input.vcf.gz && rm "~{vcf}"
-        bcftools index input.vcf.gz
+        # ensure VCF is block gzipped, not plain gzipped (required for indexing)
+        vcf_converted=false
+
+        if [[ "~{vcf}" == *.gz ]]; then
+            if ! file "~{vcf}" | grep -q "BGZF"; then
+                echo "VCF is not block gzipped, converting..."
+                bcftools view -O z -o temp.vcf.gz "~{vcf}"
+                mv temp.vcf.gz "~{vcf}"
+                vcf_converted=true
+            fi
+        fi
+
+        if [[ ! -f "~{vcf_idx}" ]] || [[ "$vcf_converted" == "true" ]]; then
+            # remove stale index if VCF was converted
+            if [[ "$vcf_converted" == "true" ]] && [[ -f "~{vcf_idx}" ]]; then
+                rm "~{vcf_idx}"
+            fi
+
+            # index the VCF now
+            echo "Indexing VCF..."
+            bcftools index "~{vcf}"
+        fi
 
         # create parallel arrays of labels and library BED files
         labels=("avana" "brunello" "humagne" "ky" "tko")
@@ -88,10 +111,10 @@ task filter_vcfs_by_bed {
             echo "Filtering VCF with ${bed}"
 
             bcftools query \
-                --exclude="FILTER!='PASS'&GT!='mis'&GT!~'\.'" \
+                --include="FILTER='PASS' & FORMAT/AF>=~{min_af}" \
                 --regions-file="$bed" \
-                --format="%CHROM\t%POS\t%END\t%ALT{0}\n" \
-                input.vcf.gz > "~{sample_id}.mut_${label}.bed"
+                --format="%CHROM\t%POS\t%END\t%ALT{0}[\t%AF]\n" \
+                "~{vcf}" > "~{sample_id}.mut_${label}.bed"
         done
     >>>
 
