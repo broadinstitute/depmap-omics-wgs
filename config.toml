@@ -8,7 +8,7 @@ dry_run = false
 [terra]
 repo_namespace = "cds-pipelines"
 workspace_namespace = "broad-firecloud-ccle"
-workspace_name = "depmap-omics-wgs"
+workspace_name = "depmap-omics-wgs-mut-dev"
 legacy_workspace_namespace = "broad-firecloud-ccle"
 legacy_workspace_name = "DepMap_WGS_CN"
 
@@ -171,6 +171,16 @@ method_synopsis = "fix_msi_dist"
 workflow_wdl_path = "./workflows/fix_msi_dist/fix_msi_dist.wdl"
 method_config_json_path = "./workflows/fix_msi_dist/fix_msi_dist.json"
 workflow_inputs_json_path = "./workflows/fix_msi_dist/fix_msi_dist_inputs.json"
+
+[terra.compute_molecular_signatures]
+method_namespace = "cds-pipelines"
+method_name = "compute_molecular_signatures"
+method_config_namespace = "cds-pipelines"
+method_config_name = "compute_molecular_signatures"
+method_synopsis = "Compute molecular signatures"
+workflow_wdl_path = "./workflows/compute_molecular_signatures/compute_molecular_signatures.wdl"
+method_config_json_path = "./workflows/compute_molecular_signatures/compute_molecular_signatures.json"
+workflow_inputs_json_path = "./workflows/compute_molecular_signatures/compute_molecular_signatures_inputs.json"
 
 [ref.hg19]
 ref_alt = "gs://ccleparams/reference/hg19/Homo_sapiens_assembly19.fasta.alt"

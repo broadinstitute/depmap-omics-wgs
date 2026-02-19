@@ -1,0 +1,17 @@
+{
+  "deleted": false,
+  "inputs": {
+    "compute_molecular_signatures.sample_id": "this.sample_id"
+  },
+  "methodConfigVersion": 1,
+  "methodRepoMethod": {
+    "methodNamespace": "cds-pipelines",
+    "methodName": "compute_molecular_signatures",
+    "methodVersion": 1
+  },
+  "namespace": "cds-pipelines",
+  "name": "compute_molecular_signatures",
+  "outputs": {
+  },
+  "rootEntityType": "sample"
+}
