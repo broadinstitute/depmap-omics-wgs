@@ -6,14 +6,17 @@ readme = "README.md"
 requires-python = ">=3.14, <3.15"
 dependencies = [
     "duckdb>=1.4.4",
-    "pandas>=3.0.0",
+    "pandas>=2.3.0,<3.0",
     "pandera[strategies]>=0.29.0",
     "pyarrow>=23.0.1",
+    "signatureanalyzer>=0.0.7",
+    "tables",
     "typer>=0.21.1",
 ]
 
 [dependency-groups]
 dev = [
+    "pandas-stubs>=3.0.0.260204",
     "pyright>=1.1.408",
     "ruff>=0.14.14",
 ]
@@ -27,3 +30,6 @@ select = [
 venvPath = "."
 venv = ".venv"
 include = ["compute_molecular_signatures"]
+
+[tool.uv.sources]
+tables = { git = "https://github.com/PyTables/PyTables.git", rev = "master" }

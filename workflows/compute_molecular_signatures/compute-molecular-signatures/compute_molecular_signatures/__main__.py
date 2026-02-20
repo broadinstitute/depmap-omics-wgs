@@ -1,8 +1,11 @@
 import logging
-from typing import Any
+from pathlib import Path
+from typing import Annotated, Any
 
 import pandas as pd
 import typer
+
+from compute_molecular_signatures.utils import make_maf
 
 pd.set_option("display.max_columns", 30)
 pd.set_option("display.max_colwidth", 50)
@@ -25,15 +28,25 @@ def done(*args, **kwargs):
 
 
 @app.command()
-def do() -> None:
-    pass
-
-
-@app.callback(result_callback=done)
-def main():
+def main(
+    muts: Annotated[
+        Path,
+        typer.Option(help="path the mut_sig Parquet file", exists=True),
+    ],
+    ref_2bit: Annotated[
+        Path,
+        typer.Option(help="path to 2bit reference genome file", exists=True),
+    ],
+    sig_mat_out: Annotated[
+        Path,
+        typer.Option(help="path to output the signatures as an NDJSON file"),
+    ],
+):
     logger = logging.getLogger()
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
+
+    maf = make_maf(muts_path=muts)
 
 
 if __name__ == "__main__":
