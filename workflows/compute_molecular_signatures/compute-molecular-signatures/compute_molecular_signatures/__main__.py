@@ -39,10 +39,6 @@ def make_maf(
         typer.Option(help="path the output the mut_sig MAF"),
     ],
 ):
-    logger = logging.getLogger()
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.INFO)
-
     maf = do_make_maf(muts_path=muts)
     maf.to_csv(maf_out, sep="\t", index=False, quoting=csv.QUOTE_NONE)
 
