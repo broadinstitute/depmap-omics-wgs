@@ -1,76 +1,8 @@
-from pathlib import Path
 from typing import Type
 
 import pandas as pd
 
-from compute_molecular_signatures.types import Maf, PanderaBaseSchema, TypedDataFrame
-
-
-def make_maf(muts_path: Path) -> pd.DataFrame:
-    """
-    Read the mutations Parquet file, apply filters, and convert to a MAF-like data
-    frame.
-
-    :param muts_path: path to the mutations Parquet file
-    :return: a MAF-like data frame
-    """
-
-    df = pd.read_parquet(muts_path)
-
-    # filter using gnomad stats (optionally imputed with 0.0 prevalence)
-    df = df.loc[
-        df["alt_count"].ge(5)
-        & df["vep_gnom_ade_af"].fillna(0.0).lt(1e-6)
-        & df["vep_gnom_adg_af"].fillna(0.0).lt(1e-6)
-    ].copy()
-
-    df["Chromosome"] = df["chrom"].str.replace("^chr", "", regex=True)
-
-    def normalize_indel(row: pd.Series) -> pd.Series:
-        """
-        Normalize (left-align) indelx and adjust positions.
-
-        :param row: a single variant
-        :return: series of (adjusted start position, ref allele, alt allele)
-        """
-
-        ref = row.ref
-        alt = row.alt
-        pos = row.pos
-
-        # deletion
-        if len(ref) > len(alt):
-            idx = ref.find(alt)
-            if idx != -1:
-                return pd.Series([pos + idx + 1, ref[idx + len(alt) :], "-"])
-
-        # insertion
-        if len(ref) < len(alt):
-            idx = alt.find(ref)
-            if idx != -1:
-                return pd.Series([pos + idx + 1, "-", alt[idx + len(ref) :]])
-
-        # SNV or complex
-        return pd.Series([pos, ref, alt])
-
-    df[["Start_Position", "Reference_Allele", "Tumor_Seq_Allele2"]] = df.apply(
-        normalize_indel, axis=1
-    )
-
-    # make minimal MAF-like data frame
-    df = df.rename(
-        columns={
-            "sample_id": "Tumor_Sample_Barcode",
-            "Chromosome": "Chromosome",
-            "Start_Position": "Start_Position",
-            "Reference_Allele": "Reference_Allele",
-            "Tumor_Seq_Allele2": "Tumor_Seq_Allele2",
-        }
-    )
-
-    df["Hugo_Symbol"] = "Unknown"  # not needed for signatureanalyzer
-
-    return type_data_frame(df, Maf, remove_unknown_cols=True)
+from compute_molecular_signatures.types import PanderaBaseSchema, TypedDataFrame
 
 
 def type_data_frame(
@@ -110,7 +42,7 @@ def type_data_frame(
 
         if len(dict_cols) > 0:
             for c in dict_cols:
-                df[c] = [{}] * len(df)
+                df[c] = [{}] * len(df)  # pyright: ignore
 
         if len(list_cols) > 0:
             for c in list_cols:
@@ -146,3 +78,31 @@ def type_data_frame(
         df = TypedDataFrame[pandera_schema](df.loc[:, all_cols])
 
     return df
+
+
+def normalize_indel(row: pd.Series) -> pd.Series:
+    """
+    Normalize (left-align) indelx and adjust positions.
+
+    :param row: a single variant
+    :return: series of (adjusted start position, ref allele, alt allele)
+    """
+
+    ref = row.ref
+    alt = row.alt
+    pos = row.pos
+
+    # deletion
+    if len(ref) > len(alt):
+        idx = ref.find(alt)
+        if idx != -1:
+            return pd.Series([pos + idx + 1, ref[idx + len(alt) :], "-"])
+
+    # insertion
+    if len(ref) < len(alt):
+        idx = alt.find(ref)
+        if idx != -1:
+            return pd.Series([pos + idx + 1, "-", alt[idx + len(ref) :]])
+
+    # SNV or complex
+    return pd.Series([pos, ref, alt])
