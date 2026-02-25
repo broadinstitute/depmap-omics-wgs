@@ -4,9 +4,15 @@ Simple CLI to call SignatureAnalyzer, which is installed in editable mode in
 """
 
 import argparse
+import logging
+import warnings
 
 import pandas as pd
-import signatureanalyzer as sa
+
+# Suppress SyntaxWarnings from twobitreader dependency during import
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", SyntaxWarning)
+    import signatureanalyzer as sa
 
 parser = argparse.ArgumentParser()
 
@@ -39,27 +45,29 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-# load the MAF
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
+logging.info("Loading the MAF")
 maf = pd.read_parquet(args.input_maf)
 
-# get context counts for the sample
+logging.info("Getting context counts for the sample")
 spectra_df = sa.spectra.get_spectra_from_maf(
     maf, hgfile=args.ref_2bit, reference=args.sa_ref, real_snps=True
 )[1]
 
-# load the reference signatures
+logging.info("Loading the reference signatures")
 ref_df, ref_idx = sa.utils.load_reference_signatures(args.sa_ref, verbose=False)
 ref_df = ref_df.set_index("Somatic Mutation Type").iloc[:, :-2]
 
-# run supervised NMF
+logging.info("Running supervised NMF")
 res_supervised = sa.supervised_bnmf.supervised_ardnmf(
     spectra_df, ref_df, objective="poisson", max_iter=args.max_iter, verbose=True
 )
 
-# collect the wide data frame of results
+logging.info("Collecting the wide data frame of results")
 sig_df = res_supervised["H"].T
 
-# make long and drop summary values
+logging.info("Making long and dropping summary values")
 sig_df = (
     sig_df.rename(columns={sig_df.columns[0]: "score"})
     .T.drop(columns=["max", "max_id", "max_norm"])
@@ -67,4 +75,5 @@ sig_df = (
     .rename_axis(None, axis=1)
 )
 
+logging.info("Writing output to parquet file")
 sig_df.to_parquet(args.parquet_out)
