@@ -124,8 +124,8 @@ task compute_scores {
         String docker_image  = "us-central1-docker.pkg.dev/depmap-omics/terra-images/signature-analyzer"
         String docker_image_hash_or_tag = ":production"
         Int cpu = 1
-        Int mem_gb = 4
-        Int preemptible = 2
+        Int mem_gb = 8
+        Int preemptible = 1
         Int max_retries = 0
         Int additional_disk_gb = 0
     }
