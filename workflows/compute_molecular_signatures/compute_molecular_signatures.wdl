@@ -80,12 +80,12 @@ task make_maf {
 
         python -m compute_molecular_signatures \
             make-maf \
-            --muts="~{mut_sig_variants}"
-            --maf-out="~{sample_id}.mut_sig_variants.maf"
+            --muts="~{mut_sig_variants}" \
+            --maf-out="~{sample_id}.mut_sig_variants.maf.parquet"
     >>>
 
     output {
-        File maf = "~{sample_id}.mut_sig_variants.maf"
+        File maf = "~{sample_id}.mut_sig_variants.maf.parquet"
     }
 
     runtime {
