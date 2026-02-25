@@ -39,6 +39,8 @@ def make_maf(
     ],
 ):
     maf = do_make_maf(muts_path=muts)
+
+    logging.info(f"Writing MAF to {maf_out}")
     maf.to_parquet(maf_out)
 
 
