@@ -52,11 +52,15 @@ def make_maf(muts_path: Path) -> TypedDataFrame[Maf]:
     # confirm ref/alt formats are as expected
     assert bool(
         df.loc[is_ins, "ref"].str.slice(stop=1).eq(df.loc[is_ins, "alt"]).all()
-    ), "Unexpected ref/alt formats found for insertions"
+    ) and bool(df.loc[is_ins, "alt"].str.len().eq(1).all()), (
+        "Unexpected ref/alt formats found for insertions"
+    )
 
     assert bool(
         df.loc[is_del, "alt"].str.slice(stop=1).eq(df.loc[is_del, "ref"]).all()
-    ), "Unexpected ref/alt formats found for deletions"
+    ) and bool(df.loc[is_del, "ref"].str.len().eq(1).all()), (
+        "Unexpected ref/alt formats found for deletions"
+    )
 
     # strip shared leftmost allele
     df.loc[is_ins, "pos"] += 1
