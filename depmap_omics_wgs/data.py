@@ -380,6 +380,7 @@ def onboard_aligned_crams(
                 "mut_annot_vep_vcf",
                 "mut_duckdb",
                 "mut_filtering_stats",
+                "mut_sig_scores",
                 "mut_sig_variants",
                 "mut_somatic_variants",
                 "mut_vcf",
