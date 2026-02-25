@@ -1,1 +1,4 @@
-{}
+{
+  "compute_molecular_signatures.ref_2bit": "gs://ccleparams/hg38ref/Homo_sapiens_assembly38.2bit",
+  "compute_molecular_signatures.sa_ref": "pcawg_COMPOSITE"
+}

@@ -1,7 +1,8 @@
 {
   "deleted": false,
   "inputs": {
-    "compute_molecular_signatures.sample_id": "this.sample_id"
+    "compute_molecular_signatures.sample_id": "this.sample_id",
+    "compute_molecular_signatures.mut_sig_variants": "this.mut_sig_variants"
   },
   "methodConfigVersion": 1,
   "methodRepoMethod": {
@@ -12,6 +13,7 @@
   "namespace": "cds-pipelines",
   "name": "compute_molecular_signatures",
   "outputs": {
+    "compute_molecular_signatures.mut_sig_scores": "this.mut_sig_scores"
   },
   "rootEntityType": "sample"
 }
