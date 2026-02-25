@@ -78,31 +78,3 @@ def type_data_frame(
         df = TypedDataFrame[pandera_schema](df.loc[:, all_cols])
 
     return df
-
-
-def normalize_indel(row: pd.Series) -> pd.Series:
-    """
-    Normalize (left-align) indelx and adjust positions.
-
-    :param row: a single variant
-    :return: series of (adjusted start position, ref allele, alt allele)
-    """
-
-    ref = row.ref
-    alt = row.alt
-    pos = row.pos
-
-    # deletion
-    if len(ref) > len(alt):
-        idx = ref.find(alt)
-        if idx != -1:
-            return pd.Series([pos + idx + 1, ref[idx + len(alt) :], "-"])
-
-    # insertion
-    if len(ref) < len(alt):
-        idx = alt.find(ref)
-        if idx != -1:
-            return pd.Series([pos + idx + 1, "-", alt[idx + len(ref) :]])
-
-    # SNV or complex
-    return pd.Series([pos, ref, alt])
