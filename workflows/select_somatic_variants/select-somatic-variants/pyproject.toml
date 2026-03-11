@@ -1,30 +1,44 @@
-[tool.poetry]
+[project]
 name = "select-somatic-variants"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 authors = []
+requires-python = ">=3.12,<4"
 readme = "README.md"
-packages = [{include = "select_somatic_variants"}]
-package-mode = false
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "pandas>=2.2.3,<3",
+    "duckdb>=1.4.0,<1.5",
+    "pyarrow>=18.1.0,<19",
+    "typer>=0.15.1,<0.16",
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-pandas = "^2.2.3"
-duckdb = "^1.2.2"
-pyarrow = "^18.1.0"
-typer = "^0.15.1"
+[dependency-groups]
+dev = [
+    "ruff>=0.12.0,<0.13",
+    "pyright>=1.1.402,<2",
+    "pytest>=8.3.4,<9",
+    "pandas-stubs>=2.2.3.250527,<3",
+]
 
-[tool.poetry.group.dev.dependencies]
-ruff = "^0.12.0"
-pyright = "^1.1.402"
-pytest = "^8.3.4"
-pandas-stubs = "^2.2.3.250527"
+[tool.uv]
+package = false
+default-groups = "all"
+
+[tool.uv.build-backend]
+module-name = ["select_somatic_variants"]
+module-root = ""
+
+[build-system]
+requires = ["uv_build>=0.9.22,<0.10.0"]
+build-backend = "uv_build"
 
 [tool.ruff]
 select = [
     "I",  # isort formatting
 ]
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
