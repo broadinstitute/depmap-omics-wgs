@@ -1,6 +1,4 @@
-import json
 import logging
-import uuid
 from pathlib import Path
 from typing import Any, Callable, Type
 
@@ -73,27 +71,6 @@ def model_to_df(
     df = pd.DataFrame(records)
     df = mutator(df)
     return type_data_frame(df, pandera_schema, remove_unknown_cols)
-
-
-def compute_uuidv3(
-    d: dict[str, Any], uuid_namespace: str, keys: set[str] | None = None
-) -> str:
-    """
-    Compute a consistent UUID-formatted ID for a dictionary.
-
-    :param d: a dictionary
-    :param uuid_namespace: a namespace for generated UUIDv3s
-    :param keys: an optional subset of keys to use for hashing, otherwise use all keys
-    :return: the UUIDv3 as a string
-    """
-
-    if keys is None:
-        d_subset = d
-    else:
-        d_subset = {k: v for k, v in d.items() if k in keys}
-
-    hash_key = json.dumps(d_subset, sort_keys=True)
-    return str(uuid.uuid3(uuid.UUID(uuid_namespace), hash_key))
 
 
 def make_workflow_from_config(

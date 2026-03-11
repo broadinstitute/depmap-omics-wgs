@@ -2,7 +2,6 @@ title = "depmap-omics-wgs config"
 
 gcp_project_id = "depmap-omics"
 gumbo_env = "prod"
-uuid_namespace = "00000000-0000-0000-0000-000000000000"
 dry_run = false
 
 [terra]
