@@ -248,6 +248,7 @@ task vcf_to_duckdb {
 task merge_dbs {
     input {
         Array[Array[File]] duckdbs
+        Int compression_level = 9
 
         String docker_image = "us-central1-docker.pkg.dev/depmap-omics/terra-images/vcf-to-duckdb"
         String docker_image_hash_or_tag = ":production"
@@ -282,7 +283,7 @@ task merge_dbs {
         python -m vcf_to_duckdb merge \
             $db_opts \
             --parquet-dir="./parq" \
-            --compression-level=22
+            --compression-level=~{compression_level}
     >>>
 
     output {
