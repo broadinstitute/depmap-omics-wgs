@@ -223,7 +223,8 @@ task vcf_to_duckdb {
             --db-tmp-dir-path="./db_tmp/" \
             --no-multiallelics \
             --config="/app/config.json" \
-            --batch-size=~{batch_size}
+            --batch-size=~{batch_size} \
+            --compression-level=3
     >>>
 
     output {
@@ -278,7 +279,10 @@ task merge_dbs {
             db_opts="$db_opts --db=$path"
         done < "$folder_names_file"
 
-        python -m vcf_to_duckdb merge $db_opts --parquet-dir="./parq"
+        python -m vcf_to_duckdb merge \
+            $db_opts \
+            --parquet-dir="./parq" \
+            --compression-level=22
     >>>
 
     output {
