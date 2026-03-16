@@ -57,7 +57,6 @@ def do_select_somatic_variants(
         db.execute("SET preserve_insertion_order = false;")
 
         logging.info(f"Reading schema and Parquet files from {parquet_dir_path}")
-        replace_vid_uinteger_with_varchar(parquet_dir_path)
         db.sql(f"IMPORT DATABASE '{parquet_dir_path}'")
 
         # make views and tables
@@ -121,21 +120,6 @@ def do_select_somatic_variants(
             f" to {somatic_variants_out_file_path}"
         )
         somatic_variants.to_parquet(somatic_variants_out_file_path, index=False)
-
-
-def replace_vid_uinteger_with_varchar(parquet_dir_path: Path) -> None:
-    """
-    Replace all instances of `vid UINTEGER` with `vid VARCHAR` in the `schema.sql`
-    file located in ``parquet_dir_path`` (for backward compatibility).
-    """
-
-    schema_path = parquet_dir_path / "schema.sql"
-
-    text = schema_path.read_text()
-    updated = text.replace("vid UINTEGER", "vid VARCHAR")
-
-    if updated != text:
-        schema_path.write_text(updated)
 
 
 def make_views_and_tables(
@@ -345,7 +329,7 @@ def make_supporting_tables(db: duckdb.DuckDBPyConnection) -> None:
         DROP TABLE IF EXISTS vep;
         
         CREATE TABLE vep (
-            vid VARCHAR PRIMARY KEY,
+            vid UINTEGER PRIMARY KEY,
             am_class VARCHAR,
             am_pathogenicity FLOAT,
             biotype VARCHAR,
@@ -398,7 +382,7 @@ def make_supporting_tables(db: duckdb.DuckDBPyConnection) -> None:
         
         CREATE TABLE variants_enriched (
             sample_id VARCHAR,
-            vid VARCHAR PRIMARY KEY,
+            vid UINTEGER PRIMARY KEY,
             chrom VARCHAR,
             pos UINTEGER,
             id VARCHAR,
@@ -436,9 +420,7 @@ def make_supporting_tables(db: duckdb.DuckDBPyConnection) -> None:
             gc_prop FLOAT,
             hess_driver BOOLEAN,
             hess_signature VARCHAR,
-            lof JSON[],
             mc VARCHAR,
-            nmd JSON[],
             oc_brca1_func_assay_score FLOAT,
             oc_gtex_gtex_gene VARCHAR,
             oc_gwas_catalog_disease VARCHAR,
@@ -537,9 +519,7 @@ def make_supporting_tables(db: duckdb.DuckDBPyConnection) -> None:
             hgnc_name VARCHAR,
             hugo_symbol VARCHAR,
             intron VARCHAR,
-            lof VARCHAR,
             molecular_consequence VARCHAR,
-            nmd VARCHAR,
             oncogene_high_impact BOOLEAN,
             oncokb_effect VARCHAR,
             oncokb_hotspot BOOLEAN,
