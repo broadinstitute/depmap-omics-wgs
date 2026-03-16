@@ -656,8 +656,6 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                 rs: t_rs.rs[1],
                 t_gc_prop.gc_prop,
                 mc: list_aggregate(t_mc.mc, 'string_agg', ','),
-                t_lof.lof,
-                t_nmd.nmd,
                 t_oc_gtex_gtex_gene.oc_gtex_gtex_gene,
                 t_oc_gwas_catalog_disease.oc_gwas_catalog_disease,
                 t_oc_gwas_catalog_pmid.oc_gwas_catalog_pmid,
@@ -755,26 +753,6 @@ def make_info_wide(db: duckdb.DuckDBPyConnection) -> None:
                 WHERE
                     k = 'mc'
             ) t_mc ON info.vid = t_mc.vid
-
-            LEFT JOIN (
-                SELECT
-                    vid,
-                    lof: v_json_arr
-                FROM
-                    info
-                WHERE
-                    k = 'lof'
-            ) t_lof ON info.vid = t_lof.vid
-
-            LEFT JOIN (
-                SELECT
-                    vid,
-                    nmd: v_json_arr
-                FROM
-                    info
-                WHERE
-                    k = 'nmd'
-            ) t_nmd ON info.vid = t_nmd.vid
 
             LEFT JOIN (
                 SELECT
@@ -1514,9 +1492,7 @@ def make_somatic_variants(db: duckdb.DuckDBPyConnection) -> None:
                 cosmic_tier,
                 dbsnp_rs_id: rs,
                 gc_content: gc_prop,
-                lof,
                 molecular_consequence: mc,
-                nmd,
                 gtex_gene: oc_gtex_gtex_gene,
                 gwas_disease: oc_gwas_catalog_disease,
                 gwas_pmid: oc_gwas_catalog_pmid,
@@ -1652,9 +1628,7 @@ def get_somatic_variants_as_df(db: duckdb.DuckDBPyConnection) -> pd.DataFrame:
                 "hgnc_name": "string",
                 "hugo_symbol": "string",
                 "intron": "string",
-                "lof": "string",
                 "molecular_consequence": "string",
-                "nmd": "string",
                 "oncogene_high_impact": "boolean",
                 "oncokb_effect": "string",
                 "oncokb_hotspot": "boolean",
