@@ -1016,7 +1016,7 @@ def populate_vep(db: duckdb.DuckDBPyConnection) -> None:
                 SELECT
                     vid,
                     csq: json_transform(
-                        unnest(v_json_arr),
+                        v_json,
                         '{
                             "am_class": "VARCHAR",
                             "am_pathogenicity": "FLOAT",
