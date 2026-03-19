@@ -137,8 +137,6 @@ def refresh_terra_samples(
     # validate types
     samples = type_data_frame(samples, TerraSample)
 
-    sample_ids = samples.pop("sample_id")
-    samples.insert(0, "entity:sample_id", sample_ids)
     # don't replace recently populated cells like `analysis_ready_cram` with blanks in
     # case we haven't run `onboard_aligned_crams` since the most recent alignment jobs
     # have completed, thus `delete_empty=False`
@@ -150,7 +148,7 @@ def refresh_terra_samples(
     samples_cram_done = samples.dropna(subset=["analysis_ready_cram"]).loc[
         :,
         [
-            "entity:sample_id",
+            "sample_id",
             "analysis_ready_bai",
             "analysis_ready_bam",
             "analysis_ready_bam_size",
