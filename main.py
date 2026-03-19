@@ -73,6 +73,12 @@ def run(cloud_event: CloudEvent) -> None:
         )
 
     elif ce_data["cmd"] == "submit-delta-job":
+        refresh_terra_samples(
+            terra_workspace=terra_workspace,
+            gumbo_client=gumbo_client,
+            ref_urls=config["ref"],
+        )
+
         failed_submissions = []
         entities = {}  # only get each entity type once while iterating over jobs
 
