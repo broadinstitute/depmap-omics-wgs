@@ -1,3 +1,3 @@
 # Call CNVs
 
-Call relative copy numbers using GATK.
+Call relative copy numbers.
