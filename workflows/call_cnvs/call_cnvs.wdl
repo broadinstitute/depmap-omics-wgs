@@ -196,6 +196,7 @@ task call_segments {
 
         # calculate weighted-mean copy numbers for protein-coding gene
         sed '1d' "~{sample_id}.read_cov_bin.tsv" \
+            | awk '$11 != "NA"' \ # remove NA bins here so they don't inflate the denominator
             | bedtools intersect -a "~{protein_coding_genes_bed}" -b stdin -wao \
             | awk '{ print $0"\t"$17*$18 }' \
             | sort --key="1,1V" --key="2,2n" --key="3,3n" --key="4,4n" \
