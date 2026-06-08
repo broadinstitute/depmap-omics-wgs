@@ -43,12 +43,13 @@ task calc_cn_gene_weighted_mean {
         set -euo pipefail
 
         # calculate weighted-mean copy numbers for protein-coding gene
+        # remove NA bins so they don't inflate the denominator
         sed '1d' "~{read_cov_bin}" \
-            | awk '$11 != "NA"' \ # remove NA bins here so they don't inflate the denominator
+            | awk '$11 != "NA"' \
             | bedtools intersect -a "~{protein_coding_genes_bed}" -b stdin -wao \
-            | awk '{ print $0"\t"$15*$16 }' \
+            | awk '{ print $0"\t"$17*$18 }' \
             | sort --key="1,1V" --key="2,2n" --key="3,3n" --key="4,4n" \
-            | bedtools groupby -g 1,2,3,4 -c 16,17,17 -o sum,sum,count \
+            | bedtools groupby -g 1,2,3,4 -c 18,19,19 -o sum,sum,count \
             | awk '{ if ($6 == 0) { print $0"\tNA" } else { print $0"\t"$6/($5+1) } }' \
             > "~{sample_id}.cn_gene_weighted_mean.tsv"
     >>>
