@@ -44,7 +44,8 @@ task calc_cn_gene_weighted_mean {
 
         # calculate weighted-mean copy numbers for protein-coding gene
         # remove NA bins so they don't inflate the denominator
-        sed '1d' "~{read_cov_bin}" \
+        # unzip before run
+        zcat "~{read_cov_bin}" | tail -n +2 \
             | awk '$11 != "NA"' \
             | awk 'BEGIN{OFS="\t"} { $11 = 2^$11; print }' \
             | bedtools intersect -a "~{protein_coding_genes_bed}" -b stdin -wao \
