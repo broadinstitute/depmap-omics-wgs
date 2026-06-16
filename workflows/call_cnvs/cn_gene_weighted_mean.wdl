@@ -44,7 +44,7 @@ task calc_cn_gene_weighted_mean {
 
         # calculate weighted-mean copy numbers for protein-coding gene
         # remove NA bins so they don't inflate the denominator
-        # unzip before run
+        # undo log2 transform, take mean, and then log2 transform back so mean is taken at the linear scale
         zcat "~{read_cov_bin}" | tail -n +2 \
             | awk '$11 != "NA"' \
             | awk 'BEGIN{OFS="\t"} { $11 = 2^$11; print }' \
